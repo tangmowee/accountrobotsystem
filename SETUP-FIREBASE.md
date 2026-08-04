@@ -104,6 +104,36 @@ service cloud.firestore {
 
 ---
 
+## เปิดใช้ผ่านลิงก์เว็บ + หน้ามือถือพนักงาน (Firebase Hosting)
+
+โครงสร้างไฟล์สำหรับ deploy อยู่ในโฟลเดอร์ `public/`:
+
+| ไฟล์ | คือ | ลิงก์หลัง deploy |
+|------|-----|------------------|
+| `public/index.html` | **หน้ามือถือพนักงาน** (ปุ่มใหญ่ เช็คอิน/เอาท์ + GPS) — เป็นหน้าแรก | `https://<project>.web.app/` |
+| `public/dashboard.html` | **แดชบอร์ดแอดมิน** (การเงิน + Planner + รายงาน) | `https://<project>.web.app/dashboard` |
+| `public/firebase-config.js` | ใส่ Firebase config **ที่เดียว** ใช้ร่วมทั้ง 2 หน้า | — |
+
+> ทั้ง 2 หน้าใช้ Firestore ชุดเดียวกัน (`rsc/rsc_checkin_log`, `rsc/rsc_planner`)
+> ข้อมูลจึงรวมกันอัตโนมัติ — พนักงานเช็คอินจากมือถือ แล้วแอดมินเห็นในแดชบอร์ดทันที
+
+### ขั้นตอน deploy (ทำครั้งแรก ~10 นาที)
+
+1. ใส่ Firebase config ในไฟล์ **`public/firebase-config.js`** (จุดเดียว)
+2. ติดตั้งเครื่องมือ (ถ้ายังไม่มี): `npm install -g firebase-tools`
+3. ล็อกอิน: `firebase login`
+4. แก้ชื่อโปรเจกต์ใน `.firebaserc` ให้ตรงกับ Project ID จริง (ค่าเริ่มต้นคือ `rsc-checkin`)
+5. Deploy: `firebase deploy --only hosting`
+6. เสร็จ → ได้ลิงก์ `https://<project>.web.app`
+   - แจก **ลิงก์หลัก** ให้พนักงาน (หน้ามือถือ)
+   - แอดมินเข้า **`/dashboard`**
+
+### ทิปหน้ามือถือ
+- ให้พนักงานกด "เพิ่มลงหน้าจอโฮม" (Add to Home Screen) เปิดใช้เหมือนแอปได้เลย
+- ต้องเปิดผ่าน `https://` (Hosting ให้มาอยู่แล้ว) GPS/ล็อกอินถึงทำงานเต็มที่
+
+---
+
 ## หมายเหตุทางเทคนิค
 - ใช้ Firestore แบบ 1 เอกสารต่อ 1 คอลเลกชัน (`rsc/rsc_checkin_log`, `rsc/rsc_planner`) เก็บเป็น array
   เพียงพอสำหรับทีมขนาด SME (จำกัด 1 MB/เอกสาร ≈ หลายพันรายการ) หากในอนาคตข้อมูลโตมาก

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0D0D0D">
+<title>RSC เช็คอิน — พนักงาน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --orange:#E85D04; --orange-light:#F48C06; --orange-dim:rgba(232,93,4,0.12);
+    --dark:#0D0D0D; --dark2:#141414; --card:#1A1A1A; --border:rgba(255,255,255,0.08);
+    --text:#F0EDE8; --muted:#888; --green:#2ECC71; --red:#E74C3C; --yellow:#F39C12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--dark);color:var(--text);font-family:'Sarabun',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;}
+
+  .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .logo-mark{width:32px;height:32px;background:var(--orange);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:#fff;}
+  .brand b{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:18px;}
+  .conn{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;}
+  .conn.cloud{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
+  .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
+
+  .wrap{max-width:520px;margin:0 auto;padding:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+
+  .clock{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:3px;color:var(--orange);line-height:1;text-align:center;}
+  .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
+  .statusline{text-align:center;margin-top:14px;}
+  .chip{display:inline-block;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
+  .chip.in{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
+  .chip.out{background:rgba(136,136,136,0.15);color:var(--muted);border:1px solid rgba(136,136,136,0.3);}
+
+  label{display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
+  select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:16px;padding:13px;outline:none;}
+  select:focus,input:focus{border-color:var(--orange);}
+
+  .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .geo.ok{border-style:solid;border-color:rgba(46,204,113,0.4);}
+  .geo.err{border-style:solid;border-color:rgba(231,76,60,0.4);}
+  .geo .coord{color:var(--orange-light);font-weight:600;font-size:15px;}
+  .geo .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
+  .maplink{color:var(--green);text-decoration:none;}
+
+  .btn{width:100%;font-family:'Sarabun',sans-serif;font-size:17px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);padding:16px;border-radius:10px;cursor:pointer;margin-top:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.35;}
+  .btn.gps{background:var(--dark2);}
+  .btn.in{background:var(--orange);border-color:var(--orange);color:#fff;font-size:19px;}
+  .btn.out{border-color:rgba(231,76,60,0.5);color:var(--red);font-size:19px;}
+  .btn.ghost{padding:11px;font-size:13px;font-weight:600;}
+
+  .rec{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;}
+  .rec:last-child{border-bottom:none;}
+  .rec .t{font-family:'IBM Plex Mono',monospace;color:var(--muted);}
+  .rec .h{color:var(--orange-light);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .muted{color:var(--muted);font-size:12px;}
+  .title{font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+
+  /* login */
+  .overlay{position:fixed;inset:0;background:rgba(5,5,5,0.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .overlay.show{display:flex;}
+  .overlay .card{width:100%;max-width:400px;}
+  .overlay h2{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:26px;margin-bottom:2px;}
+  .overlay .sub{color:var(--muted);font-size:12px;margin-bottom:8px;}
+  .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px;}
+  .user{font-size:11px;color:var(--muted);}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--card);border:1px solid var(--orange);color:var(--text);padding:12px 20px;border-radius:24px;font-size:14px;z-index:300;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="overlay" id="login">
+  <div class="card">
+    <div class="logo-mark" style="margin-bottom:14px;">RSC</div>
+    <h2>เข้าสู่ระบบ</h2>
+    <div class="sub">ระบบลงเวลาพนักงาน — Robot System</div>
+    <label>อีเมล</label><input type="email" id="l-email" autocomplete="username" placeholder="you@robotsystem.co.th">
+    <label>รหัสผ่าน</label><input type="password" id="l-pass" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn in" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="err" id="l-err"></div>
+    <div class="muted" style="margin-top:10px;">บัญชีสร้างโดยแอดมินที่ Firebase Console</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="brand"><div class="logo-mark">RSC</div><b>Check-in</b></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="conn local" id="conn">LOCAL</span>
+    <span class="user" id="user"></span>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <!-- status -->
+  <div class="card">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date" id="date">—</div>
+    <div class="statusline" id="statusline"><span class="chip out">ยังไม่เช็คอิน</span></div>
+  </div>
+
+  <!-- form -->
+  <div class="card">
+    <label>งานวันนี้ (จาก RSC Planner)</label>
+    <select id="job"><option value="">— เลือกงาน/ไซต์งาน —</option></select>
+
+    <label>หมายเหตุ (ถ้ามี)</label>
+    <input type="text" id="note" placeholder="เช่น ติดตั้งแขนกล / เข้าพบลูกค้า">
+
+    <div class="geo" id="geo"><div class="lbl">พิกัด GPS</div><div id="geo-txt">ยังไม่ได้ระบุพิกัด</div></div>
+
+    <button class="btn gps" onclick="getLoc()">🛰️ ดึงพิกัด GPS</button>
+    <button class="btn in"  id="btn-in"  onclick="checkin()">✅ เช็คอิน</button>
+    <button class="btn out" id="btn-out" onclick="checkout()" disabled>🔴 เช็คเอาท์</button>
+  </div>
+
+  <!-- my history -->
+  <div class="card">
+    <div class="title">🕓 ประวัติล่าสุดของฉัน</div>
+    <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== state ===== */
+let MODE='local', db=null, auth=null, user=null, currentGeo=null;
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner';
+const state={[LS_LOG]:[],[LS_PLAN]:[]};
+const CFG = window.FIREBASE_CONFIG || {apiKey:''};
+const RADIUS = window.GEOFENCE_RADIUS_M || 300;
+
+/* ===== helpers ===== */
+const $=id=>document.getElementById(id);
+function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function fmtT(ts){return ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';}
+function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+function hrs(a,b){return b&&a?((b-a)/3600000).toFixed(1):'—';}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLon=r(d-b);const h=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+const load=k=>(state[k]||[]).slice();
+function save(k,arr){state[k]=arr.slice();if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>toast('บันทึกไม่สำเร็จ'));}else{localStorage.setItem(k,JSON.stringify(arr));}}
+
+/* ===== firebase ===== */
+function initFb(){
+  if(!CFG.apiKey||typeof firebase==='undefined')return false;
+  try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
+  catch(e){console.error(e);return false;}
+}
+function listeners(){['rsc_checkin_log','rsc_planner'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();refreshState();},e=>console.error(e));
+});}
+
+/* ===== auth ===== */
+function doLogin(){const e=$('l-email').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
+  auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
+function doLogout(){if(auth)auth.signOut();}
+function onAuth(u){user=u;
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(u.email)+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';refreshState();}
+  else{$('login').classList.add('show');$('user').textContent='';}
+}
+function myName(){return user?user.email:'';}
+
+/* ===== geolocation ===== */
+function getLoc(){
+  const box=$('geo'),txt=$('geo-txt');box.className='geo';txt.textContent='กำลังระบุพิกัด...';
+  if(!navigator.geolocation){box.className='geo err';txt.textContent='อุปกรณ์ไม่รองรับ GPS';return;}
+  navigator.geolocation.getCurrentPosition(p=>{
+    currentGeo={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};
+    box.className='geo ok';
+    const g=`${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
+    txt.innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div>
+      <div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่ 🗺️</a></div>`;
+  },e=>{box.className='geo err';txt.textContent='ระบุพิกัดไม่สำเร็จ: '+e.message;},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+}
+
+/* ===== check-in / out (โครงสร้างข้อมูลเดียวกับแดชบอร์ด) ===== */
+function myOpen(){const n=myName();return load(LS_LOG).find(r=>!r.outTs&&r.name===n);}
+function refreshState(){
+  const open=myOpen();
+  if(open){$('statusline').innerHTML=`<span class="chip in">กำลังปฏิบัติงาน · เข้า ${fmtT(open.inTs)}</span>`;$('btn-out').disabled=false;$('btn-in').disabled=true;}
+  else{$('statusline').innerHTML=`<span class="chip out">ยังไม่เช็คอิน</span>`;$('btn-out').disabled=true;$('btn-in').disabled=false;}
+}
+function checkin(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  if(myOpen()){toast('คุณเช็คอินอยู่แล้ว');return;}
+  const jobSel=$('job');
+  if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คอินโดยไม่มีพิกัด?'))return;
+  if(jobSel.value&&currentGeo){
+    const job=load(LS_PLAN).find(p=>p.id===jobSel.value);
+    if(job&&job.geo){const[la,ln]=job.geo.split(',').map(Number);
+      if(!isNaN(la)&&!isNaN(ln)){const d=haversine(currentGeo.lat,currentGeo.lng,la,ln);
+        if(d>RADIUS&&!confirm(`⚠️ อยู่ห่างจากไซต์งาน "${job.title}" ~${Math.round(d)} ม. (เกิน ${RADIUS} ม.)\nยืนยันเช็คอิน?`))return;}}
+  }
+  const now=Date.now();
+  const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
+    note:$('note').value.trim(),inTs:now,inGeo:currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'',outTs:null,outGeo:''};
+  const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
+  if(rec.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===rec.jobId);if(j){j.status='in';save(LS_PLAN,p);}}
+  currentGeo=null;$('note').value='';resetGeo();refreshState();renderMyLog();
+  toast('✅ เช็คอินสำเร็จ '+fmtT(now));
+}
+function checkout(){
+  const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
+  if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?'))return;
+  const log=load(LS_LOG);const r=log.find(x=>x.id===rec.id);
+  r.outTs=Date.now();r.outGeo=currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'';save(LS_LOG,log);
+  if(r.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===r.jobId);if(j){j.status='done';save(LS_PLAN,p);}}
+  currentGeo=null;resetGeo();refreshState();renderMyLog();
+  toast('🔴 เช็คเอาท์สำเร็จ '+fmtT(r.outTs));
+}
+function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยังไม่ได้ระบุพิกัด';}
+
+/* ===== render ===== */
+function renderJobs(){
+  const sel=$('job'),cur=sel.value,today=todayStr();
+  const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today));
+  sel.innerHTML='<option value="">— เลือกงาน/ไซต์งาน —</option>'+
+    jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`).join('');
+  sel.value=cur;
+}
+function renderMyLog(){
+  const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,8);
+  const el=$('mylog');
+  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีข้อมูล</div>';return;}
+  el.innerHTML=mine.map(r=>`<div class="rec">
+    <div><div>${new Date(r.inTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''}</div>
+      <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${fmtT(r.outTs)}</div></div>
+    <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div></div>`).join('');
+}
+
+/* ===== clock ===== */
+function tick(){const n=new Date();$('clock').textContent=n.toLocaleTimeString('th-TH',{hour12:false});
+  $('date').textContent=n.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+
+/* ===== init ===== */
+initFb();
+$('conn').className='conn '+(MODE==='firebase'?'cloud':'local');
+$('conn').textContent=MODE==='firebase'?'CLOUD':'LOCAL';
+setInterval(tick,1000);tick();
+if(MODE==='firebase'){listeners();auth.onAuthStateChanged(onAuth);}
+else{
+  // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
+  try{state[LS_LOG]=JSON.parse(localStorage.getItem(LS_LOG))||[];}catch(e){}
+  try{state[LS_PLAN]=JSON.parse(localStorage.getItem(LS_PLAN))||[];}catch(e){}
+  $('login').classList.remove('show');
+  user={email:localStorage.getItem('rsc_local_name')||''};
+  if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}
+  $('user').textContent=user.email;
+  renderJobs();renderMyLog();refreshState();
+}
+</script>
+</body>
+</html>
