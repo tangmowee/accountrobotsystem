@@ -442,6 +442,97 @@
   }
   .cf-table .neg { color: var(--red) !important; }
 
+  /* ===== CHECK-IN / CHECK-OUT + PLANNER ===== */
+  .btn {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: var(--orange); color: var(--orange-light); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .btn.primary:hover { background: var(--orange-light); color: #fff; }
+  .btn.danger { border-color: rgba(231,76,60,0.4); color: var(--red); }
+  .btn.danger:hover { background: rgba(231,76,60,0.12); }
+  .btn.lg { font-size: 15px; padding: 14px 26px; }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--orange); }
+
+  .geo-box {
+    background: var(--dark2);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  .geo-box.ok { border-color: rgba(46,204,113,0.4); border-style: solid; }
+  .geo-box.err { border-color: rgba(231,76,60,0.4); border-style: solid; }
+  .geo-coord { color: var(--orange-light); font-weight: 600; font-size: 15px; }
+  .geo-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .geo-map-link { color: var(--green); text-decoration: none; }
+  .geo-map-link:hover { text-decoration: underline; }
+
+  .status-chip {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .status-chip.in { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .status-chip.out { background: rgba(136,136,136,0.15); color: var(--muted); border: 1px solid rgba(136,136,136,0.3); }
+  .status-chip.plan { background: var(--orange-dim); color: var(--orange-light); border: 1px solid rgba(232,93,4,0.3); }
+  .status-chip.done { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .status-chip.late { background: rgba(243,156,18,0.15); color: var(--yellow); border: 1px solid rgba(243,156,18,0.3); }
+
+  .live-clock {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 3px;
+    color: var(--orange);
+    line-height: 1;
+  }
+  .live-date { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .empty-row td { text-align: center; color: var(--muted); padding: 24px; font-style: italic; }
+  .planner-link { color: var(--orange-light); font-size: 11px; }
+  .mini-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
 </style>
 </head>
 <body>
@@ -464,6 +555,8 @@
   <div class="nav-tab" onclick="showTab('debt')">📋 ภาระหนี้สิน</div>
   <div class="nav-tab" onclick="showTab('income')">📈 งบกำไรขาดทุน</div>
   <div class="nav-tab" onclick="showTab('balance')">⚖️ งบฐานะการเงิน</div>
+  <div class="nav-tab" onclick="showTab('checkin')">📍 เช็คอิน/เช็คเอาท์</div>
+  <div class="nav-tab" onclick="showTab('planner')">🗓️ RSC Planner</div>
 </div>
 
 <!-- MAIN -->
@@ -1233,6 +1326,153 @@
     </div>
   </div>
 
+  <!-- ===== TAB: CHECK-IN / CHECK-OUT ===== -->
+  <div class="section" id="tab-checkin">
+    <div class="section-title">เช็คอิน / เช็คเอาท์ ออนไลน์</div>
+    <div class="section-sub">ระบบลงเวลาพร้อมพิกัด GPS — แทนการลงเวลาด้วยคน (Human OS)  •  เชื่อมกับ RSC Planner</div>
+
+    <div class="cards-row col-2-1">
+      <!-- LEFT: Check-in form -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">📍 ลงเวลาปฏิบัติงาน</div>
+          <span class="card-tag" id="today-status">—</span>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div>
+            <div class="live-clock" id="live-clock">--:--:--</div>
+            <div class="live-date" id="live-date">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="geo-label">สถานะวันนี้</div>
+            <div id="worker-state"><span class="status-chip out">ยังไม่เช็คอิน</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>ชื่อพนักงาน / รหัส</label>
+          <input type="text" id="emp-name" placeholder="เช่น สมชาย ใจดี (ENG-014)" />
+        </div>
+
+        <div class="field">
+          <label>งานตาม RSC Planner (ลิงก์กับแผนงาน)</label>
+          <select id="job-select">
+            <option value="">— เลือกงาน/ไซต์งานจาก Planner —</option>
+          </select>
+          <div class="mini-note">รายการนี้ดึงจากแท็บ RSC Planner อัตโนมัติ</div>
+        </div>
+
+        <div class="field">
+          <label>หมายเหตุ (ถ้ามี)</label>
+          <input type="text" id="note-input" placeholder="เช่น ติดตั้งแขนกล / เข้าพบลูกค้า" />
+        </div>
+
+        <div class="geo-box" id="geo-box">
+          <div class="geo-label">พิกัด GPS</div>
+          <div id="geo-status">ยังไม่ได้ระบุพิกัด — กด "ดึงพิกัด GPS"</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" onclick="getLocation()">🛰️ ดึงพิกัด GPS</button>
+          <button class="btn primary lg" id="btn-checkin" onclick="doCheckin()">✅ เช็คอิน</button>
+          <button class="btn danger lg" id="btn-checkout" onclick="doCheckout()" disabled>🔴 เช็คเอาท์</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Today summary -->
+      <div class="content-card">
+        <div class="card-header"><div class="card-title">📊 สรุปวันนี้</div></div>
+        <div class="cards-row col-1" style="gap:0;">
+          <div class="kpi green" style="margin-bottom:12px;">
+            <div class="kpi-label">เช็คอินแล้ววันนี้</div>
+            <div class="kpi-value green" id="kpi-in">0</div>
+            <div class="kpi-sub">คน</div>
+          </div>
+          <div class="kpi" style="margin-bottom:12px;">
+            <div class="kpi-label">กำลังปฏิบัติงาน (ยังไม่เช็คเอาท์)</div>
+            <div class="kpi-value orange" id="kpi-active">0</div>
+            <div class="kpi-sub">คน</div>
+          </div>
+          <div class="kpi yellow">
+            <div class="kpi-label">งานตาม Planner วันนี้</div>
+            <div class="kpi-value" id="kpi-jobs" style="font-size:26px;">0</div>
+            <div class="kpi-sub">รายการ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History table -->
+    <div class="content-card">
+      <div class="card-header">
+        <div class="card-title">🕓 ประวัติการลงเวลา</div>
+        <button class="btn" onclick="exportCSV()" style="padding:6px 12px;font-size:12px;">⬇️ ส่งออก CSV</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่</th><th>พนักงาน</th><th>งาน (Planner)</th>
+              <th>เช็คอิน</th><th>พิกัดเข้า</th>
+              <th>เช็คเอาท์</th><th>พิกัดออก</th>
+              <th>ชม.</th><th>สถานะ</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr class="empty-row"><td colspan="10">ยังไม่มีข้อมูลการลงเวลา</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: RSC PLANNER ===== -->
+  <div class="section" id="tab-planner">
+    <div class="section-title">RSC Planner — แผนงาน / ไซต์งาน</div>
+    <div class="section-sub">วางแผนงานและมอบหมายทีม — เชื่อมกับระบบเช็คอิน/เช็คเอาท์อัตโนมัติ</div>
+
+    <div class="cards-row col-1-2">
+      <!-- Add job form -->
+      <div class="content-card">
+        <div class="card-header"><div class="card-title">➕ เพิ่มแผนงาน</div></div>
+        <div class="field"><label>ชื่องาน / โปรเจกต์</label>
+          <input type="text" id="pl-title" placeholder="เช่น ติดตั้งหุ่นยนต์สายการผลิต" /></div>
+        <div class="field"><label>สถานที่ / ไซต์งาน</label>
+          <input type="text" id="pl-site" placeholder="เช่น โรงงานลูกค้า อ.ศรีราชา" /></div>
+        <div class="field"><label>ผู้รับผิดชอบ / ทีม</label>
+          <input type="text" id="pl-owner" placeholder="เช่น ทีมวิศวกรรม A" /></div>
+        <div class="cards-row col-2" style="gap:12px;">
+          <div class="field"><label>วันที่</label><input type="date" id="pl-date" /></div>
+          <div class="field"><label>เวลาเริ่ม</label><input type="time" id="pl-time" /></div>
+        </div>
+        <div class="field"><label>พิกัดไซต์งาน (ถ้ามี)</label>
+          <input type="text" id="pl-geo" placeholder="lat, lng — หรือกดดึงพิกัด" />
+          <div style="margin-top:8px;"><button class="btn" onclick="getPlannerLocation()" style="padding:6px 12px;font-size:12px;">🛰️ ดึงพิกัดปัจจุบัน</button></div>
+        </div>
+        <button class="btn primary" onclick="addPlan()">บันทึกแผนงาน</button>
+      </div>
+
+      <!-- Planner table -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-title">🗓️ แผนงานทั้งหมด</div>
+          <span class="card-tag" id="pl-count">0 งาน</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>วัน/เวลา</th><th>งาน</th><th>ไซต์งาน</th><th>ทีม</th><th>พิกัด</th><th>สถานะ</th><th></th></tr>
+            </thead>
+            <tbody id="plan-body">
+              <tr class="empty-row"><td colspan="7">ยังไม่มีแผนงาน — เพิ่มงานแรกได้เลย</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <div class="watermark">RSC CONFIDENTIAL — FEB 2569</div>
@@ -1242,8 +1482,258 @@ function showTab(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
-  event.target.classList.add('active');
+  if (window.event && event.target) event.target.classList.add('active');
+  if (id === 'checkin') { renderJobOptions(); renderLog(); }
+  if (id === 'planner') renderPlans();
 }
+
+/* ============ STORAGE ============ */
+const LS_LOG  = 'rsc_checkin_log';
+const LS_PLAN = 'rsc_planner';
+const load = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e){ return []; } };
+const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+
+/* Seed demo planner data on first run */
+function seedPlanner() {
+  if (localStorage.getItem(LS_PLAN)) return;
+  const t = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  save(LS_PLAN, [
+    { id: uid(), title:'ติดตั้งแขนกลสายการผลิต', site:'โรงงานลูกค้า อ.ศรีราชา ชลบุรี', owner:'ทีมวิศวกรรม A', date: iso(t), time:'08:30', geo:'13.1745,100.9310', status:'plan' },
+    { id: uid(), title:'PM ระบบ CNC ประจำเดือน', site:'RSC สำนักงานใหญ่', owner:'ทีมซ่อมบำรุง', date: iso(t), time:'13:00', geo:'13.7563,100.5018', status:'plan' },
+    { id: uid(), title:'สำรวจหน้างานติดตั้ง AGV', site:'คลังสินค้า บางนา กม.19', owner:'ทีมโครงการ B', date: iso(t), time:'10:00', geo:'', status:'plan' }
+  ]);
+}
+
+/* ============ HELPERS ============ */
+function uid(){ return 'id' + Math.floor(performance.now()*1000).toString(36) + Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtTime(ts){ return ts ? new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '—'; }
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('th-TH',{day:'2-digit',month:'short'}); }
+function mapLink(geo){
+  if(!geo) return '<span style="color:var(--muted)">—</span>';
+  const c = geo.replace(/\s/g,'');
+  return `<a class="geo-map-link" target="_blank" href="https://www.google.com/maps?q=${c}">${geo.split(',').map(n=>(+n).toFixed(4)).join(', ')} 🗺️</a>`;
+}
+function esc(s){ return (s||'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+/* ============ GEOLOCATION ============ */
+let currentGeo = null;
+function getLocation(){
+  const box = document.getElementById('geo-box');
+  const st  = document.getElementById('geo-status');
+  box.className = 'geo-box';
+  st.textContent = 'กำลังระบุพิกัด...';
+  if(!navigator.geolocation){ box.className='geo-box err'; st.textContent='อุปกรณ์ไม่รองรับ GPS'; return; }
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      currentGeo = { lat:p.coords.latitude, lng:p.coords.longitude, acc:Math.round(p.coords.accuracy) };
+      box.className = 'geo-box ok';
+      const g = `${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
+      st.innerHTML = `<div class="geo-coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div>
+        <div class="geo-label" style="margin-top:6px;">ความแม่นยำ ±${currentGeo.acc} ม. &nbsp;•&nbsp;
+        <a class="geo-map-link" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดใน Google Maps 🗺️</a></div>`;
+    },
+    e => { box.className='geo-box err'; st.textContent = 'ระบุพิกัดไม่สำเร็จ: ' + e.message + ' (อนุญาตสิทธิ์ตำแหน่งในเบราว์เซอร์)'; },
+    { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+  );
+}
+
+/* ============ CHECK-IN / OUT ============ */
+function openRecord(){
+  return load(LS_LOG).find(r => !r.outTs); // any open (not checked out) record — simple single-active model per browser
+}
+function myOpenRecord(name){
+  return load(LS_LOG).find(r => !r.outTs && r.name === name);
+}
+
+function doCheckin(){
+  const name = document.getElementById('emp-name').value.trim();
+  if(!name){ alert('กรุณากรอกชื่อพนักงาน'); return; }
+  if(!currentGeo){ if(!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คอินโดยไม่มีพิกัด?')) return; }
+  if(myOpenRecord(name)){ alert('พนักงานนี้เช็คอินอยู่แล้ว กรุณาเช็คเอาท์ก่อน'); return; }
+
+  const jobSel = document.getElementById('job-select');
+  const now = Date.now();
+  const rec = {
+    id: uid(), name, date: todayStr(),
+    jobId: jobSel.value || '', jobTitle: jobSel.options[jobSel.selectedIndex]?.dataset.title || '',
+    note: document.getElementById('note-input').value.trim(),
+    inTs: now, inGeo: currentGeo ? `${currentGeo.lat},${currentGeo.lng}` : '',
+    outTs: null, outGeo: ''
+  };
+  const log = load(LS_LOG); log.unshift(rec); save(LS_LOG, log);
+
+  // mark planner job in-progress
+  if(rec.jobId){ const p=load(LS_PLAN); const j=p.find(x=>x.id===rec.jobId); if(j){ j.status='in'; save(LS_PLAN,p);} }
+
+  currentGeo = null;
+  document.getElementById('note-input').value = '';
+  resetGeoBox();
+  renderLog(); updateWorkerState(name);
+  alert('✅ เช็คอินสำเร็จ เวลา ' + fmtTime(now));
+}
+
+function doCheckout(){
+  const name = document.getElementById('emp-name').value.trim();
+  const rec = myOpenRecord(name);
+  if(!rec){ alert('ไม่พบการเช็คอินของพนักงานนี้'); return; }
+  if(!currentGeo){ if(!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?')) return; }
+  const log = load(LS_LOG); const r = log.find(x=>x.id===rec.id);
+  r.outTs = Date.now();
+  r.outGeo = currentGeo ? `${currentGeo.lat},${currentGeo.lng}` : '';
+  save(LS_LOG, log);
+  if(r.jobId){ const p=load(LS_PLAN); const j=p.find(x=>x.id===r.jobId); if(j){ j.status='done'; save(LS_PLAN,p);} }
+  currentGeo = null; resetGeoBox();
+  renderLog(); updateWorkerState(name);
+  alert('🔴 เช็คเอาท์สำเร็จ เวลา ' + fmtTime(r.outTs));
+}
+
+function resetGeoBox(){
+  const box=document.getElementById('geo-box'); const st=document.getElementById('geo-status');
+  box.className='geo-box'; st.textContent='ยังไม่ได้ระบุพิกัด — กด "ดึงพิกัด GPS"';
+}
+
+function updateWorkerState(name){
+  const el = document.getElementById('worker-state');
+  const btnOut = document.getElementById('btn-checkout');
+  const btnIn = document.getElementById('btn-checkin');
+  const open = name ? myOpenRecord(name) : null;
+  if(open){
+    el.innerHTML = `<span class="status-chip in">กำลังปฏิบัติงาน • เข้า ${fmtTime(open.inTs)}</span>`;
+    btnOut.disabled=false; btnIn.disabled=true;
+  } else {
+    el.innerHTML = `<span class="status-chip out">ยังไม่เช็คอิน</span>`;
+    btnOut.disabled=true; btnIn.disabled=false;
+  }
+}
+
+function delRecord(id){
+  if(!confirm('ลบรายการนี้?')) return;
+  save(LS_LOG, load(LS_LOG).filter(r=>r.id!==id));
+  renderLog(); updateWorkerState(document.getElementById('emp-name').value.trim());
+}
+
+/* ============ RENDER LOG ============ */
+function hoursBetween(a,b){ return b&&a ? ((b-a)/3600000).toFixed(1) : '—'; }
+function renderLog(){
+  const log = load(LS_LOG);
+  const body = document.getElementById('log-body');
+  const today = todayStr();
+  const todays = log.filter(r=>r.date===today);
+  document.getElementById('kpi-in').textContent = new Set(todays.map(r=>r.name)).size;
+  document.getElementById('kpi-active').textContent = todays.filter(r=>!r.outTs).length;
+  document.getElementById('kpi-jobs').textContent = load(LS_PLAN).filter(p=>p.date===today).length;
+
+  if(!log.length){ body.innerHTML='<tr class="empty-row"><td colspan="10">ยังไม่มีข้อมูลการลงเวลา</td></tr>'; return; }
+  body.innerHTML = log.map(r=>{
+    const chip = r.outTs ? '<span class="status-chip out">เสร็จสิ้น</span>' : '<span class="status-chip in">ทำงานอยู่</span>';
+    const job = r.jobTitle ? `<span class="planner-link">🗓️ ${esc(r.jobTitle)}</span>` : '<span style="color:var(--muted)">—</span>';
+    return `<tr>
+      <td>${fmtDate(r.inTs)}</td>
+      <td><strong>${esc(r.name)}</strong>${r.note?`<div class="mini-note">${esc(r.note)}</div>`:''}</td>
+      <td>${job}</td>
+      <td>${fmtTime(r.inTs)}</td>
+      <td>${mapLink(r.inGeo)}</td>
+      <td>${fmtTime(r.outTs)}</td>
+      <td>${mapLink(r.outGeo)}</td>
+      <td class="td-center">${hoursBetween(r.inTs,r.outTs)}</td>
+      <td>${chip}</td>
+      <td class="td-center"><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delRecord('${r.id}')">ลบ</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============ PLANNER ============ */
+function renderJobOptions(){
+  const sel = document.getElementById('job-select');
+  const plans = load(LS_PLAN).filter(p=>p.status!=='done');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— เลือกงาน/ไซต์งานจาก Planner —</option>' +
+    plans.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)} (${p.time})</option>`).join('');
+  sel.value = cur;
+}
+
+function getPlannerLocation(){
+  if(!navigator.geolocation){ alert('อุปกรณ์ไม่รองรับ GPS'); return; }
+  navigator.geolocation.getCurrentPosition(
+    p => document.getElementById('pl-geo').value = `${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`,
+    e => alert('ระบุพิกัดไม่สำเร็จ: ' + e.message),
+    { enableHighAccuracy:true, timeout:10000 }
+  );
+}
+
+function addPlan(){
+  const title = document.getElementById('pl-title').value.trim();
+  if(!title){ alert('กรุณากรอกชื่องาน'); return; }
+  const plan = {
+    id: uid(), title,
+    site: document.getElementById('pl-site').value.trim(),
+    owner: document.getElementById('pl-owner').value.trim(),
+    date: document.getElementById('pl-date').value || todayStr(),
+    time: document.getElementById('pl-time').value || '09:00',
+    geo:  document.getElementById('pl-geo').value.trim(),
+    status:'plan'
+  };
+  const p = load(LS_PLAN); p.push(plan);
+  p.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+  save(LS_PLAN, p);
+  ['pl-title','pl-site','pl-owner','pl-geo','pl-time'].forEach(i=>document.getElementById(i).value='');
+  renderPlans(); renderJobOptions();
+}
+
+function delPlan(id){
+  if(!confirm('ลบแผนงานนี้?')) return;
+  save(LS_PLAN, load(LS_PLAN).filter(p=>p.id!==id));
+  renderPlans(); renderJobOptions();
+}
+
+function renderPlans(){
+  const p = load(LS_PLAN);
+  document.getElementById('pl-count').textContent = p.length + ' งาน';
+  const body = document.getElementById('plan-body');
+  if(!p.length){ body.innerHTML='<tr class="empty-row"><td colspan="7">ยังไม่มีแผนงาน — เพิ่มงานแรกได้เลย</td></tr>'; return; }
+  const chipMap = { plan:'<span class="status-chip plan">วางแผน</span>', in:'<span class="status-chip in">กำลังทำ</span>', done:'<span class="status-chip done">เสร็จสิ้น</span>' };
+  body.innerHTML = p.map(x=>`<tr>
+    <td><strong>${new Date(x.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})}</strong><div class="mini-note">${x.time} น.</div></td>
+    <td><strong>${esc(x.title)}</strong></td>
+    <td>${esc(x.site)||'—'}</td>
+    <td>${esc(x.owner)||'—'}</td>
+    <td>${mapLink(x.geo)}</td>
+    <td>${chipMap[x.status]||''}</td>
+    <td class="td-center"><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delPlan('${x.id}')">ลบ</button></td>
+  </tr>`).join('');
+}
+
+/* ============ CSV EXPORT ============ */
+function exportCSV(){
+  const log = load(LS_LOG);
+  if(!log.length){ alert('ยังไม่มีข้อมูลให้ส่งออก'); return; }
+  const head = ['วันที่','พนักงาน','งาน','เช็คอิน','พิกัดเข้า','เช็คเอาท์','พิกัดออก','ชั่วโมง','หมายเหตุ'];
+  const rows = log.map(r=>[r.date,r.name,r.jobTitle,new Date(r.inTs).toLocaleTimeString('th-TH'),r.inGeo,
+    r.outTs?new Date(r.outTs).toLocaleTimeString('th-TH'):'',r.outGeo,hoursBetween(r.inTs,r.outTs),r.note]
+    .map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = '﻿' + [head.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'RSC_checkin_' + todayStr() + '.csv';
+  a.click();
+}
+
+/* ============ CLOCK ============ */
+function tickClock(){
+  const now = new Date();
+  const c = document.getElementById('live-clock'); if(!c) return;
+  c.textContent = now.toLocaleTimeString('th-TH',{hour12:false});
+  document.getElementById('live-date').textContent = now.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('today-status').textContent = now.toLocaleDateString('th-TH');
+}
+
+/* ============ INIT ============ */
+seedPlanner();
+setInterval(tickClock, 1000); tickClock();
+renderJobOptions(); renderLog(); renderPlans();
+document.getElementById('emp-name').addEventListener('input', e=>updateWorkerState(e.target.value.trim()));
 </script>
 </body>
 </html>
