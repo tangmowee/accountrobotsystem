@@ -579,7 +579,7 @@
     <div class="logo-mark" style="margin-bottom:16px;">RSC</div>
     <h2>เข้าสู่ระบบ</h2>
     <div class="sub">RSC Check-in — ระบบลงเวลาพนักงาน</div>
-    <div class="field"><label>อีเมล</label><input type="email" id="login-email" placeholder="you@robotsystem.co.th" /></div>
+    <div class="field"><label>ชื่อผู้ใช้ / ชื่อเล่น / รหัสพนักงาน</label><input type="text" id="login-email" placeholder="เช่น joe หรือ eng014" /></div>
     <div class="field"><label>รหัสผ่าน</label><input type="password" id="login-pass" placeholder="••••••••" /></div>
     <button class="btn primary lg" style="width:100%;justify-content:center;" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div class="login-err" id="login-err"></div>
@@ -1593,14 +1593,14 @@
       <!-- employee registry -->
       <div class="content-card">
         <div class="card-header"><div class="card-title">👥 ทะเบียนพนักงาน</div><span class="card-tag" id="emp-count">0 คน</span></div>
-        <div class="field"><label>อีเมล (ที่ใช้ล็อกอิน) หรือชื่อ (โหมด LOCAL)</label><input id="emp-email" placeholder="somchai@robotsystem.co.th"></div>
+        <div class="field"><label>ชื่อผู้ใช้ / ชื่อเล่น (ที่ใช้ล็อกอิน)</label><input id="emp-email" placeholder="เช่น joe หรือ eng014"></div>
         <div class="field"><label>ชื่อ–สกุล</label><input id="emp-fullname" placeholder="สมชาย ใจดี"></div>
         <div class="cards-row col-2" style="gap:12px;">
           <div class="field"><label>แผนก</label><input id="emp-dept" placeholder="วิศวกรรม"></div>
           <div class="field"><label>ตำแหน่ง</label><input id="emp-pos" placeholder="วิศวกร"></div>
         </div>
         <button class="btn primary" onclick="addEmp()">บันทึกพนักงาน</button>
-        <div class="mini-note" style="margin-top:8px;">อีเมลต้องตรงกับที่พนักงานใช้ล็อกอิน เพื่อจับคู่ชั่วโมงเข้ากับแผนก</div>
+        <div class="mini-note" style="margin-top:8px;">ใส่ชื่อผู้ใช้ให้ตรงกับที่พนักงานใช้ล็อกอิน เพื่อจับคู่ชั่วโมงเข้ากับแผนก</div>
         <div style="overflow-x:auto;margin-top:16px;">
           <table><thead><tr><th>ชื่อ</th><th>แผนก</th><th>ตำแหน่ง</th><th></th></tr></thead>
           <tbody id="emp-body"><tr class="empty-row"><td colspan="4">ยังไม่มีพนักงาน</td></tr></tbody></table>
@@ -1660,6 +1660,7 @@ const FIREBASE_CONFIG = {
   appId: ""
 };
 const GEOFENCE_RADIUS_M = 300;   // รัศมี (เมตร) ที่อนุญาตให้เช็คอินห่างจากพิกัดไซต์งานใน Planner
+const LOGIN_DOMAIN = 'rsc.local';   // เติมท้ายชื่อผู้ใช้อัตโนมัติ (พนักงานล็อกอินด้วยชื่อเล่น/รหัส ไม่ต้องพิมพ์อีเมล)
 
 const LS_LOG   = 'rsc_checkin_log';
 const LS_PLAN  = 'rsc_planner';
@@ -1707,11 +1708,13 @@ function attachListeners(){
 }
 
 /* ============ AUTH ============ */
+function shortName(email){ return (email||'').split('@')[0]; }   // ชื่อผู้ใช้ (ตัดโดเมนออก)
 function doLogin(){
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const err   = document.getElementById('login-err');
+  const raw  = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err  = document.getElementById('login-err');
   err.textContent = '';
+  const email = raw.includes('@') ? raw : raw + '@' + LOGIN_DOMAIN;   // เติมโดเมนให้อัตโนมัติ
   auth.signInWithEmailAndPassword(email, pass)
     .catch(e => { err.textContent = 'เข้าสู่ระบบไม่สำเร็จ: ' + (e.code || e.message); });
 }
@@ -1724,10 +1727,11 @@ function onAuth(user){
   if(user){
     overlay.classList.remove('show');
     pill.style.display = 'inline-flex';
-    document.getElementById('user-email').textContent = user.email || user.uid;
+    const uname = shortName(user.email) || user.uid;
+    document.getElementById('user-email').textContent = uname;
     const nameField = document.getElementById('emp-name');
-    nameField.value = user.email; nameField.readOnly = true;   // ล็อกชื่อ = บัญชีที่ล็อกอิน (กันเช็คอินแทนกัน)
-    updateWorkerState(user.email);
+    nameField.value = uname; nameField.readOnly = true;   // ล็อกชื่อ = บัญชีที่ล็อกอิน (กันเช็คอินแทนกัน)
+    updateWorkerState(uname);
   } else {
     overlay.classList.add('show');
     pill.style.display = 'none';
@@ -2150,7 +2154,7 @@ function addEmp(){
   renderEmps(); renderSummary();
 }
 function delEmp(id){ if(!confirm('ลบพนักงานนี้?')) return; save(LS_EMP, load(LS_EMP).filter(x=>x.id!==id)); renderEmps(); renderSummary(); }
-function empLookup(key){ return load(LS_EMP).find(x=>(x.email && x.email===key) || (x.name && x.name===key)); }
+function empLookup(key){ return load(LS_EMP).find(x=>{ const em=x.email||''; return em===key || (x.name && x.name===key) || em.split('@')[0]===key; }); }
 function renderEmps(){
   const body = document.getElementById('emp-body'); if(!body) return;
   const arr = load(LS_EMP);

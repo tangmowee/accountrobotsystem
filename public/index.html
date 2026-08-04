@@ -83,11 +83,11 @@
     <div class="logo-mark" style="margin-bottom:14px;">RSC</div>
     <h2>เข้าสู่ระบบ</h2>
     <div class="sub">ระบบลงเวลาพนักงาน — Robot System</div>
-    <label>อีเมล</label><input type="email" id="l-email" autocomplete="username" placeholder="you@robotsystem.co.th">
+    <label>ชื่อผู้ใช้ / ชื่อเล่น / รหัสพนักงาน</label><input type="text" id="l-email" autocomplete="username" placeholder="เช่น joe หรือ eng014">
     <label>รหัสผ่าน</label><input type="password" id="l-pass" autocomplete="current-password" placeholder="••••••••">
     <button class="btn in" onclick="doLogin()">เข้าสู่ระบบ</button>
     <div class="err" id="l-err"></div>
-    <div class="muted" style="margin-top:10px;">บัญชีสร้างโดยแอดมินที่ Firebase Console</div>
+    <div class="muted" style="margin-top:10px;">พิมพ์แค่ชื่อผู้ใช้ ไม่ต้องใส่อีเมล • บัญชีสร้างโดยแอดมิน</div>
   </div>
 </div>
 
@@ -159,6 +159,8 @@ const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
+const DOMAIN = window.LOGIN_DOMAIN || 'rsc.local';
+function shortName(email){return (email||'').split('@')[0];}
 
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
@@ -183,14 +185,15 @@ function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave'].forEach(k=>{
 });}
 
 /* ===== auth ===== */
-function doLogin(){const e=$('l-email').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
+function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
+  const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
 function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(u.email)+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();refreshState();}
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();refreshState();}
   else{$('login').classList.add('show');$('user').textContent='';}
 }
-function myName(){return user?user.email:'';}
+function myName(){return user?shortName(user.email):'';}
 
 /* ===== geolocation ===== */
 function getLoc(){
