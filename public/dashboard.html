@@ -1565,12 +1565,11 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;">
           <input type="month" id="ot-month" onchange="renderOT()" style="width:auto;padding:6px 10px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
           <span class="mini-note">ชม.มาตรฐาน/วัน</span><input type="number" id="ot-std" value="8" min="0" step="0.5" onchange="renderOT()" style="width:64px;padding:6px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
-          <span class="mini-note">อัตรา บาท/ชม.</span><input type="number" id="ot-rate" value="0" min="0" onchange="renderOT()" style="width:84px;padding:6px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
         </div>
       </div>
       <div class="cards-row col-3" style="margin-bottom:16px;">
+        <div class="kpi"><div class="kpi-label">ชม.ทำงานรวมเดือนนี้</div><div class="kpi-value" id="ot-worked" style="font-size:26px;">0</div><div class="kpi-sub">ชั่วโมง</div></div>
         <div class="kpi"><div class="kpi-label">ชม. OT รวมเดือนนี้</div><div class="kpi-value orange" id="ot-total">0</div><div class="kpi-sub">ชั่วโมง</div></div>
-        <div class="kpi"><div class="kpi-label">ประเมินค่า OT</div><div class="kpi-value" id="ot-baht" style="font-size:24px;">0</div><div class="kpi-sub">บาท (โดยประมาณ)</div></div>
         <div class="kpi"><div class="kpi-label">พนักงานมี OT</div><div class="kpi-value" id="ot-emp" style="font-size:24px;">0</div><div class="kpi-sub">คน</div></div>
       </div>
       <div style="overflow-x:auto;">
@@ -1579,7 +1578,7 @@
           <tbody id="ot-body"><tr class="empty-row"><td colspan="7">ไม่มีข้อมูล OT ในเดือนนี้</td></tr></tbody>
         </table>
       </div>
-      <div class="mini-note" style="margin-top:10px;">* คำนวณเบื้องต้น: วันธรรมดา OT = ชม.ที่เกินมาตรฐาน (× อัตรา 1.5) • เสาร์–อาทิตย์ นับทั้งหมดเป็น OT (× อัตรา 3) • ยังไม่รวมวันหยุดนักขัตฤกษ์/เงื่อนไขเฉพาะ ควรตรวจสอบก่อนนำไปจ่ายจริง</div>
+      <div class="mini-note" style="margin-top:10px;">* แสดงเฉพาะจำนวนชั่วโมง — ไม่มีการคำนวณเงิน • วันธรรมดา OT = ชม.ที่เกินมาตรฐาน • เสาร์–อาทิตย์ นับทั้งหมดเป็น OT • ยังไม่รวมวันหยุดนักขัตฤกษ์/เงื่อนไขเฉพาะ</div>
     </div>
   </div>
 
@@ -2028,23 +2027,22 @@ function renderOT(){
   const monthEl = document.getElementById('ot-month');
   let ym = monthEl.value; if(!ym){ ym = todayStr().slice(0,7); monthEl.value = ym; }
   const std  = parseFloat(document.getElementById('ot-std').value)  || 8;
-  const rate = parseFloat(document.getElementById('ot-rate').value) || 0;
   const recs = load(LS_LOG).filter(r=>r.outTs && r.date && r.date.slice(0,7)===ym);
-  let totalOT=0, baht=0; const emps=new Set(); const rows=[];
+  let totalOT=0, totalWorked=0; const emps=new Set(); const rows=[];
   recs.forEach(r=>{
     const worked = (r.outTs - r.inTs)/3600000;
+    totalWorked += worked;
     const dow = new Date(r.date).getDay();
     const wknd = (dow===0 || dow===6);
     const ot = wknd ? worked : Math.max(0, worked - std);
     if(ot > 0.01){
       totalOT += ot; emps.add(r.name);
-      baht += ot * rate * (wknd ? 3 : 1.5);   // เบื้องต้น: เสาร์-อาทิตย์ x3, วันธรรมดา x1.5
       rows.push({ r, worked, ot, wknd });
     }
   });
-  document.getElementById('ot-total').textContent = totalOT.toFixed(1);
-  document.getElementById('ot-baht').textContent  = Math.round(baht).toLocaleString();
-  document.getElementById('ot-emp').textContent   = emps.size;
+  document.getElementById('ot-worked').textContent = totalWorked.toFixed(1);
+  document.getElementById('ot-total').textContent  = totalOT.toFixed(1);
+  document.getElementById('ot-emp').textContent    = emps.size;
   if(!rows.length){ body.innerHTML = '<tr class="empty-row"><td colspan="7">ไม่มีข้อมูล OT ในเดือนนี้</td></tr>'; return; }
   rows.sort((a,b)=>a.r.inTs-b.r.inTs);
   body.innerHTML = rows.map(({r,worked,ot,wknd})=>`<tr>
