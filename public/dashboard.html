@@ -1509,6 +1509,9 @@
           <input type="text" id="pl-site" placeholder="เช่น โรงงานลูกค้า อ.ศรีราชา" /></div>
         <div class="field"><label>ผู้รับผิดชอบ / ทีม</label>
           <input type="text" id="pl-owner" placeholder="เช่น ทีมวิศวกรรม A" /></div>
+        <div class="field"><label>มอบหมายให้ (เลือกได้หลายคน — เว้นว่าง = งานกลาง ทุกคนเห็น)</label>
+          <select id="pl-assignees" multiple size="4"></select>
+          <div class="mini-note">กด Ctrl/Cmd ค้างเพื่อเลือกหลายคน • รายชื่อดึงจากทะเบียนพนักงาน (แท็บสรุปชั่วโมง)</div></div>
         <div class="cards-row col-2" style="gap:12px;">
           <div class="field"><label>วันที่</label><input type="date" id="pl-date" /></div>
           <div class="field"><label>เวลาเริ่ม</label><input type="time" id="pl-time" /></div>
@@ -1529,7 +1532,7 @@
         <div style="overflow-x:auto;">
           <table>
             <thead>
-              <tr><th>วัน/เวลา</th><th>งาน</th><th>ไซต์งาน</th><th>ทีม</th><th>พิกัด</th><th>สถานะ</th><th></th></tr>
+              <tr><th>วัน/เวลา</th><th>งาน</th><th>ไซต์งาน</th><th>ทีม</th><th>มอบหมาย</th><th>พิกัด</th><th>สถานะ</th><th></th></tr>
             </thead>
             <tbody id="plan-body">
               <tr class="empty-row"><td colspan="7">ยังไม่มีแผนงาน — เพิ่มงานแรกได้เลย</td></tr>
@@ -1927,6 +1930,7 @@ function getPlannerLocation(){
 function addPlan(){
   const title = document.getElementById('pl-title').value.trim();
   if(!title){ alert('กรุณากรอกชื่องาน'); return; }
+  const assignees = Array.from(document.getElementById('pl-assignees').selectedOptions).map(o=>o.value);
   const plan = {
     id: uid(), title,
     site: document.getElementById('pl-site').value.trim(),
@@ -1934,13 +1938,27 @@ function addPlan(){
     date: document.getElementById('pl-date').value || todayStr(),
     time: document.getElementById('pl-time').value || '09:00',
     geo:  document.getElementById('pl-geo').value.trim(),
+    assignees,
     status:'plan'
   };
   const p = load(LS_PLAN); p.push(plan);
   p.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
   save(LS_PLAN, p);
   ['pl-title','pl-site','pl-owner','pl-geo','pl-time'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pl-assignees').selectedIndex = -1;
   renderPlans(); renderJobOptions();
+}
+
+/* เติมรายชื่อพนักงานลงช่อง "มอบหมายให้" จากทะเบียนพนักงาน */
+function fillAssigneeOptions(){
+  const sel = document.getElementById('pl-assignees'); if(!sel) return;
+  const arr = load(LS_EMP);
+  sel.innerHTML = arr.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name||e.email)}${e.dept?' · '+esc(e.dept):''}</option>`).join('');
+}
+/* แปลง list ผู้รับมอบหมาย → ชื่อที่อ่านง่าย */
+function assigneeNames(list){
+  if(!list || !list.length) return '<span class="status-chip plan">ทุกคน</span>';
+  return list.map(v=>{ const e = empLookup(v); return esc((e && e.name) || v); }).join(', ');
 }
 
 function delPlan(id){
@@ -1950,16 +1968,18 @@ function delPlan(id){
 }
 
 function renderPlans(){
+  fillAssigneeOptions();
   const p = load(LS_PLAN);
   document.getElementById('pl-count').textContent = p.length + ' งาน';
   const body = document.getElementById('plan-body');
-  if(!p.length){ body.innerHTML='<tr class="empty-row"><td colspan="7">ยังไม่มีแผนงาน — เพิ่มงานแรกได้เลย</td></tr>'; return; }
+  if(!p.length){ body.innerHTML='<tr class="empty-row"><td colspan="8">ยังไม่มีแผนงาน — เพิ่มงานแรกได้เลย</td></tr>'; return; }
   const chipMap = { plan:'<span class="status-chip plan">วางแผน</span>', in:'<span class="status-chip in">กำลังทำ</span>', done:'<span class="status-chip done">เสร็จสิ้น</span>' };
   body.innerHTML = p.map(x=>`<tr>
     <td><strong>${new Date(x.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})}</strong><div class="mini-note">${x.time} น.</div></td>
     <td><strong>${esc(x.title)}</strong></td>
     <td>${esc(x.site)||'—'}</td>
     <td>${esc(x.owner)||'—'}</td>
+    <td>${assigneeNames(x.assignees)}</td>
     <td>${mapLink(x.geo)}</td>
     <td>${chipMap[x.status]||''}</td>
     <td class="td-center"><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delPlan('${x.id}')">ลบ</button></td>
@@ -2137,6 +2157,7 @@ function renderEmps(){
     <td>${esc(e.pos)||'<span style="color:var(--muted)">—</span>'}</td>
     <td class="td-center"><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delEmp('${e.id}')">ลบ</button></td>
   </tr>`).join('');
+  fillAssigneeOptions();
 }
 
 /* ============ HOURS SUMMARY (แผนก / รายคน / รายจ๊อป) ============ */

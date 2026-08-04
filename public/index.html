@@ -244,10 +244,12 @@ function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยัง
 
 /* ===== render ===== */
 function renderJobs(){
-  const sel=$('job'),cur=sel.value,today=todayStr();
-  const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today));
+  const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
+  // เห็นเฉพาะจ๊อปที่มอบหมายให้เรา หรือจ๊อปกลาง (ไม่ระบุผู้รับ)
+  const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
+    &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
   sel.innerHTML='<option value="">— เลือกงาน/ไซต์งาน —</option>'+
-    jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`).join('');
+    jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);return `<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`;}).join('');
   sel.value=cur;
 }
 function renderMyLog(){
