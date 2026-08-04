@@ -1462,9 +1462,15 @@
 
     <!-- History table -->
     <div class="content-card">
-      <div class="card-header">
+      <div class="card-header" style="flex-wrap:wrap;gap:8px;">
         <div class="card-title">🕓 ประวัติการลงเวลา</div>
-        <button class="btn" onclick="exportCSV()" style="padding:6px 12px;font-size:12px;">⬇️ ส่งออก CSV</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" onclick="mergeLocalToCloud()" style="padding:6px 12px;font-size:12px;">⬆️ รวมเครื่องนี้ขึ้น Cloud</button>
+          <button class="btn" onclick="exportJSON()" style="padding:6px 12px;font-size:12px;">💾 สำรอง (JSON)</button>
+          <button class="btn" onclick="document.getElementById('import-json').click()" style="padding:6px 12px;font-size:12px;">📥 นำเข้า/รวม (JSON)</button>
+          <button class="btn" onclick="exportCSV()" style="padding:6px 12px;font-size:12px;">⬇️ CSV</button>
+          <input type="file" id="import-json" accept="application/json,.json" style="display:none;" onchange="importJSONFile(this)" />
+        </div>
       </div>
       <div style="overflow-x:auto;">
         <table>
@@ -1881,6 +1887,65 @@ function exportCSV(){
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download = 'RSC_checkin_' + todayStr() + '.csv';
   a.click();
+}
+
+/* ============ MERGE / BACKUP (รวมข้อมูล กันซ้ำด้วย id) ============ */
+function mergeById(base, incoming, recencyFn){
+  recencyFn = recencyFn || (()=>0);
+  const map = new Map((base||[]).map(r=>[r.id, r]));
+  let added=0, updated=0;
+  (incoming||[]).forEach(r=>{
+    if(!r) return;
+    if(!r.id) r = Object.assign({}, r, { id: uid() });   // ข้อมูลนอกที่ไม่มี id → สร้างใหม่
+    if(!map.has(r.id)){ map.set(r.id, r); added++; }
+    else if(recencyFn(r) > recencyFn(map.get(r.id))){ map.set(r.id, r); updated++; }  // เก็บอันที่ใหม่กว่า
+  });
+  return { list:[...map.values()], added, updated };
+}
+const logRecency = r => r.outTs || r.inTs || 0;
+
+/* รวมข้อมูลที่บันทึกไว้ในเครื่องนี้ (localStorage) ขึ้นส่วนกลาง Cloud */
+function mergeLocalToCloud(){
+  if(MODE !== 'firebase'){
+    alert('ปุ่มนี้ใช้เมื่อต่อ Firebase แล้ว (โหมด CLOUD)\nเพื่อดึงข้อมูลที่เคยบันทึกไว้ในเครื่องนี้ขึ้นส่วนกลาง'); return;
+  }
+  let ll=[], lp=[];
+  try{ ll = JSON.parse(localStorage.getItem(LS_LOG))  || []; }catch(e){}
+  try{ lp = JSON.parse(localStorage.getItem(LS_PLAN)) || []; }catch(e){}
+  if(!ll.length && !lp.length){ alert('ไม่พบข้อมูลเดิมที่บันทึกในเครื่องนี้'); return; }
+  if(!confirm(`พบในเครื่องนี้: ${ll.length} รายการลงเวลา, ${lp.length} แผนงาน\nรวมขึ้น Cloud หรือไม่? (รายการที่ id ซ้ำจะไม่ถูกเพิ่มซ้ำ)`)) return;
+  const rLog  = mergeById(state[LS_LOG],  ll, logRecency);
+  const rPlan = mergeById(state[LS_PLAN], lp);
+  save(LS_LOG,  rLog.list);
+  save(LS_PLAN, rPlan.list);
+  alert(`รวมขึ้น Cloud สำเร็จ ✅\nลงเวลา: เพิ่มใหม่ ${rLog.added}, อัปเดต ${rLog.updated}\nแผนงาน: เพิ่มใหม่ ${rPlan.added}`);
+}
+
+/* สำรองข้อมูลทั้งหมดเป็นไฟล์ JSON (ย้าย/รวมข้ามเครื่องได้แบบไม่สูญข้อมูล) */
+function exportJSON(){
+  const data = { app:'RSC-checkin', exportedAt:new Date().toISOString(), log:load(LS_LOG), plan:load(LS_PLAN) };
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='RSC_checkin_backup_'+todayStr()+'.json'; a.click();
+}
+
+/* นำเข้าไฟล์ JSON แล้วรวมเข้ากับข้อมูลปัจจุบัน (กันซ้ำด้วย id) */
+function importJSONFile(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const d = JSON.parse(e.target.result);
+      const rLog  = mergeById(load(LS_LOG),  d.log  || [], logRecency);
+      const rPlan = mergeById(load(LS_PLAN), d.plan || []);
+      save(LS_LOG,  rLog.list);
+      save(LS_PLAN, rPlan.list);
+      renderJobOptions(); renderLog(); renderPlans();
+      alert(`นำเข้า/รวมสำเร็จ ✅\nลงเวลา: เพิ่มใหม่ ${rLog.added}, อัปเดต ${rLog.updated}\nแผนงาน: เพิ่มใหม่ ${rPlan.added}`);
+    }catch(err){ alert('ไฟล์ไม่ถูกต้อง: ' + err.message); }
+    input.value='';
+  };
+  reader.readAsText(f);
 }
 
 /* ============ CLOCK ============ */
