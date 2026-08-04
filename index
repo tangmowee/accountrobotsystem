@@ -614,6 +614,7 @@
   <div class="nav-tab" onclick="showTab('balance')">⚖️ งบฐานะการเงิน</div>
   <div class="nav-tab" onclick="showTab('checkin')">📍 เช็คอิน/เช็คเอาท์</div>
   <div class="nav-tab" onclick="showTab('planner')">🗓️ RSC Planner</div>
+  <div class="nav-tab" onclick="showTab('leave')">🏖️ ลา / OT</div>
 </div>
 
 <!-- MAIN -->
@@ -1536,6 +1537,50 @@
     </div>
   </div>
 
+  <!-- ===== TAB: LEAVE / OT ===== -->
+  <div class="section" id="tab-leave">
+    <div class="section-title">ลางาน / OT</div>
+    <div class="section-sub">ระบบขอลา–อนุมัติ และคำนวณ OT เบื้องต้น (เชื่อมกับการลงเวลา + Planner)</div>
+
+    <!-- Leave requests -->
+    <div class="content-card">
+      <div class="card-header">
+        <div class="card-title">📝 คำขอลา</div>
+        <span class="card-tag" id="leave-pending">รออนุมัติ 0</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>ยื่นเมื่อ</th><th>พนักงาน</th><th>ประเภท</th><th>ตั้งแต่</th><th>ถึง</th><th>วัน</th><th>เหตุผล</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="leave-body"><tr class="empty-row"><td colspan="9">ยังไม่มีคำขอลา</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- OT report -->
+    <div class="content-card">
+      <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+        <div class="card-title">🌙 รายงาน OT (เบื้องต้น)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;">
+          <input type="month" id="ot-month" onchange="renderOT()" style="width:auto;padding:6px 10px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
+          <span class="mini-note">ชม.มาตรฐาน/วัน</span><input type="number" id="ot-std" value="8" min="0" step="0.5" onchange="renderOT()" style="width:64px;padding:6px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
+          <span class="mini-note">อัตรา บาท/ชม.</span><input type="number" id="ot-rate" value="0" min="0" onchange="renderOT()" style="width:84px;padding:6px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
+        </div>
+      </div>
+      <div class="cards-row col-3" style="margin-bottom:16px;">
+        <div class="kpi"><div class="kpi-label">ชม. OT รวมเดือนนี้</div><div class="kpi-value orange" id="ot-total">0</div><div class="kpi-sub">ชั่วโมง</div></div>
+        <div class="kpi"><div class="kpi-label">ประเมินค่า OT</div><div class="kpi-value" id="ot-baht" style="font-size:24px;">0</div><div class="kpi-sub">บาท (โดยประมาณ)</div></div>
+        <div class="kpi"><div class="kpi-label">พนักงานมี OT</div><div class="kpi-value" id="ot-emp" style="font-size:24px;">0</div><div class="kpi-sub">คน</div></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน (Planner)</th><th>เข้า–ออก</th><th>ชม.ทำงาน</th><th>ประเภทวัน</th><th>ชม. OT</th></tr></thead>
+          <tbody id="ot-body"><tr class="empty-row"><td colspan="7">ไม่มีข้อมูล OT ในเดือนนี้</td></tr></tbody>
+        </table>
+      </div>
+      <div class="mini-note" style="margin-top:10px;">* คำนวณเบื้องต้น: วันธรรมดา OT = ชม.ที่เกินมาตรฐาน (× อัตรา 1.5) • เสาร์–อาทิตย์ นับทั้งหมดเป็น OT (× อัตรา 3) • ยังไม่รวมวันหยุดนักขัตฤกษ์/เงื่อนไขเฉพาะ ควรตรวจสอบก่อนนำไปจ่ายจริง</div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <div class="watermark">RSC CONFIDENTIAL — FEB 2569</div>
@@ -1548,6 +1593,7 @@ function showTab(id) {
   if (window.event && event.target) event.target.classList.add('active');
   if (id === 'checkin') { renderJobOptions(); renderLog(); }
   if (id === 'planner') renderPlans();
+  if (id === 'leave') { renderLeave(); renderOT(); }
 }
 
 /* ============ CONFIG ============ */
@@ -1563,13 +1609,14 @@ const FIREBASE_CONFIG = {
 };
 const GEOFENCE_RADIUS_M = 300;   // รัศมี (เมตร) ที่อนุญาตให้เช็คอินห่างจากพิกัดไซต์งานใน Planner
 
-const LS_LOG  = 'rsc_checkin_log';
-const LS_PLAN = 'rsc_planner';
+const LS_LOG   = 'rsc_checkin_log';
+const LS_PLAN  = 'rsc_planner';
+const LS_LEAVE = 'rsc_leave';
 
 /* ============ STORAGE (mode-aware) ============ */
 let MODE = 'local';        // 'local' | 'firebase'
 let db = null, auth = null, currentUser = null;
-const state = { [LS_LOG]: [], [LS_PLAN]: [] };   // in-memory cache (source of truth for render)
+const state = { [LS_LOG]: [], [LS_PLAN]: [], [LS_LEAVE]: [] };   // in-memory cache (source of truth for render)
 
 function initFirebase(){
   if(!FIREBASE_CONFIG.apiKey || typeof firebase === 'undefined') return false;
@@ -1598,10 +1645,10 @@ function save(k, arr){
 
 /* Firestore realtime listeners → keep cache in sync across devices */
 function attachListeners(){
-  ['rsc_checkin_log','rsc_planner'].forEach(k => {
+  ['rsc_checkin_log','rsc_planner','rsc_leave'].forEach(k => {
     db.collection('rsc').doc(k).onSnapshot(snap => {
       state[k] = (snap.exists && snap.data().items) ? snap.data().items : [];
-      renderJobOptions(); renderLog(); renderPlans();
+      renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT();
     }, err => console.error('listener error', err));
   });
 }
@@ -1948,6 +1995,74 @@ function importJSONFile(input){
   reader.readAsText(f);
 }
 
+/* ============ LEAVE (ขอลา / อนุมัติ) ============ */
+const LEAVE_TYPES = { sick:'ลาป่วย', personal:'ลากิจ', vacation:'ลาพักร้อน', other:'อื่นๆ' };
+function decideLeave(id, status){
+  const arr = load(LS_LEAVE); const r = arr.find(x=>x.id===id); if(!r) return;
+  r.status = status; r.decidedBy = (currentUser && currentUser.email) || 'admin'; r.decidedTs = Date.now();
+  save(LS_LEAVE, arr); renderLeave();
+}
+function delLeave(id){ if(!confirm('ลบคำขอลานี้?')) return; save(LS_LEAVE, load(LS_LEAVE).filter(x=>x.id!==id)); renderLeave(); }
+function renderLeave(){
+  const body = document.getElementById('leave-body'); if(!body) return;
+  const arr = load(LS_LEAVE).slice().sort((a,b)=>(b.createdTs||0)-(a.createdTs||0));
+  const pend = arr.filter(r=>r.status==='pending').length;
+  const pill = document.getElementById('leave-pending'); if(pill) pill.textContent = 'รออนุมัติ ' + pend;
+  if(!arr.length){ body.innerHTML = '<tr class="empty-row"><td colspan="9">ยังไม่มีคำขอลา</td></tr>'; return; }
+  const chip = s => s==='approved' ? '<span class="status-chip done">อนุมัติ</span>'
+                  : s==='rejected' ? '<span class="status-chip out">ไม่อนุมัติ</span>'
+                  : '<span class="status-chip late">รออนุมัติ</span>';
+  body.innerHTML = arr.map(r=>`<tr>
+    <td>${r.createdTs?fmtDate(r.createdTs):'—'}</td>
+    <td><strong>${esc(r.name)}</strong></td>
+    <td>${LEAVE_TYPES[r.type] || esc(r.type)}</td>
+    <td>${esc(r.from)}</td><td>${esc(r.to)}</td>
+    <td class="td-center">${r.days}</td>
+    <td>${esc(r.reason) || '<span style="color:var(--muted)">—</span>'}</td>
+    <td>${chip(r.status)}</td>
+    <td class="td-center" style="white-space:nowrap;">${ r.status==='pending'
+      ? `<button class="btn" style="padding:3px 8px;font-size:11px;border-color:rgba(46,204,113,0.4);color:var(--green);" onclick="decideLeave('${r.id}','approved')">อนุมัติ</button>
+         <button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="decideLeave('${r.id}','rejected')">ปฏิเสธ</button>`
+      : `<button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delLeave('${r.id}')">ลบ</button>` }</td>
+  </tr>`).join('');
+}
+
+/* ============ OT (คำนวณจากการลงเวลา เชื่อมกับ Planner) ============ */
+function renderOT(){
+  const body = document.getElementById('ot-body'); if(!body) return;
+  const monthEl = document.getElementById('ot-month');
+  let ym = monthEl.value; if(!ym){ ym = todayStr().slice(0,7); monthEl.value = ym; }
+  const std  = parseFloat(document.getElementById('ot-std').value)  || 8;
+  const rate = parseFloat(document.getElementById('ot-rate').value) || 0;
+  const recs = load(LS_LOG).filter(r=>r.outTs && r.date && r.date.slice(0,7)===ym);
+  let totalOT=0, baht=0; const emps=new Set(); const rows=[];
+  recs.forEach(r=>{
+    const worked = (r.outTs - r.inTs)/3600000;
+    const dow = new Date(r.date).getDay();
+    const wknd = (dow===0 || dow===6);
+    const ot = wknd ? worked : Math.max(0, worked - std);
+    if(ot > 0.01){
+      totalOT += ot; emps.add(r.name);
+      baht += ot * rate * (wknd ? 3 : 1.5);   // เบื้องต้น: เสาร์-อาทิตย์ x3, วันธรรมดา x1.5
+      rows.push({ r, worked, ot, wknd });
+    }
+  });
+  document.getElementById('ot-total').textContent = totalOT.toFixed(1);
+  document.getElementById('ot-baht').textContent  = Math.round(baht).toLocaleString();
+  document.getElementById('ot-emp').textContent   = emps.size;
+  if(!rows.length){ body.innerHTML = '<tr class="empty-row"><td colspan="7">ไม่มีข้อมูล OT ในเดือนนี้</td></tr>'; return; }
+  rows.sort((a,b)=>a.r.inTs-b.r.inTs);
+  body.innerHTML = rows.map(({r,worked,ot,wknd})=>`<tr>
+    <td>${fmtDate(r.inTs)}</td>
+    <td><strong>${esc(r.name)}</strong></td>
+    <td>${r.jobTitle ? esc(r.jobTitle.split(' @ ')[0]) : '<span style="color:var(--muted)">—</span>'}</td>
+    <td>${fmtTime(r.inTs)}–${fmtTime(r.outTs)}</td>
+    <td class="td-center">${worked.toFixed(1)}</td>
+    <td>${wknd ? '<span class="status-chip late">เสาร์-อาทิตย์</span>' : '<span class="status-chip out">วันธรรมดา</span>'}</td>
+    <td class="td-center" style="color:var(--orange-light);font-weight:600;">${ot.toFixed(1)}</td>
+  </tr>`).join('');
+}
+
 /* ============ CLOCK ============ */
 function tickClock(){
   const now = new Date();
@@ -1969,8 +2084,9 @@ if(MODE === 'firebase'){
   // LOCAL: โหลด cache จาก localStorage
   try { state[LS_LOG] = JSON.parse(localStorage.getItem(LS_LOG)) || []; } catch(e){ state[LS_LOG] = []; }
   try { state[LS_PLAN] = JSON.parse(localStorage.getItem(LS_PLAN)) || []; } catch(e){ state[LS_PLAN] = []; }
+  try { state[LS_LEAVE] = JSON.parse(localStorage.getItem(LS_LEAVE)) || []; } catch(e){ state[LS_LEAVE] = []; }
   seedPlanner();
-  renderJobOptions(); renderLog(); renderPlans();
+  renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT();
   document.getElementById('emp-name').addEventListener('input', e=>updateWorkerState(e.target.value.trim()));
 }
 </script>

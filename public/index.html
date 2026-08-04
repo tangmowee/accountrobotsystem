@@ -127,6 +127,26 @@
     <div class="title">🕓 ประวัติล่าสุดของฉัน</div>
     <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
   </div>
+
+  <!-- leave request -->
+  <div class="card">
+    <div class="title">🏖️ ขอลางาน</div>
+    <label>ประเภทการลา</label>
+    <select id="lv-type">
+      <option value="sick">ลาป่วย</option>
+      <option value="personal">ลากิจ</option>
+      <option value="vacation">ลาพักร้อน</option>
+      <option value="other">อื่นๆ</option>
+    </select>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>ตั้งแต่</label><input type="date" id="lv-from"></div>
+      <div style="flex:1;"><label>ถึง</label><input type="date" id="lv-to"></div>
+    </div>
+    <label>เหตุผล</label>
+    <input type="text" id="lv-reason" placeholder="เช่น พาลูกไปหาหมอ">
+    <button class="btn gps" onclick="submitLeave()">📨 ส่งคำขอลา</button>
+    <div id="myleave" style="margin-top:14px;"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -134,8 +154,9 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner';
-const state={[LS_LOG]:[],[LS_PLAN]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[]};
+const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
 
@@ -157,8 +178,8 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function listeners(){['rsc_checkin_log','rsc_planner'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();refreshState();},e=>console.error(e));
+function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();refreshState();},e=>console.error(e));
 });}
 
 /* ===== auth ===== */
@@ -166,7 +187,7 @@ function doLogin(){const e=$('l-email').value.trim(),p=$('l-pass').value;$('l-er
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
 function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(u.email)+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';refreshState();}
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(u.email)+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();refreshState();}
   else{$('login').classList.add('show');$('user').textContent='';}
 }
 function myName(){return user?user.email:'';}
@@ -239,6 +260,30 @@ function renderMyLog(){
     <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div></div>`).join('');
 }
 
+/* ===== leave ===== */
+function daysBetween(a,b){const d1=new Date(a),d2=new Date(b);if(isNaN(d1)||isNaN(d2))return 0;return Math.max(1,Math.round((d2-d1)/86400000)+1);}
+function submitLeave(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  const from=$('lv-from').value,to=$('lv-to').value||$('lv-from').value;
+  if(!from){toast('เลือกวันที่ลา');return;}
+  const rec={id:uid(),name,type:$('lv-type').value,from,to,days:daysBetween(from,to),
+    reason:$('lv-reason').value.trim(),status:'pending',createdTs:Date.now()};
+  const arr=load(LS_LEAVE);arr.unshift(rec);save(LS_LEAVE,arr);
+  $('lv-reason').value='';renderMyLeave();
+  toast('📨 ส่งคำขอลาแล้ว รออนุมัติ');
+}
+function renderMyLeave(){
+  const el=$('myleave');if(!el)return;
+  const mine=load(LS_LEAVE).filter(r=>r.name===myName()).slice(0,5);
+  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีการลา</div>';return;}
+  const chip=s=>s==='approved'?'<span class="chip in" style="font-size:11px;padding:3px 10px;">อนุมัติ</span>'
+    :s==='rejected'?'<span class="chip out" style="font-size:11px;padding:3px 10px;">ไม่อนุมัติ</span>'
+    :'<span class="chip out" style="font-size:11px;padding:3px 10px;background:rgba(243,156,18,0.15);color:var(--yellow);">รออนุมัติ</span>';
+  el.innerHTML='<div class="muted" style="margin-bottom:6px;">การลาของฉัน</div>'+mine.map(r=>`<div class="rec">
+    <div><div>${LEAVE_TYPES[r.type]||esc(r.type)} · ${r.days} วัน</div><div class="t">${esc(r.from)}${r.to!==r.from?' – '+esc(r.to):''}</div></div>
+    <div>${chip(r.status)}</div></div>`).join('');
+}
+
 /* ===== clock ===== */
 function tick(){const n=new Date();$('clock').textContent=n.toLocaleTimeString('th-TH',{hour12:false});
   $('date').textContent=n.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
@@ -253,11 +298,12 @@ else{
   // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
   try{state[LS_LOG]=JSON.parse(localStorage.getItem(LS_LOG))||[];}catch(e){}
   try{state[LS_PLAN]=JSON.parse(localStorage.getItem(LS_PLAN))||[];}catch(e){}
+  try{state[LS_LEAVE]=JSON.parse(localStorage.getItem(LS_LEAVE))||[];}catch(e){}
   $('login').classList.remove('show');
   user={email:localStorage.getItem('rsc_local_name')||''};
   if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}
   $('user').textContent=user.email;
-  renderJobs();renderMyLog();refreshState();
+  renderJobs();renderMyLog();renderMyLeave();refreshState();
 }
 </script>
 </body>
