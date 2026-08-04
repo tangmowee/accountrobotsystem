@@ -1,18 +1,15 @@
-# Netlify config — โฮสต์หน้าเว็บ/มือถือ ส่วน Firebase ใช้เป็นฐานข้อมูล+ล็อกอิน (backend)
-# ตั้ง publish directory = public (หน้ามือถือพนักงานอยู่ที่ /, แดชบอร์ดแอดมินอยู่ที่ /dashboard)
+# Netlify — โฮสต์หน้าเว็บ/มือถือ ส่วน Firebase = ฐานข้อมูล+ล็อกอิน (backend)
+# / = หน้ามือถือพนักงาน (index.html) • /admin = หน้า HR admin (admin.html)
 
 [build]
   publish = "public"
-  # ไม่มีขั้นตอน build (เป็น static HTML/JS ล้วน)
   command = ""
 
-# clean URL: /dashboard -> dashboard.html
 [[redirects]]
-  from = "/dashboard"
-  to = "/dashboard.html"
+  from = "/admin"
+  to = "/admin.html"
   status = 200
 
-# ไม่แคชไฟล์ HTML/JS เพื่อให้พนักงานได้เวอร์ชันล่าสุดเสมอ
 [[headers]]
   for = "/*.html"
   [headers.values]

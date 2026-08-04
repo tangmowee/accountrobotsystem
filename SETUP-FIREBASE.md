@@ -116,12 +116,13 @@ service cloud.firestore {
 
 | ไฟล์ | คือ | ลิงก์หลัง deploy |
 |------|-----|------------------|
-| `public/index.html` | **หน้ามือถือพนักงาน** (ปุ่มใหญ่ เช็คอิน/เอาท์ + GPS) — เป็นหน้าแรก | `https://<project>.web.app/` |
-| `public/dashboard.html` | **แดชบอร์ดแอดมิน** (การเงิน + Planner + รายงาน) | `https://<project>.web.app/dashboard` |
-| `public/firebase-config.js` | ใส่ Firebase config **ที่เดียว** ใช้ร่วมทั้ง 2 หน้า | — |
+| `public/index.html` | **หน้ามือถือพนักงาน** (เช็คอิน/เอาท์ + GPS + ขอลา) — เป็นหน้าแรก | `https://<project>.web.app/` |
+| `public/admin.html` | **หน้า HR admin** (วันนี้ · Planner · ลา · รายงาน ขาด/ลา/สาย · พนักงาน) | `https://<project>.web.app/admin` |
+| `public/firebase-config.js` | Firebase config + นโยบายเวลาทำงาน + โควตาลา **ที่เดียว** | — |
 
-> ทั้ง 2 หน้าใช้ Firestore ชุดเดียวกัน (`rsc/rsc_checkin_log`, `rsc/rsc_planner`)
-> ข้อมูลจึงรวมกันอัตโนมัติ — พนักงานเช็คอินจากมือถือ แล้วแอดมินเห็นในแดชบอร์ดทันที
+> ทั้ง 2 หน้าใช้ Firestore ชุดเดียวกัน (`rsc/rsc_checkin_log`, `rsc/rsc_planner`, `rsc/rsc_leave`, `rsc/rsc_employees`)
+> ข้อมูลรวมกันอัตโนมัติ — พนักงานเช็คอิน/ขอลาจากมือถือ แล้ว HR เห็นในหน้า admin ทันที
+> **หมายเหตุ:** รายงานการเงิน (`index` ที่ root repo) เป็นคนละระบบ แยกต่างหากจาก HR
 
 ### ขั้นตอน deploy (ทำครั้งแรก ~10 นาที)
 
@@ -132,7 +133,16 @@ service cloud.firestore {
 5. Deploy: `firebase deploy --only hosting`
 6. เสร็จ → ได้ลิงก์ `https://<project>.web.app`
    - แจก **ลิงก์หลัก** ให้พนักงาน (หน้ามือถือ)
-   - แอดมินเข้า **`/dashboard`**
+   - HR/แอดมินเข้า **`/admin`**
+
+### นโยบายเวลาทำงาน + โควตาลา (ปรับใน `public/firebase-config.js`)
+```js
+window.WORK_START = '08:30';   // เข้างาน (เกินนี้ = สาย)
+window.WORK_END   = '17:30';   // เลิกงาน
+window.WORK_DAYS  = [1,2,3,4,5];   // จันทร์–ศุกร์
+window.STD_HOURS  = 8;             // ชม.มาตรฐาน/วัน (เกิน = OT)
+window.LEAVE_QUOTA = { vacation:6, personal:3, sick:30 };  // วันลา/ปี
+```
 
 ### ทิปหน้ามือถือ
 - ให้พนักงานกด "เพิ่มลงหน้าจอโฮม" (Add to Home Screen) เปิดใช้เหมือนแอปได้เลย
@@ -155,7 +165,7 @@ service cloud.firestore {
    - ใส่โดเมน เช่น `rsc-checkin.netlify.app` หรือโดเมนจริงของบริษัท
    - ถ้าไม่ทำ ขั้นตอนนี้ ล็อกอินจากเว็บจะถูกบล็อก
 
-**ผลลัพธ์:** หน้ามือถือพนักงานอยู่ที่ `https://<ชื่อ>.netlify.app/` • แดชบอร์ดแอดมินที่ `/dashboard`
+**ผลลัพธ์:** หน้ามือถือพนักงานอยู่ที่ `https://<ชื่อ>.netlify.app/` • หน้า HR admin ที่ `/admin`
 
 > **หมายเหตุความปลอดภัย:** ไฟล์ `firebase-config.js` เปิดเผยได้ ไม่ใช่ความลับ —
 > Firebase web config ออกแบบมาให้อยู่ฝั่ง client ความปลอดภัยจริงมาจาก

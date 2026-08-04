@@ -4,8 +4,7 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "rewrites": [
-      { "source": "/checkin", "destination": "/index.html" },
-      { "source": "/dashboard", "destination": "/dashboard.html" }
+      { "source": "/admin", "destination": "/admin.html" }
     ],
     "headers": [
       {

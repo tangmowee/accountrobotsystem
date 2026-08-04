@@ -12,12 +12,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --orange:#E85D04; --orange-light:#F48C06; --orange-dim:rgba(232,93,4,0.12);
-    --dark:#0D0D0D; --dark2:#141414; --card:#1A1A1A; --border:rgba(255,255,255,0.08);
-    --text:#F0EDE8; --muted:#888; --green:#2ECC71; --red:#E74C3C; --yellow:#F39C12;
+    --orange:#F97316; --orange-light:#FB923C; --orange-dim:rgba(249,115,22,0.12);
+    --dark:#0A0B0D; --dark2:#0E0F13; --card:rgba(255,255,255,0.035); --border:rgba(255,255,255,0.08);
+    --text:#EAEAF0; --muted:#7C808C; --green:#34D399; --red:#F87171; --yellow:#FBBF24; --cyan:#22D3EE;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{background:var(--dark);color:var(--text);font-family:'Sarabun',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;}
+  body{color:var(--text);font-family:'Sarabun',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;
+    background:radial-gradient(700px 380px at 15% -6%,rgba(249,115,22,0.12),transparent 60%),radial-gradient(600px 360px at 100% 0,rgba(34,211,238,0.08),transparent 55%),linear-gradient(180deg,var(--dark),var(--dark2));background-attachment:fixed;}
 
   .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
   .brand{display:flex;align-items:center;gap:10px;}
@@ -28,7 +29,8 @@
   .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
 
   .wrap{max-width:520px;margin:0 auto;padding:16px;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
 
   .clock{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:3px;color:var(--orange);line-height:1;text-align:center;}
   .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
@@ -39,7 +41,7 @@
 
   label{display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
   select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:16px;padding:13px;outline:none;}
-  select:focus,input:focus{border-color:var(--orange);}
+  select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
 
   .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
   .geo.ok{border-style:solid;border-color:rgba(46,204,113,0.4);}
@@ -160,7 +162,10 @@ const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
 const DOMAIN = window.LOGIN_DOMAIN || 'rsc.local';
+const WORK_START = window.WORK_START || '08:30';
+const GRACE = window.LATE_GRACE_MIN || 0;
 function shortName(email){return (email||'').split('@')[0];}
+function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
 
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
@@ -232,7 +237,8 @@ function checkin(){
   const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
   if(rec.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===rec.jobId);if(j){j.status='in';save(LS_PLAN,p);}}
   currentGeo=null;$('note').value='';resetGeo();refreshState();renderMyLog();
-  toast('✅ เช็คอินสำเร็จ '+fmtT(now));
+  const ci=new Date(now);const lateMin=ci.getHours()*60+ci.getMinutes()-parseHM(WORK_START)-GRACE;
+  toast(lateMin>0?('⏰ เช็คอินสำเร็จ · มาสาย '+lateMin+' นาที'):('✅ เช็คอินสำเร็จ '+fmtT(now)));
 }
 function checkout(){
   const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
