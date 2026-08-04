@@ -134,6 +134,30 @@ service cloud.firestore {
 
 ---
 
+## ทางเลือก: โฮสต์บน Netlify (ถ้า RSC ใช้ Netlify อยู่แล้ว)
+
+**ไม่ต้องใช้ Firebase Hosting ก็ได้** — Firebase ทำหน้าที่แค่ฐานข้อมูล + ล็อกอิน (backend)
+ส่วนไฟล์เว็บจะโฮสต์ที่ไหนก็ได้ รวมถึง Netlify เดิมของบริษัท
+
+**ขั้นตอน:**
+1. Deploy ขึ้น Netlify โดยตั้ง **publish directory = `public`**
+   - เชื่อม GitHub repo กับ Netlify (มีไฟล์ `netlify.toml` ตั้งค่าให้แล้ว) หรือ
+   - ลากโฟลเดอร์ `public` ไปวางที่หน้า Netlify (drag & drop)
+2. ใส่ Firebase config ใน `public/firebase-config.js` (เหมือนเดิม)
+3. **สำคัญ:** อนุญาตโดเมน Netlify ใน Firebase
+   - Firebase Console → **Authentication → Settings → Authorized domains → Add domain**
+   - ใส่โดเมน เช่น `rsc-checkin.netlify.app` หรือโดเมนจริงของบริษัท
+   - ถ้าไม่ทำ ขั้นตอนนี้ ล็อกอินจากเว็บจะถูกบล็อก
+
+**ผลลัพธ์:** หน้ามือถือพนักงานอยู่ที่ `https://<ชื่อ>.netlify.app/` • แดชบอร์ดแอดมินที่ `/dashboard`
+
+> **หมายเหตุความปลอดภัย:** ไฟล์ `firebase-config.js` เปิดเผยได้ ไม่ใช่ความลับ —
+> Firebase web config ออกแบบมาให้อยู่ฝั่ง client ความปลอดภัยจริงมาจาก
+> (1) Firestore Security Rules และ (2) Authorized domains ที่ตั้งไว้ข้างบน
+> เพิ่มความมั่นใจได้ด้วยการจำกัด API key ที่ Google Cloud Console → Credentials
+
+---
+
 ## หมายเหตุทางเทคนิค
 - ใช้ Firestore แบบ 1 เอกสารต่อ 1 คอลเลกชัน (`rsc/rsc_checkin_log`, `rsc/rsc_planner`) เก็บเป็น array
   เพียงพอสำหรับทีมขนาด SME (จำกัด 1 MB/เอกสาร ≈ หลายพันรายการ) หากในอนาคตข้อมูลโตมาก
