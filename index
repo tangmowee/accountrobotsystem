@@ -615,6 +615,7 @@
   <div class="nav-tab" onclick="showTab('checkin')">📍 เช็คอิน/เช็คเอาท์</div>
   <div class="nav-tab" onclick="showTab('planner')">🗓️ RSC Planner</div>
   <div class="nav-tab" onclick="showTab('leave')">🏖️ ลา / OT</div>
+  <div class="nav-tab" onclick="showTab('summary')">📊 สรุปชั่วโมง</div>
 </div>
 
 <!-- MAIN -->
@@ -1580,6 +1581,54 @@
     </div>
   </div>
 
+  <!-- ===== TAB: HOURS SUMMARY ===== -->
+  <div class="section" id="tab-summary">
+    <div class="section-title">สรุปชั่วโมงทำงาน</div>
+    <div class="section-sub">แยกตามแผนก / รายคน / รายจ๊อป — แสดงเฉพาะจำนวนชั่วโมง (ไม่มีเงิน)</div>
+
+    <div class="cards-row col-1-2">
+      <!-- employee registry -->
+      <div class="content-card">
+        <div class="card-header"><div class="card-title">👥 ทะเบียนพนักงาน</div><span class="card-tag" id="emp-count">0 คน</span></div>
+        <div class="field"><label>อีเมล (ที่ใช้ล็อกอิน) หรือชื่อ (โหมด LOCAL)</label><input id="emp-email" placeholder="somchai@robotsystem.co.th"></div>
+        <div class="field"><label>ชื่อ–สกุล</label><input id="emp-fullname" placeholder="สมชาย ใจดี"></div>
+        <div class="cards-row col-2" style="gap:12px;">
+          <div class="field"><label>แผนก</label><input id="emp-dept" placeholder="วิศวกรรม"></div>
+          <div class="field"><label>ตำแหน่ง</label><input id="emp-pos" placeholder="วิศวกร"></div>
+        </div>
+        <button class="btn primary" onclick="addEmp()">บันทึกพนักงาน</button>
+        <div class="mini-note" style="margin-top:8px;">อีเมลต้องตรงกับที่พนักงานใช้ล็อกอิน เพื่อจับคู่ชั่วโมงเข้ากับแผนก</div>
+        <div style="overflow-x:auto;margin-top:16px;">
+          <table><thead><tr><th>ชื่อ</th><th>แผนก</th><th>ตำแหน่ง</th><th></th></tr></thead>
+          <tbody id="emp-body"><tr class="empty-row"><td colspan="4">ยังไม่มีพนักงาน</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- summaries -->
+      <div class="content-card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <div class="card-title">📊 สรุปชั่วโมง</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;">
+            <input type="month" id="sum-month" onchange="renderSummary()" style="width:auto;padding:6px 10px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
+            <span class="mini-note">ชม.มาตรฐาน/วัน</span><input type="number" id="sum-std" value="8" min="0" step="0.5" onchange="renderSummary()" style="width:64px;padding:6px;background:var(--dark2);border:1px solid var(--border);color:var(--text);border-radius:3px;">
+            <button class="btn" onclick="exportHoursCSV()" style="padding:6px 12px;font-size:12px;">⬇️ CSV รายคน</button>
+          </div>
+        </div>
+
+        <div class="card-title" style="font-size:12px;margin:6px 0 10px;color:var(--orange-light);">🏢 ตามแผนก</div>
+        <table><thead><tr><th>แผนก</th><th class="td-center">คน</th><th class="td-num">ชม.ทำงาน</th><th class="td-num">ชม. OT</th></tr></thead><tbody id="sum-dept"></tbody></table>
+
+        <hr class="divider" style="margin:18px 0;">
+        <div class="card-title" style="font-size:12px;margin:6px 0 10px;color:var(--orange-light);">👤 รายคน</div>
+        <div style="overflow-x:auto;"><table><thead><tr><th>ชื่อ</th><th>แผนก</th><th class="td-center">วันทำงาน</th><th class="td-num">ชม.ทำงาน</th><th class="td-num">ชม. OT</th></tr></thead><tbody id="sum-person"></tbody></table></div>
+
+        <hr class="divider" style="margin:18px 0;">
+        <div class="card-title" style="font-size:12px;margin:6px 0 10px;color:var(--orange-light);">🗂️ รายจ๊อป (Planner)</div>
+        <div style="overflow-x:auto;"><table><thead><tr><th>งาน</th><th class="td-center">คน</th><th class="td-num">ชม.ทำงาน</th></tr></thead><tbody id="sum-job"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <div class="watermark">RSC CONFIDENTIAL — FEB 2569</div>
@@ -1593,6 +1642,7 @@ function showTab(id) {
   if (id === 'checkin') { renderJobOptions(); renderLog(); }
   if (id === 'planner') renderPlans();
   if (id === 'leave') { renderLeave(); renderOT(); }
+  if (id === 'summary') { renderEmps(); renderSummary(); }
 }
 
 /* ============ CONFIG ============ */
@@ -1611,11 +1661,12 @@ const GEOFENCE_RADIUS_M = 300;   // รัศมี (เมตร) ที่อ�
 const LS_LOG   = 'rsc_checkin_log';
 const LS_PLAN  = 'rsc_planner';
 const LS_LEAVE = 'rsc_leave';
+const LS_EMP   = 'rsc_employees';
 
 /* ============ STORAGE (mode-aware) ============ */
 let MODE = 'local';        // 'local' | 'firebase'
 let db = null, auth = null, currentUser = null;
-const state = { [LS_LOG]: [], [LS_PLAN]: [], [LS_LEAVE]: [] };   // in-memory cache (source of truth for render)
+const state = { [LS_LOG]: [], [LS_PLAN]: [], [LS_LEAVE]: [], [LS_EMP]: [] };   // in-memory cache (source of truth for render)
 
 function initFirebase(){
   if(!FIREBASE_CONFIG.apiKey || typeof firebase === 'undefined') return false;
@@ -1644,10 +1695,10 @@ function save(k, arr){
 
 /* Firestore realtime listeners → keep cache in sync across devices */
 function attachListeners(){
-  ['rsc_checkin_log','rsc_planner','rsc_leave'].forEach(k => {
+  ['rsc_checkin_log','rsc_planner','rsc_leave','rsc_employees'].forEach(k => {
     db.collection('rsc').doc(k).onSnapshot(snap => {
       state[k] = (snap.exists && snap.data().items) ? snap.data().items : [];
-      renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT();
+      renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT(); renderEmps(); renderSummary();
     }, err => console.error('listener error', err));
   });
 }
@@ -2061,6 +2112,82 @@ function renderOT(){
   </tr>`).join('');
 }
 
+/* ============ EMPLOYEES (ทะเบียนพนักงาน + แผนก) ============ */
+function addEmp(){
+  const email = document.getElementById('emp-email').value.trim();
+  const name  = document.getElementById('emp-fullname').value.trim();
+  if(!email && !name){ alert('กรอกอีเมลหรือชื่ออย่างน้อยหนึ่งอย่าง'); return; }
+  const arr = load(LS_EMP);
+  const existing = email ? arr.find(x=>x.email===email) : null;
+  const rec = {
+    id: (existing && existing.id) || uid(), email, name,
+    dept: document.getElementById('emp-dept').value.trim(),
+    pos:  document.getElementById('emp-pos').value.trim()
+  };
+  if(existing) Object.assign(existing, rec); else arr.push(rec);
+  save(LS_EMP, arr);
+  ['emp-email','emp-fullname','emp-dept','emp-pos'].forEach(i=>document.getElementById(i).value='');
+  renderEmps(); renderSummary();
+}
+function delEmp(id){ if(!confirm('ลบพนักงานนี้?')) return; save(LS_EMP, load(LS_EMP).filter(x=>x.id!==id)); renderEmps(); renderSummary(); }
+function empLookup(key){ return load(LS_EMP).find(x=>(x.email && x.email===key) || (x.name && x.name===key)); }
+function renderEmps(){
+  const body = document.getElementById('emp-body'); if(!body) return;
+  const arr = load(LS_EMP);
+  const c = document.getElementById('emp-count'); if(c) c.textContent = arr.length + ' คน';
+  if(!arr.length){ body.innerHTML = '<tr class="empty-row"><td colspan="4">ยังไม่มีพนักงาน</td></tr>'; return; }
+  body.innerHTML = arr.slice().sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')).map(e=>`<tr>
+    <td><strong>${esc(e.name||e.email)}</strong>${e.email?`<div class="mini-note">${esc(e.email)}</div>`:''}</td>
+    <td>${esc(e.dept)||'<span style="color:var(--muted)">—</span>'}</td>
+    <td>${esc(e.pos)||'<span style="color:var(--muted)">—</span>'}</td>
+    <td class="td-center"><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="delEmp('${e.id}')">ลบ</button></td>
+  </tr>`).join('');
+}
+
+/* ============ HOURS SUMMARY (แผนก / รายคน / รายจ๊อป) ============ */
+let _sumPersons = [], _sumYm = '';
+function renderSummary(){
+  const dBody = document.getElementById('sum-dept'); if(!dBody) return;
+  const mEl = document.getElementById('sum-month'); let ym = mEl.value;
+  if(!ym){ ym = todayStr().slice(0,7); mEl.value = ym; }
+  const std = parseFloat(document.getElementById('sum-std').value) || 8;
+  const recs = load(LS_LOG).filter(r=>r.outTs && r.date && r.date.slice(0,7)===ym);
+  const persons={}, depts={}, jobs={};
+  recs.forEach(r=>{
+    const worked = (r.outTs - r.inTs)/3600000;
+    const dow = new Date(r.date).getDay();
+    const ot = (dow===0||dow===6) ? worked : Math.max(0, worked - std);
+    const emp = empLookup(r.name);
+    const disp = (emp && emp.name) || r.name;
+    const dept = (emp && emp.dept) || 'ไม่ระบุแผนก';
+    const p = persons[r.name] || (persons[r.name] = { name:disp, dept, days:new Set(), worked:0, ot:0 });
+    p.worked += worked; p.ot += ot; p.days.add(r.date);
+    const d = depts[dept] || (depts[dept] = { people:new Set(), worked:0, ot:0 });
+    d.people.add(r.name); d.worked += worked; d.ot += ot;
+    const jt = r.jobTitle ? r.jobTitle.split(' @ ')[0] : '(ไม่ระบุงาน)';
+    const j = jobs[jt] || (jobs[jt] = { people:new Set(), worked:0 });
+    j.people.add(r.name); j.worked += worked;
+  });
+  const empty = (c,t)=>`<tr class="empty-row"><td colspan="${c}">${t}</td></tr>`;
+  const de = Object.entries(depts).sort((a,b)=>b[1].worked-a[1].worked);
+  dBody.innerHTML = de.length ? de.map(([k,v])=>`<tr><td><strong>${esc(k)}</strong></td><td class="td-center">${v.people.size}</td><td class="td-num">${v.worked.toFixed(1)}</td><td class="td-num" style="color:var(--orange-light);">${v.ot.toFixed(1)}</td></tr>`).join('') : empty(4,'ไม่มีข้อมูลเดือนนี้');
+  const pe = Object.values(persons).sort((a,b)=>b.worked-a.worked);
+  document.getElementById('sum-person').innerHTML = pe.length ? pe.map(p=>`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.dept)}</td><td class="td-center">${p.days.size}</td><td class="td-num">${p.worked.toFixed(1)}</td><td class="td-num" style="color:var(--orange-light);">${p.ot.toFixed(1)}</td></tr>`).join('') : empty(5,'ไม่มีข้อมูลเดือนนี้');
+  const je = Object.entries(jobs).sort((a,b)=>b[1].worked-a[1].worked);
+  document.getElementById('sum-job').innerHTML = je.length ? je.map(([k,v])=>`<tr><td><strong>${esc(k)}</strong></td><td class="td-center">${v.people.size}</td><td class="td-num">${v.worked.toFixed(1)}</td></tr>`).join('') : empty(3,'ไม่มีข้อมูลเดือนนี้');
+  _sumPersons = pe; _sumYm = ym;
+}
+function exportHoursCSV(){
+  if(!_sumPersons.length){ alert('ไม่มีข้อมูลให้ส่งออก'); return; }
+  const head = ['เดือน','ชื่อ','แผนก','วันทำงาน','ชม.ทำงาน','ชม.OT'];
+  const rows = _sumPersons.map(p=>[_sumYm,p.name,p.dept,p.days.size,p.worked.toFixed(1),p.ot.toFixed(1)]
+    .map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = '﻿' + [head.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'RSC_hours_' + _sumYm + '.csv'; a.click();
+}
+
 /* ============ CLOCK ============ */
 function tickClock(){
   const now = new Date();
@@ -2083,8 +2210,9 @@ if(MODE === 'firebase'){
   try { state[LS_LOG] = JSON.parse(localStorage.getItem(LS_LOG)) || []; } catch(e){ state[LS_LOG] = []; }
   try { state[LS_PLAN] = JSON.parse(localStorage.getItem(LS_PLAN)) || []; } catch(e){ state[LS_PLAN] = []; }
   try { state[LS_LEAVE] = JSON.parse(localStorage.getItem(LS_LEAVE)) || []; } catch(e){ state[LS_LEAVE] = []; }
+  try { state[LS_EMP] = JSON.parse(localStorage.getItem(LS_EMP)) || []; } catch(e){ state[LS_EMP] = []; }
   seedPlanner();
-  renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT();
+  renderJobOptions(); renderLog(); renderPlans(); renderLeave(); renderOT(); renderEmps(); renderSummary();
   document.getElementById('emp-name').addEventListener('input', e=>updateWorkerState(e.target.value.trim()));
 }
 </script>
