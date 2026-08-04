@@ -166,6 +166,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a class="active" data-s="today" onclick="showSec('today')">⚡ วันนี้</a>
     <a data-s="planner" onclick="showSec('planner')">🗓️ Planner</a>
     <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
+    <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -235,6 +236,27 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== APPROVE (คิวอนุมัติของฉัน) ===== -->
+  <section class="sec" id="s-approve">
+    <div class="h1">คิวอนุมัติของฉัน</div>
+    <div class="sub" id="ap-sub">อนุมัติลา และ OT ตามลำดับสิทธิ์ของคุณ (หัวหน้างาน = ลำดับ 1 · ผู้จัดการ/HR = ลำดับ 2)</div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">🏖️ คำขอลา — รอฉันอนุมัติ</div><span class="tag" id="ap-lv-c">0</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>พนักงาน</th><th>ประเภท</th><th>ตั้งแต่</th><th>ถึง</th><th>วัน</th><th>เหตุผล</th><th>ลำดับ</th><th></th></tr></thead>
+        <tbody id="ap-lv"><tr class="empty"><td colspan="8">ไม่มีรายการรออนุมัติ</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">🌙 OT — รอฉันอนุมัติ</div><span class="tag" id="ap-ot-c">0</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน</th><th>เข้า–ออก</th><th>ชม.OT</th><th>ลำดับ</th><th></th></tr></thead>
+        <tbody id="ap-ot"><tr class="empty"><td colspan="7">ไม่มีรายการรออนุมัติ</td></tr></tbody>
+      </table></div>
+      <div class="note">OT ตรวจจับอัตโนมัติจากการเช็คเอาท์ (เกินมาตรฐาน หรือวันหยุด) → อนุมัติ 2 ลำดับ → นับเข้ารายงาน</div>
+    </div>
+  </section>
+
   <!-- ===== REPORT ===== -->
   <section class="sec" id="s-report">
     <div class="h1">รายงานการลงเวลา</div>
@@ -273,7 +295,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <thead><tr><th>งาน</th><th>คน</th><th>ชม.ทำงาน</th></tr></thead>
         <tbody id="rp-job"></tbody>
       </table></div>
-      <div class="note">* กติกา: ทำงาน จ–ศ • เข้า <b id="n-start">08:30</b> เกินนับสาย • เลิก <b id="n-end">17:30</b> • มาตรฐาน <b id="n-std">8</b> ชม./วัน • วันทำงานที่ไม่เช็คอินและไม่มีใบลา = ขาด</div>
+      <div class="note">* กติกา: ทำงาน จ–ศ • เข้า <b id="n-start">08:30</b> เกินนับสาย • เลิก <b id="n-end">17:30</b> • มาตรฐาน <b id="n-std">8</b> ชม./วัน • วันทำงานที่ไม่เช็คอินและไม่มีใบลา = ขาด • <b>OT นับเฉพาะที่อนุมัติครบ 2 ลำดับแล้ว</b></div>
     </div>
   </section>
 
@@ -287,14 +309,23 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="f"><label>ชื่อผู้ใช้ / ชื่อเล่น (ใช้ล็อกอิน)</label><input id="em-user" placeholder="joe"></div>
         <div class="f"><label>ชื่อ–สกุล</label><input id="em-name" placeholder="สมชาย ใจดี"></div>
         <div class="grid g2"><div class="f"><label>แผนก</label><input id="em-dept" placeholder="วิศวกรรม"></div><div class="f"><label>ตำแหน่ง</label><input id="em-pos" placeholder="วิศวกร"></div></div>
+        <div class="grid g2">
+          <div class="f"><label>ระดับสิทธิ์</label><select id="em-role">
+            <option value="employee">พนักงาน</option>
+            <option value="supervisor">หัวหน้างาน (อนุมัติ ลำดับ 1)</option>
+            <option value="manager">ผู้จัดการ (อนุมัติ ลำดับ 2)</option>
+            <option value="hr">HR (เห็น/อนุมัติทุกคน)</option>
+          </select></div>
+          <div class="f"><label>หัวหน้างานโดยตรง</label><select id="em-sup"><option value="">— ไม่มี —</option></select></div>
+        </div>
         <button class="btn p" style="width:100%" onclick="addEmp()">บันทึกพนักงาน</button>
-        <div class="note">สร้างรหัสผ่านของพนักงานที่ Firebase Console → Authentication (เป็น ชื่อผู้ใช้@rsc.local)</div>
+        <div class="note">สร้างรหัสผ่านที่ Firebase Console → Authentication (เป็น ชื่อผู้ใช้@rsc.local) • หัวหน้างาน = ผู้อนุมัติลำดับ 1 ของพนักงานคนนี้</div>
       </div>
       <div class="card">
         <div class="card-h"><div class="card-t">👥 พนักงานทั้งหมด</div><span class="tag" id="em-count">0 คน</span></div>
         <div class="tw"><table>
-          <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>แผนก</th><th>ตำแหน่ง</th><th></th></tr></thead>
-          <tbody id="em-body"><tr class="empty"><td colspan="5">ยังไม่มีพนักงาน</td></tr></tbody>
+          <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>แผนก</th><th>ระดับ</th><th>หัวหน้า</th><th></th></tr></thead>
+          <tbody id="em-body"><tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -334,6 +365,18 @@ function shortName(e){return (e||'').split('@')[0];}
 function empOf(key){return load(LS_EMP).find(x=>{const em=x.email||'';return em===key||(x.name&&x.name===key)||em.split('@')[0]===key;});}
 function myName(){return user?shortName(user.email):'';}
 
+/* ===== roles / visibility / approval ===== */
+function myRole(){if(MODE==='local'&&!empOf(myName()))return 'hr';const e=empOf(myName());if(e&&e.role)return e.role;if(!load(LS_EMP).length)return 'hr';if((window.HR_USERS||[]).includes(myName()))return 'hr';return 'employee';}
+function isHR(){const r=myRole();return r==='hr'||r==='admin';}
+function roleLabel(r){return {employee:'พนักงาน',supervisor:'หัวหน้างาน',manager:'ผู้จัดการ',hr:'HR',admin:'Admin'}[r]||r||'พนักงาน';}
+function canSee(key){if(isHR()||myRole()==='manager')return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
+function canL1(key){if(isHR())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
+function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin';}
+function otOf(r){if(!r.outTs)return 0;const h=(r.outTs-r.inTs)/3600000;const dow=new Date(r.date).getDay();return (dow===0||dow===6)?h:Math.max(0,h-STD_HOURS);}
+function otStatusOf(r){return r.otStatus||(otOf(r)>0.01?'pending_l1':'none');}
+const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้ว</span>',rejected:'<span class="chip absent">ไม่อนุมัติ</span>',
+  pending_l1:'<span class="chip late">รอ ลำดับ 1</span>',pending_l2:'<span class="chip plan">รอ ลำดับ 2</span>',pending:'<span class="chip late">รออนุมัติ</span>'}[s]||'');
+
 /* ===== firebase ===== */
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
@@ -350,17 +393,17 @@ function onAuth(u){user=u;
 function showSec(id){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
   $('s-'+id).classList.add('on');document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
-  if(id==='report')renderReport(); if(id==='people')renderEmps();}
+  if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();}
 
 /* ===== render all ===== */
-function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderReport();renderEmps();fillAssignees();}
+function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();}
 
 /* ===== TODAY ===== */
 function renderToday(){
   const today=todayStr();
-  const logs=load(LS_LOG).filter(r=>r.date===today);
-  const emps=load(LS_EMP);
-  const onLeave=load(LS_LEAVE).filter(l=>l.status==='approved'&&today>=l.from&&today<=l.to);
+  const logs=load(LS_LOG).filter(r=>r.date===today&&canSee(r.name));
+  const emps=load(LS_EMP).filter(e=>canSee(e.email||e.name));
+  const onLeave=load(LS_LEAVE).filter(l=>l.status==='approved'&&today>=l.from&&today<=l.to&&canSee(l.name));
   const startMin=parseHM(WORK_START);
   let lateN=0; logs.forEach(r=>{const ci=new Date(r.inTs);if(ci.getHours()*60+ci.getMinutes()-startMin-GRACE>0)lateN++;});
   const inNames=new Set(logs.map(r=>r.name));
@@ -400,20 +443,48 @@ function renderPlans(){fillAssignees();const p=load(LS_PLAN);$('pl-count').textC
     <td class="ctr"><button class="btn sm no" onclick="delPlan('${x.id}')">ลบ</button></td></tr>`).join('');}
 
 /* ===== LEAVE ===== */
-function decideLeave(id,s){const a=load(LS_LEAVE),r=a.find(x=>x.id===id);if(!r)return;r.status=s;r.decidedBy=myName()||'admin';r.decidedTs=Date.now();save(LS_LEAVE,a);renderLeave();renderBalance();}
-function delLeave(id){if(!confirm('ลบคำขอลานี้?'))return;save(LS_LEAVE,load(LS_LEAVE).filter(x=>x.id!==id));renderLeave();renderBalance();}
-function renderLeave(){const arr=load(LS_LEAVE).slice().sort((a,b)=>(b.createdTs||0)-(a.createdTs||0));const body=$('lv-body');
-  $('lv-pending').textContent='รออนุมัติ '+arr.filter(r=>r.status==='pending').length;
+function delLeave(id){if(!confirm('ลบคำขอลานี้?'))return;save(LS_LEAVE,load(LS_LEAVE).filter(x=>x.id!==id));renderAll();}
+function approveLeave(id){const a=load(LS_LEAVE),r=a.find(x=>x.id===id);if(!r)return;
+  const s=r.status==='pending'?'pending_l1':r.status;
+  if(s==='pending_l1'){if(!canL1(r.name)){alert('คุณไม่มีสิทธิ์อนุมัติลำดับ 1 ของพนักงานนี้');return;}r.l1By=myName();r.l1At=Date.now();r.status='pending_l2';}
+  else if(s==='pending_l2'){if(!canL2()){alert('ต้องเป็นผู้จัดการ/HR เพื่ออนุมัติลำดับ 2');return;}r.l2By=myName();r.l2At=Date.now();r.status='approved';}
+  save(LS_LEAVE,a);renderAll();}
+function rejectLeave(id){const a=load(LS_LEAVE),r=a.find(x=>x.id===id);if(!r)return;
+  const s=r.status==='pending'?'pending_l1':r.status;
+  if(!(canL1(r.name)||canL2()||isHR())){alert('ไม่มีสิทธิ์');return;}
+  r.status='rejected';r.rejBy=myName();r.rejAt=Date.now();save(LS_LEAVE,a);renderAll();}
+function nameOf(k){const e=empOf(k);return esc((e&&e.name)||k);}
+function leaveTrail(r){const p=[];if(r.l1By)p.push('ลำดับ1: '+nameOf(r.l1By));if(r.l2By)p.push('ลำดับ2: '+nameOf(r.l2By));if(r.rejBy)p.push('ปฏิเสธ: '+nameOf(r.rejBy));return p.length?`<div class="note">${p.join(' · ')}</div>`:'';}
+function renderLeave(){const arr=load(LS_LEAVE).slice().filter(r=>canSee(r.name)).sort((a,b)=>(b.createdTs||0)-(a.createdTs||0));const body=$('lv-body');
+  $('lv-pending').textContent='รออนุมัติ '+arr.filter(r=>/pending/.test(r.status||'')).length;
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="9">ยังไม่มีคำขอลา</td></tr>';return;}
-  const chip=s=>s==='approved'?'<span class="chip in">อนุมัติ</span>':s==='rejected'?'<span class="chip absent">ไม่อนุมัติ</span>':'<span class="chip late">รออนุมัติ</span>';
-  body.innerHTML=arr.map(r=>{const e=empOf(r.name);return `<tr><td>${r.createdTs?fmtD(r.createdTs):'—'}</td><td><b>${esc((e&&e.name)||r.name)}</b></td>
+  body.innerHTML=arr.map(r=>`<tr><td>${r.createdTs?fmtD(r.createdTs):'—'}</td><td><b>${nameOf(r.name)}</b></td>
     <td>${LTYPE[r.type]||esc(r.type)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td>
-    <td>${esc(r.reason)||'<span style="color:var(--dim)">—</span>'}</td><td>${chip(r.status)}</td>
-    <td class="ctr" style="white-space:nowrap">${r.status==='pending'
-      ?`<button class="btn sm ok" onclick="decideLeave('${r.id}','approved')">อนุมัติ</button> <button class="btn sm no" onclick="decideLeave('${r.id}','rejected')">ปฏิเสธ</button>`
-      :`<button class="btn sm no" onclick="delLeave('${r.id}')">ลบ</button>`}</td></tr>`;}).join('');}
+    <td>${esc(r.reason)||'<span style="color:var(--dim)">—</span>'}</td><td>${stChip(r.status)}${leaveTrail(r)}</td>
+    <td class="ctr">${isHR()?`<button class="btn sm no" onclick="delLeave('${r.id}')">ลบ</button>`:''}</td></tr>`).join('');}
+
+/* ===== APPROVAL QUEUE (ลา + OT, 2 ลำดับ) ===== */
+function levelChip(s){return s==='pending_l1'?'<span class="chip late">ลำดับ 1</span>':'<span class="chip plan">ลำดับ 2</span>';}
+function approveOT(id){const a=load(LS_LOG),r=a.find(x=>x.id===id);if(!r)return;const s=otStatusOf(r);
+  if(s==='pending_l1'){if(!canL1(r.name)){alert('ไม่มีสิทธิ์อนุมัติลำดับ 1');return;}r.otStatus='pending_l2';r.otL1By=myName();}
+  else if(s==='pending_l2'){if(!canL2()){alert('ต้องเป็นผู้จัดการ/HR');return;}r.otStatus='approved';r.otL2By=myName();}
+  save(LS_LOG,a);renderAll();}
+function rejectOT(id){const a=load(LS_LOG),r=a.find(x=>x.id===id);if(!r)return;if(!(canL1(r.name)||canL2()||isHR())){alert('ไม่มีสิทธิ์');return;}r.otStatus='rejected';save(LS_LOG,a);renderAll();}
+function renderApprovals(){
+  const lv=load(LS_LEAVE).filter(r=>{const s=r.status==='pending'?'pending_l1':r.status;return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
+  const ot=load(LS_LOG).filter(r=>{if(otOf(r)<=0.01)return false;const s=otStatusOf(r);return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
+  $('ap-badge').textContent=lv.length+ot.length;$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
+  $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}</td>
+    <td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td><td>${esc(r.reason)||'—'}</td><td>${levelChip(s)}</td>
+    <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveLeave('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectLeave('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
+    :'<tr class="empty"><td colspan="8">ไม่มีคำขอลารอคุณอนุมัติ</td></tr>';
+  $('ap-ot').innerHTML=ot.length?ot.map(r=>{const s=otStatusOf(r);return `<tr><td>${fmtD(r.inTs)}</td><td><b>${nameOf(r.name)}</b></td>
+    <td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'—'}</td><td class="mono">${fmtT(r.inTs)}–${fmtT(r.outTs)}</td>
+    <td class="ctr" style="color:var(--orange2);font-weight:600">${otOf(r).toFixed(1)}</td><td>${levelChip(s)}</td>
+    <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveOT('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectOT('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
+    :'<tr class="empty"><td colspan="7">ไม่มี OT รอคุณอนุมัติ</td></tr>';}
 function renderBalance(){const year=todayStr().slice(0,4);$('lv-year').textContent='ปี '+(+year+543);
-  const emps=load(LS_EMP);const body=$('lv-bal');
+  const emps=load(LS_EMP).filter(e=>canSee(e.email||e.name));const body=$('lv-bal');
   const appr=load(LS_LEAVE).filter(l=>l.status==='approved'&&(l.from||'').slice(0,4)===year);
   if(!emps.length){body.innerHTML='<tr class="empty"><td colspan="5">ยังไม่มีพนักงานในทะเบียน</td></tr>';return;}
   const cell=(used,q)=>{const pct=q?Math.min(100,used/q*100):0;const col=used>=q?'var(--red)':used>=q*0.7?'var(--amber)':'var(--green)';
@@ -432,11 +503,11 @@ function buildReport(ym){
   const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&ds<=today)workdays.push(ds);}
   const keys=new Set();emps.forEach(e=>keys.add(e.email||e.name));logs.forEach(r=>keys.add(r.name));
   const persons=[],depts={},jobs={};
-  keys.forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'ไม่ระบุแผนก';
+  [...keys].filter(k=>canSee(k)).forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'ไม่ระบุแผนก';
     let present=0,wh=0,ot=0,lateDays=0,lateMin=0,absent=0,leaveDays=0;
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
       const lv=appr.some(l=>(l.name===key||l.name===(e&&(e.email||'').split('@')[0]))&&ds>=l.from&&ds<=l.to);
-      if(rec){present++;if(rec.outTs){const h=(rec.outTs-rec.inTs)/3600000;wh+=h;ot+=Math.max(0,h-STD_HOURS);}
+      if(rec){present++;if(rec.outTs){const h=(rec.outTs-rec.inTs)/3600000;wh+=h;ot+=(otStatusOf(rec)==='approved')?otOf(rec):0;}
         const ci=new Date(rec.inTs);const late=ci.getHours()*60+ci.getMinutes()-startMin-GRACE;if(late>0){lateDays++;lateMin+=late;}
         const jt=rec.jobTitle?rec.jobTitle.split(' @ ')[0]:'(ไม่ระบุงาน)';const j=jobs[jt]||(jobs[jt]={ppl:new Set(),wh:0});j.ppl.add(key);if(rec.outTs)j.wh+=(rec.outTs-rec.inTs)/3600000;}
       else if(lv){leaveDays++;}else if(ds<today){absent++;}});
@@ -471,24 +542,40 @@ function exportCSV(){if(!_rp)return;const rows=_rp.persons.filter(p=>p.present||
   const csv='﻿'+[head.join(','),...body].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='RSC_attendance_'+_rpYm+'.csv';a.click();}
 
 /* ===== PEOPLE ===== */
+function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.value;
+  const sups=load(LS_EMP).filter(e=>e.role==='supervisor'||e.role==='manager'||e.role==='hr');
+  sel.innerHTML='<option value="">— ไม่มี —</option>'+sups.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name||e.email)} · ${roleLabel(e.role)}</option>`).join('');
+  sel.value=cur;}
 function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
-  const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim()};
-  if(ex)Object.assign(ex,rec);else arr.push(rec);save(LS_EMP,arr);['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');renderEmps();renderBalance();renderReport();fillAssignees();}
+  const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;
+  const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),role:$('em-role').value,supervisor:$('em-sup').value};
+  if(ex)Object.assign(ex,rec);else arr.push(rec);save(LS_EMP,arr);
+  ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-sup').value='';
+  renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
-function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';
-  if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="5">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
-  body.innerHTML=arr.slice().sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')).map(e=>`<tr><td><b>${esc(e.name||e.email)}</b></td>
-    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}</td><td>${esc(e.pos)||'—'}</td>
-    <td class="ctr"><button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`).join('');fillAssignees();}
+function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
+  if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
+  const rc={supervisor:'chip plan',manager:'chip leave',hr:'chip all',employee:'chip out',admin:'chip all'};
+  body.innerHTML=arr.slice().sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;
+    return `<tr><td><b>${esc(e.name||e.email)}</b></td>
+    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}</td>
+    <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
+    <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
+    <td class="ctr"><button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
 
 /* ===== clock + init ===== */
 function clock(){const c=$('t-clock');if(c)c.textContent=new Date().toLocaleTimeString('th-TH',{hour12:false});}
 function seedLocal(){if(localStorage.getItem(LS_EMP))return;
-  save(LS_EMP,[{id:'e1',email:'joe',name:'สมชาย ใจดี',dept:'วิศวกรรม',pos:'วิศวกร'},{id:'e2',email:'nong',name:'สมหญิง รักงาน',dept:'วิศวกรรม',pos:'ช่างเทคนิค'},{id:'e3',email:'ping',name:'ปิยะ มั่นคง',dept:'ซ่อมบำรุง',pos:'หัวหน้าช่าง'}]);
+  save(LS_EMP,[
+    {id:'e1',email:'joe',name:'สมชาย ใจดี',dept:'วิศวกรรม',pos:'วิศวกร',role:'employee',supervisor:'lek'},
+    {id:'e2',email:'nong',name:'สมหญิง รักงาน',dept:'วิศวกรรม',pos:'ช่างเทคนิค',role:'employee',supervisor:'lek'},
+    {id:'e3',email:'lek',name:'เล็ก หัวหน้าทีม',dept:'วิศวกรรม',pos:'หัวหน้าทีม',role:'supervisor',supervisor:'boss'},
+    {id:'e4',email:'ping',name:'ปิยะ มั่นคง',dept:'ซ่อมบำรุง',pos:'หัวหน้าช่าง',role:'supervisor',supervisor:'boss'},
+    {id:'e5',email:'boss',name:'สมศักดิ์ ผู้จัดการ',dept:'บริหาร',pos:'ผู้จัดการฝ่าย',role:'manager',supervisor:''}]);
   const t=todayStr();save(LS_PLAN,[{id:'p1',title:'ติดตั้งแขนกลสายการผลิต',site:'โรงงานลูกค้า ศรีราชา',owner:'ทีมวิศวกรรม A',date:t,time:'08:30',geo:'13.1745,100.9310',assignees:['joe','nong'],status:'in'},{id:'p2',title:'PM ระบบ CNC',site:'RSC สำนักงานใหญ่',owner:'ทีมซ่อมบำรุง',date:t,time:'13:00',geo:'13.7563,100.5018',assignees:['ping'],status:'plan'}]);
   function ts(h,m){const d=new Date();d.setHours(h,m,0,0);return d.getTime();}
-  save(LS_LOG,[{id:'l1',name:'joe',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,55),inGeo:'13.1746,100.9311',outTs:ts(18,20),outGeo:'13.1745,100.9309'},{id:'l2',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,20),inGeo:'13.1744,100.9312',outTs:null,outGeo:''}]);
-  save(LS_LEAVE,[{id:'v1',name:'ping',type:'vacation',from:t,to:t,days:1,reason:'ธุระครอบครัว',status:'pending',createdTs:Date.now()-3600000},{id:'v2',name:'nong',type:'sick',from:t,to:t,days:1,reason:'ไข้หวัด',status:'approved',createdTs:Date.now()-9e7,decidedBy:'admin'}]);}
+  save(LS_LOG,[{id:'l1',name:'joe',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,55),inGeo:'13.1746,100.9311',outTs:ts(18,20),outGeo:'13.1745,100.9309',otStatus:'pending_l1'},{id:'l2',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,20),inGeo:'13.1744,100.9312',outTs:null,outGeo:''}]);
+  save(LS_LEAVE,[{id:'v1',name:'joe',type:'vacation',from:t,to:t,days:1,reason:'ธุระครอบครัว',status:'pending_l1',createdTs:Date.now()-3600000},{id:'v2',name:'nong',type:'sick',from:t,to:t,days:1,reason:'ไข้หวัด',status:'approved',l1By:'lek',l2By:'boss',createdTs:Date.now()-9e7}]);}
 
 initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');$('conn').innerHTML='<span class="dot"></span>'+(MODE==='firebase'?'CLOUD':'LOCAL');
