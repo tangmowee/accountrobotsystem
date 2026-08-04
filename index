@@ -533,9 +533,59 @@
   .planner-link { color: var(--orange-light); font-size: 11px; }
   .mini-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
+  /* ===== AUTH / CONNECTION ===== */
+  .conn-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .conn-badge.cloud { background: rgba(46,204,113,0.12); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .conn-badge.local { background: rgba(243,156,18,0.12); color: var(--yellow); border: 1px solid rgba(243,156,18,0.3); }
+  .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(5,5,5,0.92);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .login-overlay.show { display: flex; }
+  .login-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 36px; width: 380px; max-width: 92vw;
+  }
+  .login-card h2 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; font-size: 26px; margin-bottom: 4px; color: var(--text); }
+  .login-card .sub { color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+  .login-err { color: var(--red); font-size: 12px; min-height: 16px; margin-top: 8px; }
+  .user-pill {
+    font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px;
+  }
+  .user-pill b { color: var(--text); }
+
 </style>
+
+<!-- Firebase SDK (compat) — โหลดจาก CDN, ใช้ได้เมื่อเปิดไฟล์ในเบราว์เซอร์จริง -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY (แสดงเฉพาะเมื่อเชื่อม Firebase และยังไม่ล็อกอิน) -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="logo-mark" style="margin-bottom:16px;">RSC</div>
+    <h2>เข้าสู่ระบบ</h2>
+    <div class="sub">RSC Check-in — ระบบลงเวลาพนักงาน</div>
+    <div class="field"><label>อีเมล</label><input type="email" id="login-email" placeholder="you@robotsystem.co.th" /></div>
+    <div class="field"><label>รหัสผ่าน</label><input type="password" id="login-pass" placeholder="••••••••" /></div>
+    <button class="btn primary lg" style="width:100%;justify-content:center;" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="mini-note" style="margin-top:14px;">บัญชีพนักงานสร้างได้ที่ Firebase Console → Authentication</div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -544,7 +594,14 @@
     <span class="company-name">Robot System Co., Ltd.</span>
     <span class="report-badge">Financial Report</span>
   </div>
-  <div class="header-date">กุมภาพันธ์ 2569 &nbsp;|&nbsp; Update 2/4/2569</div>
+  <div class="header-date" style="display:flex;align-items:center;gap:14px;">
+    <span id="conn-badge" class="conn-badge local"><span class="conn-dot"></span> LOCAL</span>
+    <span id="user-pill" class="user-pill" style="display:none;">
+      <b id="user-email">—</b>
+      <button class="btn" style="padding:3px 10px;font-size:11px;" onclick="doLogout()">ออกจากระบบ</button>
+    </span>
+    <span>กุมภาพันธ์ 2569</span>
+  </div>
 </div>
 
 <!-- NAV -->
@@ -1487,15 +1544,100 @@ function showTab(id) {
   if (id === 'planner') renderPlans();
 }
 
-/* ============ STORAGE ============ */
+/* ============ CONFIG ============ */
+/* วางค่า Firebase config ของบริษัทตรงนี้ (จาก Firebase Console → Project settings → Web app)
+   ถ้ายังปล่อยว่าง (apiKey ว่าง) ระบบจะทำงานแบบ LOCAL เก็บใน localStorage เหมือนเดิม        */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+const GEOFENCE_RADIUS_M = 300;   // รัศมี (เมตร) ที่อนุญาตให้เช็คอินห่างจากพิกัดไซต์งานใน Planner
+
 const LS_LOG  = 'rsc_checkin_log';
 const LS_PLAN = 'rsc_planner';
-const load = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e){ return []; } };
-const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
-/* Seed demo planner data on first run */
+/* ============ STORAGE (mode-aware) ============ */
+let MODE = 'local';        // 'local' | 'firebase'
+let db = null, auth = null, currentUser = null;
+const state = { [LS_LOG]: [], [LS_PLAN]: [] };   // in-memory cache (source of truth for render)
+
+function initFirebase(){
+  if(!FIREBASE_CONFIG.apiKey || typeof firebase === 'undefined') return false;
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    MODE = 'firebase';
+    return true;
+  } catch(e){ console.error('Firebase init failed', e); return false; }
+}
+
+/* read from in-memory cache (always synchronous for render) */
+const load = k => (state[k] || []).slice();
+
+/* write: update cache + persist (Firestore doc-per-collection, or localStorage) */
+function save(k, arr){
+  state[k] = arr.slice();
+  if(MODE === 'firebase' && db){
+    db.collection('rsc').doc(k).set({ items: arr, updatedAt: Date.now() })
+      .catch(e => console.error('save failed', e));
+  } else {
+    localStorage.setItem(k, JSON.stringify(arr));
+  }
+}
+
+/* Firestore realtime listeners → keep cache in sync across devices */
+function attachListeners(){
+  ['rsc_checkin_log','rsc_planner'].forEach(k => {
+    db.collection('rsc').doc(k).onSnapshot(snap => {
+      state[k] = (snap.exists && snap.data().items) ? snap.data().items : [];
+      renderJobOptions(); renderLog(); renderPlans();
+    }, err => console.error('listener error', err));
+  });
+}
+
+/* ============ AUTH ============ */
+function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-err');
+  err.textContent = '';
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(e => { err.textContent = 'เข้าสู่ระบบไม่สำเร็จ: ' + (e.code || e.message); });
+}
+function doLogout(){ if(auth) auth.signOut(); }
+
+function onAuth(user){
+  currentUser = user;
+  const overlay = document.getElementById('login-overlay');
+  const pill = document.getElementById('user-pill');
+  if(user){
+    overlay.classList.remove('show');
+    pill.style.display = 'inline-flex';
+    document.getElementById('user-email').textContent = user.email || user.uid;
+    const nameField = document.getElementById('emp-name');
+    nameField.value = user.email; nameField.readOnly = true;   // ล็อกชื่อ = บัญชีที่ล็อกอิน (กันเช็คอินแทนกัน)
+    updateWorkerState(user.email);
+  } else {
+    overlay.classList.add('show');
+    pill.style.display = 'none';
+  }
+}
+
+function setConnBadge(){
+  const b = document.getElementById('conn-badge');
+  if(MODE === 'firebase'){ b.className = 'conn-badge cloud'; b.innerHTML = '<span class="conn-dot"></span> CLOUD'; }
+  else { b.className = 'conn-badge local'; b.innerHTML = '<span class="conn-dot"></span> LOCAL'; }
+}
+
+/* Seed demo planner data (LOCAL mode only — ไม่เขียน demo ลง Firestore ที่แชร์กัน) */
 function seedPlanner() {
-  if (localStorage.getItem(LS_PLAN)) return;
+  if (MODE !== 'local') return;
+  if (localStorage.getItem(LS_PLAN)) { state[LS_PLAN] = load(LS_PLAN); return; }
   const t = new Date();
   const iso = d => d.toISOString().slice(0,10);
   save(LS_PLAN, [
@@ -1516,6 +1658,12 @@ function mapLink(geo){
   return `<a class="geo-map-link" target="_blank" href="https://www.google.com/maps?q=${c}">${geo.split(',').map(n=>(+n).toFixed(4)).join(', ')} 🗺️</a>`;
 }
 function esc(s){ return (s||'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000, toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
 /* ============ GEOLOCATION ============ */
 let currentGeo = null;
@@ -1554,6 +1702,21 @@ function doCheckin(){
   if(myOpenRecord(name)){ alert('พนักงานนี้เช็คอินอยู่แล้ว กรุณาเช็คเอาท์ก่อน'); return; }
 
   const jobSel = document.getElementById('job-select');
+
+  // Geofence: ถ้าเลือกงานที่มีพิกัดไซต์ และมีพิกัดปัจจุบัน → เตือนเมื่ออยู่นอกรัศมี
+  if(jobSel.value && currentGeo){
+    const job = load(LS_PLAN).find(p => p.id === jobSel.value);
+    if(job && job.geo){
+      const [jlat, jlng] = job.geo.split(',').map(Number);
+      if(!isNaN(jlat) && !isNaN(jlng)){
+        const dist = haversine(currentGeo.lat, currentGeo.lng, jlat, jlng);
+        if(dist > GEOFENCE_RADIUS_M){
+          if(!confirm(`⚠️ คุณอยู่ห่างจากไซต์งาน "${job.title}" ประมาณ ${Math.round(dist)} ม. (เกินรัศมี ${GEOFENCE_RADIUS_M} ม.)\nยืนยันเช็คอินหรือไม่?`)) return;
+        }
+      }
+    }
+  }
+
   const now = Date.now();
   const rec = {
     id: uid(), name, date: todayStr(),
@@ -1730,10 +1893,21 @@ function tickClock(){
 }
 
 /* ============ INIT ============ */
-seedPlanner();
+initFirebase();
+setConnBadge();
 setInterval(tickClock, 1000); tickClock();
-renderJobOptions(); renderLog(); renderPlans();
-document.getElementById('emp-name').addEventListener('input', e=>updateWorkerState(e.target.value.trim()));
+
+if(MODE === 'firebase'){
+  attachListeners();                       // ข้อมูลไหลจาก Firestore แบบเรียลไทม์
+  auth.onAuthStateChanged(onAuth);         // บังคับล็อกอินก่อนใช้งาน
+} else {
+  // LOCAL: โหลด cache จาก localStorage
+  try { state[LS_LOG] = JSON.parse(localStorage.getItem(LS_LOG)) || []; } catch(e){ state[LS_LOG] = []; }
+  try { state[LS_PLAN] = JSON.parse(localStorage.getItem(LS_PLAN)) || []; } catch(e){ state[LS_PLAN] = []; }
+  seedPlanner();
+  renderJobOptions(); renderLog(); renderPlans();
+  document.getElementById('emp-name').addEventListener('input', e=>updateWorkerState(e.target.value.trim()));
+}
 </script>
 </body>
 </html>
