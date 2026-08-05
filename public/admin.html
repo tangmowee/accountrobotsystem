@@ -276,7 +276,8 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="card-t">📊 สรุปประจำเดือน</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="rp-month" onchange="renderReport()" style="width:auto">
-          <button class="btn sm" onclick="exportCSV()">⬇️ CSV รายคน</button>
+          <button class="btn sm p" onclick="exportReportXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportCSV()">CSV รายคน</button>
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:18px">
@@ -318,8 +319,9 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="card-t">🧾 สรุปชั่วโมงตาม JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="dl-month" onchange="renderDL()" style="width:auto">
-          <button class="btn sm" onclick="exportDLcsv()">⬇️ CSV รายโปรเจกต์</button>
-          <button class="btn sm" onclick="exportDLdetail()">⬇️ CSV รายบันทึก</button>
+          <button class="btn sm p" onclick="exportDLxlsx()">⬇️ Excel (3 ชีท)</button>
+          <button class="btn sm" onclick="exportDLcsv()">CSV รายโปรเจกต์</button>
+          <button class="btn sm" onclick="exportDLdetail()">CSV รายบันทึก</button>
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:18px">
@@ -639,6 +641,45 @@ function exportCSV(){if(!_rp)return;const rows=_rp.persons.filter(p=>p.present||
   const head=['เดือน','ชื่อ','แผนก','มา(วัน)','ชม.ทำงาน','OT','มาสาย(ครั้ง)','รวมสาย(นาที)','ขาด(วัน)','ลา(วัน)'];
   const body=rows.map(p=>[_rpYm,p.disp,p.dept,p.present,p.wh.toFixed(1),p.ot.toFixed(1),p.lateDays,Math.round(p.lateMin),p.absent,p.leaveDays].map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(','));
   const csv='﻿'+[head.join(','),...body].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='RSC_attendance_'+_rpYm+'.csv';a.click();}
+function exportReportXlsx(){if(!_rp){alert('ไม่มีข้อมูล');return;}
+  const rows=_rp.persons.filter(p=>p.present||p.absent||p.leaveDays);
+  if(!rows.length){alert('ไม่มีข้อมูล');return;}
+  const person=[['ชื่อ','แผนก','มา(วัน)','ชม.ทำงาน','OT','มาสาย(ครั้ง)','รวมสาย(นาที)','ขาด(วัน)','ลา(วัน)'],
+    ...rows.map(p=>[p.disp,p.dept,p.present,+p.wh.toFixed(1),+p.ot.toFixed(1),p.lateDays,Math.round(p.lateMin),p.absent,p.leaveDays])];
+  const de=Object.entries(_rp.depts).filter(([k,v])=>v.wh||v.absent||v.late).sort((a,b)=>b[1].wh-a[1].wh);
+  const dept=[['แผนก','คน','ชม.ทำงาน','OT','มาสาย(ครั้ง)','ขาด(วัน)'],
+    ...de.map(([k,v])=>[k,v.ppl?v.ppl.size:'',+v.wh.toFixed(1),+(v.ot||0).toFixed(1),v.late||0,v.absent||0])];
+  saveXlsx('RSC_attendance_'+_rpYm+'.xlsx',[{name:'รายคน',rows:person},{name:'ตามแผนก',rows:dept}]);}
+
+/* ===== xlsx เขียนเอง (ไม่พึ่ง CDN, ใช้ออฟไลน์ได้) — store zip + inlineStr ===== */
+const _crcTab=(()=>{let t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function _crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=_crcTab[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function _xesc(s){return String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));}
+function _colL(n){let s='';n++;while(n>0){let m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26;}return s;}
+function _sheetXml(rows){let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+  rows.forEach((row,r)=>{x+=`<row r="${r+1}">`;row.forEach((cell,c)=>{const ref=_colL(c)+(r+1);
+    if(typeof cell==='number'&&isFinite(cell))x+=`<c r="${ref}"><v>${cell}</v></c>`;
+    else x+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${_xesc(cell==null?'':cell)}</t></is></c>`;});x+='</row>';});
+  return x+'</sheetData></worksheet>';}
+function _xlsx(sheets){const enc=new TextEncoder();const files=[];
+  files.push({name:'[Content_Types].xml',data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>')});
+  files.push({name:'_rels/.rels',data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')});
+  files.push({name:'xl/workbook.xml',data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map((s,i)=>`<sheet name="${_xesc(s.name).slice(0,31)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>')});
+  files.push({name:'xl/_rels/workbook.xml.rels',data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+'</Relationships>')});
+  sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:enc.encode(_sheetXml(s.rows))}));
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  let parts=[],central=[],offset=0;
+  files.forEach(f=>{const nameB=enc.encode(f.name),data=f.data,crc=_crc32(data);
+    const local=[].concat([0x50,0x4b,3,4],u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nameB.length),u16(0));
+    parts.push(new Uint8Array(local),nameB,data);
+    central.push(new Uint8Array([].concat([0x50,0x4b,1,2],u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nameB.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset))),nameB);
+    offset+=local.length+nameB.length+data.length;});
+  let cenSize=0;central.forEach(c=>cenSize+=c.length);
+  const end=new Uint8Array([].concat([0x50,0x4b,5,6],u16(0),u16(0),u16(files.length),u16(files.length),u32(cenSize),u32(offset),u16(0)));
+  const all=[...parts,...central,end];let total=0;all.forEach(a=>total+=a.length);
+  const out=new Uint8Array(total);let p=0;all.forEach(a=>{out.set(a,p);p+=a.length;});return out;}
+function saveXlsx(name,sheets){const blob=new Blob([_xlsx(sheets)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
 
 /* ===== DL / ต้นทุนเวลาแรงงานตาม JR ===== */
 let _dl=null,_dlYm='';
@@ -681,17 +722,31 @@ function renderDL(){
     :'<tr class="empty"><td colspan="5">ยังไม่มีข้อมูล</td></tr>';
 }
 function csvCell(c){return `"${(c==null?'':c).toString().replace(/"/g,'""')}"`;}
-function dlDownload(name,head,body){const csv='﻿'+[head.map(csvCell).join(','),...body.map(r=>r.map(csvCell).join(','))].join('\n');
+function csvDownload(name,head,body){const csv='﻿'+[head.map(csvCell).join(','),...body.map(r=>r.map(csvCell).join(','))].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;a.click();}
-function exportDLcsv(){const R=_dl||buildDL(_dlYm);const jrs=Object.values(R.byJR).sort((a,b)=>(a.isOH-b.isOH)||b.h-a.h);
-  if(!jrs.length){alert('ไม่มีข้อมูล');return;}
-  dlDownload('RSC_DL_by_JR_'+_dlYm+'.csv',['เดือน','JR','งาน','ประเภท','คน','จำนวนรายการ','ชม.รวม'],
-    jrs.map(g=>[_dlYm,g.jr,g.title,g.isOH?'OH ส่วนกลาง':'DL โปรเจกต์',g.ppl.size,g.n,g.h.toFixed(1)]));}
-function exportDLdetail(){const R=_dl||buildDL(_dlYm);if(!R.rows.length){alert('ไม่มีข้อมูล');return;}
-  const sl={full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'};
-  const rows=R.rows.slice().sort((a,b)=>(a.date+a.timeStart).localeCompare(b.date+b.timeStart));
-  dlDownload('RSC_DL_detail_'+_dlYm+'.csv',['วันที่','พนักงาน','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
-    rows.map(r=>[r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,r.jr,(r.jobTitle||'').split(' @ ')[0],r.kind==='OH'?'OH':'DL',sl[r.slot]||r.slot,r.timeStart,r.timeEnd,(+r.hours).toFixed(1),r.note||'']));}
+const _SL={full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'};
+// เตรียมข้อมูล 3 ชุด (ตาม JR / รายคน / รายบันทึก) ใช้ร่วมกันทั้ง CSV และ Excel
+function dlSheets(){const R=_dl||buildDL(_dlYm);
+  const jrs=Object.values(R.byJR).sort((a,b)=>(a.isOH-b.isOH)||b.h-a.h);
+  const byJRrows=[['เดือน','JR','งาน','ประเภท','คน','จำนวนรายการ','ชม.รวม'],
+    ...jrs.map(g=>[_dlYm,g.jr,g.title,g.isOH?'OH ส่วนกลาง':'DL โปรเจกต์',g.ppl.size,g.n,+g.h.toFixed(1)]),
+    ['รวม','','','',' ',' ',+(R.totDL+R.totOH).toFixed(1)]];
+  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.dl+b.oh)-(a.dl+a.oh));
+  const byPersonRows=[['พนักงาน','แผนก','ชม. DL','ชม. OH','รวม'],
+    ...ppl.map(p=>[p.name,p.dept,+p.dl.toFixed(1),+p.oh.toFixed(1),+(p.dl+p.oh).toFixed(1)])];
+  const dets=R.rows.slice().sort((a,b)=>(a.date+a.timeStart).localeCompare(b.date+b.timeStart));
+  const detailRows=[['วันที่','พนักงาน','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
+    ...dets.map(r=>[r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,r.jr,(r.jobTitle||'').split(' @ ')[0],r.kind==='OH'?'OH':'DL',_SL[r.slot]||r.slot,r.timeStart,r.timeEnd,+(+r.hours).toFixed(1),r.note||''])];
+  return {R,byJRrows,byPersonRows,detailRows};}
+function exportDLcsv(){const D=dlSheets();if(D.byJRrows.length<=2){alert('ไม่มีข้อมูล');return;}
+  csvDownload('RSC_DL_by_JR_'+_dlYm+'.csv',D.byJRrows[0],D.byJRrows.slice(1));}
+function exportDLdetail(){const D=dlSheets();if(D.detailRows.length<=1){alert('ไม่มีข้อมูล');return;}
+  csvDownload('RSC_DL_detail_'+_dlYm+'.csv',D.detailRows[0],D.detailRows.slice(1));}
+function exportDLxlsx(){const D=dlSheets();if(D.detailRows.length<=1){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_DL_'+_dlYm+'.xlsx',[
+    {name:'สรุปตาม JR',rows:D.byJRrows},
+    {name:'รายคน (DL-OH)',rows:D.byPersonRows},
+    {name:'รายบันทึก',rows:D.detailRows}]);}
 
 /* ===== PEOPLE ===== */
 function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.value;
