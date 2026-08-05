@@ -314,6 +314,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
             <option value="employee">พนักงาน</option>
             <option value="supervisor">หัวหน้างาน (อนุมัติ ลำดับ 1)</option>
             <option value="manager">ผู้จัดการ (อนุมัติ ลำดับ 2)</option>
+            <option value="director">ผู้อำนวยการ (ดูทุกคน)</option>
             <option value="hr">HR (เห็น/อนุมัติทุกคน)</option>
           </select></div>
           <div class="f"><label>หัวหน้างานโดยตรง</label><select id="em-sup"><option value="">— ไม่มี —</option></select></div>
@@ -368,8 +369,9 @@ function myName(){return user?shortName(user.email):'';}
 /* ===== roles / visibility / approval ===== */
 function myRole(){if(MODE==='local'&&!empOf(myName()))return 'hr';const e=empOf(myName());if(e&&e.role)return e.role;if(!load(LS_EMP).length)return 'hr';if((window.HR_USERS||[]).includes(myName()))return 'hr';return 'employee';}
 function isHR(){const r=myRole();return r==='hr'||r==='admin';}
-function roleLabel(r){return {employee:'พนักงาน',supervisor:'หัวหน้างาน',manager:'ผู้จัดการ',hr:'HR',admin:'Admin'}[r]||r||'พนักงาน';}
-function canSee(key){if(isHR()||myRole()==='manager')return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
+function roleLabel(r){return {employee:'พนักงาน',supervisor:'หัวหน้างาน',manager:'ผู้จัดการ',director:'ผู้อำนวยการ',hr:'HR',admin:'Admin'}[r]||r||'พนักงาน';}
+function seesAll(){const r=myRole();return r==='hr'||r==='admin'||r==='manager'||r==='director';}
+function canSee(key){if(seesAll())return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
 function canL1(key){if(isHR())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
 function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin';}
 function otOf(r){if(!r.outTs)return 0;const h=(r.outTs-r.inTs)/3600000;const dow=new Date(r.date).getDay();return (dow===0||dow===6)?h:Math.max(0,h-STD_HOURS);}
@@ -555,7 +557,7 @@ function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
 function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
-  const rc={supervisor:'chip plan',manager:'chip leave',hr:'chip all',employee:'chip out',admin:'chip all'};
+  const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
   body.innerHTML=arr.slice().sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;
     return `<tr><td><b>${esc(e.name||e.email)}</b></td>
     <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}</td>
