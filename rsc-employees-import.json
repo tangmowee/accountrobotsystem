@@ -1,0 +1,346 @@
+{
+  "employees": [
+    {
+      "id": "emp_530118",
+      "email": "530118",
+      "name": "กัมปนาท ตันพิทักษ์สิทธิ์",
+      "dept": "Administrative",
+      "pos": "Managing Director",
+      "role": "director",
+      "supervisor": ""
+    },
+    {
+      "id": "emp_541223",
+      "email": "541223",
+      "name": "นิอาซิ ยูโซ๊ะ",
+      "dept": "Sales & Marketing",
+      "pos": "Sales & Marketing Manager",
+      "role": "manager",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_560213",
+      "email": "560213",
+      "name": "ชนาทิตย์ อ่อนคำ",
+      "dept": "Sales & Marketing",
+      "pos": "Sales Executive",
+      "role": "employee",
+      "supervisor": "541223"
+    },
+    {
+      "id": "emp_690523",
+      "email": "690523",
+      "name": "ณัฐนันท์ เชียงวิจิตร",
+      "dept": "Sales & Marketing",
+      "pos": "Sales Engineer",
+      "role": "employee",
+      "supervisor": "541223"
+    },
+    {
+      "id": "emp_670813",
+      "email": "670813",
+      "name": "วัชรพล รันเรือง",
+      "dept": "Sales & Marketing",
+      "pos": "Sales Support Engineer",
+      "role": "employee",
+      "supervisor": ""
+    },
+    {
+      "id": "emp_680819",
+      "email": "680819",
+      "name": "นัฎฐิชา ช่วยไว้",
+      "dept": "Sales & Marketing",
+      "pos": "Sales Coordinator",
+      "role": "employee",
+      "supervisor": "541223"
+    },
+    {
+      "id": "emp_640433",
+      "email": "640433",
+      "name": "วรเมธ พรกีรติจินดา",
+      "dept": "Project",
+      "pos": "Project Manager",
+      "role": "manager",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_670713",
+      "email": "670713",
+      "name": "ธงชัย พรหมรักษ์",
+      "dept": "Project",
+      "pos": "Robot Engineer",
+      "role": "employee",
+      "supervisor": "640433"
+    },
+    {
+      "id": "emp_670812",
+      "email": "670812",
+      "name": "ณัฐพัชร์ พหลพลญาณ",
+      "dept": "Project",
+      "pos": "Robot Engineer",
+      "role": "employee",
+      "supervisor": "640433"
+    },
+    {
+      "id": "emp_690416",
+      "email": "690416",
+      "name": "สันติศักดิ์ แย้มแก้ว",
+      "dept": "Project",
+      "pos": "Robot Engineer",
+      "role": "employee",
+      "supervisor": "640433"
+    },
+    {
+      "id": "emp_570350",
+      "email": "570350",
+      "name": "ภูริวัฒน์ จันท์เพ็ชร์",
+      "dept": "Mechatronic & production",
+      "pos": "Mechatronics Manager",
+      "role": "manager",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_601215",
+      "email": "601215",
+      "name": "อุทิศ ศิริพล",
+      "dept": "Mechatronic & production",
+      "pos": "Production Supervisor",
+      "role": "supervisor",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_671210",
+      "email": "671210",
+      "name": "ปองณัฐ ยั่งยืนตระกูล",
+      "dept": "Mechatronic & production",
+      "pos": "Design Engineer",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_651021",
+      "email": "651021",
+      "name": "นิพัทธ์ เศษอาจ",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_640928",
+      "email": "640928",
+      "name": "วุฒิพงษ์ พระกร่างทา",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_680229",
+      "email": "680229",
+      "name": "อำนาจ มากะเรือน",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_680136",
+      "email": "680136",
+      "name": "พรเชษ บัวปลื้ม",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_660213",
+      "email": "660213",
+      "name": "เมธาวี รักชาติ",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_690634",
+      "email": "690634",
+      "name": "สิทธิศักดิ์ ศรีประไหม",
+      "dept": "Mechatronic & production",
+      "pos": "Assembly & Installation Technician",
+      "role": "employee",
+      "supervisor": "601215"
+    },
+    {
+      "id": "emp_611013",
+      "email": "611013",
+      "name": "มนัสพงษ์ มงคลพิไลสกุล",
+      "dept": "Electrical",
+      "pos": "Electrical Engineering Manager",
+      "role": "manager",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_650905",
+      "email": "650905",
+      "name": "เทพฤทธิ์ สัญญา",
+      "dept": "Electrical",
+      "pos": "Senior Electrical Engineer",
+      "role": "employee",
+      "supervisor": "611013"
+    },
+    {
+      "id": "emp_630813",
+      "email": "630813",
+      "name": "จักรกฤษ บุญสุนีย์",
+      "dept": "Electrical",
+      "pos": "Electrical Engineer",
+      "role": "employee",
+      "supervisor": "611013"
+    },
+    {
+      "id": "emp_630403",
+      "email": "630403",
+      "name": "สิทธิชัย ชัยสุข",
+      "dept": "Electrical",
+      "pos": "Electrical Technician",
+      "role": "employee",
+      "supervisor": "611013"
+    },
+    {
+      "id": "emp_641113",
+      "email": "641113",
+      "name": "ขรรค์ชัย แสงทอง",
+      "dept": "Electrical",
+      "pos": "Electrical Technician",
+      "role": "employee",
+      "supervisor": "611013"
+    },
+    {
+      "id": "emp_681116",
+      "email": "681116",
+      "name": "ธนภูมิ ศรีพฤกษ์ภูมิ",
+      "dept": "Electrical",
+      "pos": "Electrical Technician",
+      "role": "employee",
+      "supervisor": "611013"
+    },
+    {
+      "id": "emp_670811",
+      "email": "670811",
+      "name": "ณัฐพงษ์ คงคาลัย",
+      "dept": "Key account",
+      "pos": "Key Account Manager",
+      "role": "manager",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_680338",
+      "email": "680338",
+      "name": "พีรยุทธ หม่องแป๊ก",
+      "dept": "Key account",
+      "pos": "Programmer",
+      "role": "employee",
+      "supervisor": "670811"
+    },
+    {
+      "id": "emp_680635",
+      "email": "680635",
+      "name": "สุรยุทธ ปุราชะทำมัง",
+      "dept": "Key account",
+      "pos": "Design Engineer",
+      "role": "employee",
+      "supervisor": "670811"
+    },
+    {
+      "id": "emp_550642",
+      "email": "550642",
+      "name": "วีรยา บรรลือทรัพย์",
+      "dept": "Support",
+      "pos": "Support Manager",
+      "role": "hr",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_660835",
+      "email": "660835",
+      "name": "อุไร บุญแตง",
+      "dept": "Purchasing",
+      "pos": "Procurement Officer",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_611214",
+      "email": "611214",
+      "name": "สหชาติ บุญเลา",
+      "dept": "After sale",
+      "pos": "After-Sales Technician",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_670127",
+      "email": "670127",
+      "name": "พิพัฒน์พงษ์ สายทอง",
+      "dept": "Store",
+      "pos": "Storekeeper",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_680137",
+      "email": "680137",
+      "name": "มนูศักดิ์ สนธิภักดี",
+      "dept": "HR & Admin",
+      "pos": "Executive Driver",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_650835",
+      "email": "650835",
+      "name": "ณัฐพัชร์ ภากรกุลเศรษฐ์",
+      "dept": "HR & Admin",
+      "pos": "Company Driver",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_670220",
+      "email": "670220",
+      "name": "กานต์รวี วาจามั่น",
+      "dept": "HR & Admin",
+      "pos": "Office Cleaner",
+      "role": "employee",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_610814",
+      "email": "610814",
+      "name": "นนทรัตน์ วาจามั่น",
+      "dept": "HR & Admin",
+      "pos": "Senior HR Officer",
+      "role": "hr",
+      "supervisor": "530118"
+    },
+    {
+      "id": "emp_680230",
+      "email": "680230",
+      "name": "วิภาดา สุดารัตน์",
+      "dept": "Accounting",
+      "pos": "Accounts Payable (AP) Officer",
+      "role": "employee",
+      "supervisor": ""
+    },
+    {
+      "id": "emp_681117",
+      "email": "681117",
+      "name": "สุกัญญา พะนะลาภ",
+      "dept": "Accounting",
+      "pos": "Accounts Receivable (AR) Officer",
+      "role": "employee",
+      "supervisor": ""
+    }
+  ]
+}

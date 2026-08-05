@@ -360,7 +360,14 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="note">สร้างรหัสผ่านที่ Firebase Console → Authentication (เป็น ชื่อผู้ใช้@rsc.local) • หัวหน้างาน = ผู้อนุมัติลำดับ 1 ของพนักงานคนนี้</div>
       </div>
       <div class="card">
-        <div class="card-h"><div class="card-t">👥 พนักงานทั้งหมด</div><span class="tag" id="em-count">0 คน</span></div>
+        <div class="card-h"><div class="card-t">👥 พนักงานทั้งหมด</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="tag" id="em-count">0 คน</span>
+            <button class="btn sm" onclick="exportEmp()">💾 สำรอง</button>
+            <button class="btn sm" onclick="document.getElementById('em-import').click()">📥 นำเข้า JSON</button>
+            <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
+          </div>
+        </div>
         <div class="tw"><table>
           <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>แผนก</th><th>ระดับ</th><th>หัวหน้า</th><th></th></tr></thead>
           <tbody id="em-body"><tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr></tbody>
@@ -605,6 +612,17 @@ function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();
   ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
+function exportEmp(){const data={employees:load(LS_EMP)};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='rsc-employees.json';a.click();}
+function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();
+  r.onload=e=>{try{const d=JSON.parse(e.target.result);const list=Array.isArray(d)?d:(d.employees||[]);
+    const arr=load(LS_EMP);const byKey=new Map(arr.map(x=>[x.email||x.name,x]));let add=0,upd=0;
+    list.forEach(x=>{if(!x)return;const key=x.email||x.name;if(!key)return;const ex=byKey.get(key);
+      const rec={id:(ex&&ex.id)||x.id||uid(),email:x.email||'',name:x.name||'',dept:x.dept||'',pos:x.pos||x.position||'',role:x.role||'employee',supervisor:x.supervisor||''};
+      if(ex){Object.assign(ex,rec);upd++;}else{arr.push(rec);byKey.set(key,rec);add++;}});
+    save(LS_EMP,arr);renderEmps();renderBalance();renderReport();fillAssignees();
+    alert(`นำเข้าพนักงานสำเร็จ ✅\nเพิ่มใหม่ ${add} คน · อัปเดต ${upd} คน`);
+  }catch(err){alert('ไฟล์ไม่ถูกต้อง: '+err.message);}input.value='';};
+  r.readAsText(f);}
 function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
   const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
