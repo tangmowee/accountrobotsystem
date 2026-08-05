@@ -449,7 +449,7 @@ function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();r
 function renderToday(){
   const today=todayStr();
   const logs=load(LS_LOG).filter(r=>r.date===today&&canSee(r.name));
-  const emps=load(LS_EMP).filter(e=>canSee(e.email||e.name));
+  const emps=load(LS_EMP).filter(e=>e.active!==false&&canSee(e.email||e.name));
   const onLeave=load(LS_LEAVE).filter(l=>l.status==='approved'&&today>=l.from&&today<=l.to&&canSee(l.name));
   const startMin=parseHM(WORK_START);
   let lateN=0; logs.forEach(r=>{const ci=new Date(r.inTs);if(ci.getHours()*60+ci.getMinutes()-startMin-GRACE>0)lateN++;});
@@ -470,7 +470,7 @@ function renderToday(){
 }
 
 /* ===== PLANNER ===== */
-function fillAssignees(){const sel=$('pl-assignees');if(!sel)return;const arr=load(LS_EMP);
+function fillAssignees(){const sel=$('pl-assignees');if(!sel)return;const arr=load(LS_EMP).filter(e=>e.active!==false);
   sel.innerHTML=arr.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name||e.email)}${e.dept?' · '+esc(e.dept):''}</option>`).join('');}
 function assigneeNames(list){if(!list||!list.length)return '<span class="chip all">ทุกคน</span>';
   return list.map(v=>{const e=empOf(v);return esc((e&&e.name)||v);}).join(', ');}
@@ -602,16 +602,26 @@ function exportCSV(){if(!_rp)return;const rows=_rp.persons.filter(p=>p.present||
 
 /* ===== PEOPLE ===== */
 function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.value;
-  const sups=load(LS_EMP).filter(e=>e.role==='supervisor'||e.role==='manager'||e.role==='hr');
+  const sups=load(LS_EMP).filter(e=>e.active!==false&&(e.role==='supervisor'||e.role==='manager'||e.role==='hr'));
   sel.innerHTML='<option value="">— ไม่มี —</option>'+sups.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name||e.email)} · ${roleLabel(e.role)}</option>`).join('');
   sel.value=cur;}
 function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
   const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;
-  const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),role:$('em-role').value,supervisor:$('em-sup').value};
+  const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),role:$('em-role').value,supervisor:$('em-sup').value,active:(ex?ex.active!==false:true)};
   if(ex)Object.assign(ex,rec);else arr.push(rec);save(LS_EMP,arr);
   ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
+function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
+  const subs=arr.filter(x=>x.supervisor===key);
+  const newSup=e.supervisor||'';const newSupName=newSup?((empOf(newSup)||{}).name||newSup):'(ไม่มี — ต้องกำหนดหัวหน้าใหม่ให้ลูกน้องเอง)';
+  let msg='ทำเครื่องหมาย “'+(e.name||key)+'” เป็นลาออก?';
+  if(subs.length)msg+='\n\nลูกน้อง '+subs.length+' คน จะถูกย้ายไปขึ้นกับ:\n'+newSupName;
+  if(!confirm(msg))return;
+  e.active=false;subs.forEach(s=>{s.supervisor=newSup;});
+  save(LS_EMP,arr);renderEmps();renderBalance();renderReport();fillAssignees();
+  alert('บันทึกการลาออกแล้ว ✅'+(subs.length?('\nย้ายลูกน้อง '+subs.length+' คนไปขึ้นกับ '+newSupName):''));}
+function restoreEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(e){e.active=true;save(LS_EMP,arr);renderEmps();fillAssignees();}}
 function exportEmp(){const data={employees:load(LS_EMP)};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='rsc-employees.json';a.click();}
 function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();
   r.onload=e=>{try{const d=JSON.parse(e.target.result);const list=Array.isArray(d)?d:(d.employees||[]);
@@ -626,12 +636,12 @@ function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;c
 function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
   const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
-  body.innerHTML=arr.slice().sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;
-    return `<tr><td><b>${esc(e.name||e.email)}</b></td>
+  body.innerHTML=arr.slice().sort((a,b)=>(a.active===false)-(b.active===false)||(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;const off=e.active===false;
+    return `<tr${off?' style="opacity:.5"':''}><td><b>${esc(e.name||e.email)}</b>${off?' <span class="chip absent" style="font-size:10px">ลาออก</span>':''}</td>
     <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}</td>
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
-    <td class="ctr"><button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
+    <td class="ctr" style="white-space:nowrap">${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
 
 /* ===== FLEET / BOOKING ===== */
 function vehLabel(id){const v=load(LS_VEH).find(x=>x.id===id);return v?`${esc(v.plate)}${v.type?' ('+esc(v.type)+')':''}`:'—';}
