@@ -171,6 +171,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
     <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
+    <a data-s="pay" id="nav-pay" onclick="showSec('pay')" style="display:none">💵 เงินเดือน (HR)</a>
     <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
@@ -348,6 +349,35 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== PAYROLL (HR only) ===== -->
+  <section class="sec" id="s-pay">
+    <div class="h1">สรุปเงินเดือน & ชั่วโมง (เฉพาะ HR)</div>
+    <div class="sub">สรุปชั่วโมงปกติ / OT×1.5 / OT×3 รายคน + เงินเดือน → ส่งออกไปทำต่อใน Business Plus · ข้อมูลเงินเดือนเห็นเฉพาะ HR</div>
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">💵 สรุปรายเดือน (รายบุคคล)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="month" id="pay-month" onchange="renderPay()" style="width:auto">
+          <button class="btn sm p" onclick="exportPayXlsx()">⬇️ Excel (3 ชีท)</button>
+          <button class="btn sm" onclick="exportPayCsv('hours')">CSV ชั่วโมง</button>
+          <button class="btn sm" onclick="exportPayCsv('money')">CSV เงิน</button>
+          <button class="btn sm" onclick="exportPayCsv('all')">CSV รวม</button>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-bottom:18px">
+        <div class="stat"><div class="k">ชม.ปกติรวม</div><div class="v mono" id="pay-nh">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat o"><div class="k">OT ×1.5 รวม</div><div class="v mono" id="pay-ot15">0</div><div class="u">ชั่วโมง (วันทำงาน)</div></div>
+        <div class="stat a"><div class="k">OT ×3 รวม</div><div class="v mono" id="pay-ot3">0</div><div class="u">ชั่วโมง (วันหยุด)</div></div>
+        <div class="stat g"><div class="k">รวมจ่ายโดยประมาณ</div><div class="v mono" id="pay-total">0</div><div class="u">บาท (เงินเดือน+OT)</div></div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>วันมา</th><th>ชม.ปกติ</th><th>OT×1.5</th><th>OT×3</th><th>เงินเดือน (บาท)</th><th>ค่า OT (บาท)</th><th>รวมโดยประมาณ</th></tr></thead>
+        <tbody id="pay-body"></tbody>
+      </table></div>
+      <div class="note">* กรอก “เงินเดือน” รายคนได้ในตาราง (บันทึกอัตโนมัติ เก็บแยกใน rsc_payroll เห็นเฉพาะ HR) • ค่าจ้าง/ชม. = เงินเดือน ÷ <b id="pay-div">240</b> • OT×1.5 = วันทำงาน, OT×3 = วันหยุด (เสาร์/อาทิตย์) • ชม.ปกติ = ชั่วโมงจริงจากเช็คอิน (จำกัดไม่เกิน <b id="pay-std">8</b> ชม./วัน) • ตัวเลขเป็น “ประมาณการ” — HR สรุปจริงใน Business Plus</div>
+    </div>
+  </section>
+
   <!-- ===== FLEET / BOOKING ===== -->
   <section class="sec" id="s-fleet">
     <div class="h1">จองรถ</div>
@@ -432,7 +462,9 @@ const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[]};
+const LS_PAY='rsc_payroll'; // เงินเดือน เก็บแยก เห็นเฉพาะ HR (ไม่อยู่ใน listener รวม)
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_PAY]:[]};
+const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 const load=k=>(state[k]||[]).slice();
 function save(k,arr){state[k]=arr.slice();
@@ -478,15 +510,17 @@ function onAuth(u){user=u;
   else{$('login').classList.add('on');$('user').textContent='';}}
 
 /* ===== nav ===== */
-function showSec(id){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
   $('s-'+id).classList.add('on');document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
   if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
   if(id==='dl')renderDL();
+  if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();}}
+function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
 
 /* ===== render all ===== */
-function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderDL();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderDL();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -755,6 +789,72 @@ function exportDLxlsx(){const D=dlSheets();if(D.detailRows.length<=1){alert('ไ
     {name:'ตาม JR',rows:D.byJRrows},
     {name:'รายคน',rows:D.byPersonRows},
     {name:'รายบันทึก',rows:D.detailRows}]);}
+
+/* ===== PAYROLL (เฉพาะ HR) — สรุปชั่วโมง ปกติ/OT1.5/OT3 + เงินเดือน ===== */
+let _pay=null,_payYm='';
+function payMap(){const m={};load(LS_PAY).forEach(x=>{if(x&&x.key!=null)m[x.key]=+x.salary||0;});return m;}
+function loadPay(cb){ // โหลด rsc_payroll แบบ on-demand (ไม่อยู่ใน listener รวม)
+  if(MODE==='firebase'&&db){db.collection('rsc').doc(LS_PAY).get().then(s=>{state[LS_PAY]=(s.exists&&s.data().items)||[];cb&&cb();}).catch(()=>{state[LS_PAY]=[];cb&&cb();});}
+  else{try{state[LS_PAY]=JSON.parse(localStorage.getItem(LS_PAY))||[];}catch(e){state[LS_PAY]=[];}cb&&cb();}
+}
+function setSalary(key,val){const arr=load(LS_PAY);const r=arr.find(x=>x.key===key);const s=Math.max(0,+val||0);
+  if(r)r.salary=s;else arr.push({key,salary:s});save(LS_PAY,arr);renderPay();}
+function buildPay(ym){
+  const emps=load(LS_EMP);
+  const logs=load(LS_LOG).filter(r=>r.date&&r.date.slice(0,7)===ym);
+  const otAppr=load(LS_OT).filter(o=>o.status==='approved'&&o.date&&o.date.slice(0,7)===ym);
+  const today=todayStr(),[Y,M]=ym.split('-').map(Number);
+  const dim=new Date(Y,M,0).getDate();
+  const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&ds<=today)workdays.push(ds);}
+  const pm=payMap();
+  const keys=new Set();emps.forEach(e=>keys.add(e.email||e.name));logs.forEach(r=>keys.add(r.name));otAppr.forEach(o=>keys.add(o.name));
+  const rows=[];
+  [...keys].filter(k=>canSee(k)).forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'—';
+    let present=0,normalH=0;
+    workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
+      if(rec&&rec.outTs){present++;const h=(rec.outTs-rec.inTs)/3600000;normalH+=Math.min(h,STD_HOURS);}
+      else if(rec){present++;}});
+    let ot15=0,ot3=0;
+    otAppr.filter(o=>o.name===key).forEach(o=>{const dow=new Date(o.date).getDay();const h=+o.hours||0;if(dow===0||dow===6)ot3+=h;else ot15+=h;});
+    const salary=pm[key]||0, hourly=salary/PAY_DIVISOR;
+    const payOt=hourly*OT_MULT.normal*ot15 + hourly*OT_MULT.holiday*ot3;
+    const total=salary+payOt;
+    rows.push({key,disp,dept,present,normalH,ot15,ot3,salary,hourly,payOt,total});
+  });
+  return rows;
+}
+function renderPay(){
+  if(!$('s-pay'))return;
+  if($('pay-div'))$('pay-div').textContent=PAY_DIVISOR; if($('pay-std'))$('pay-std').textContent=STD_HOURS;
+  let ym=$('pay-month').value;if(!ym){ym=todayStr().slice(0,7);$('pay-month').value=ym;}
+  _payYm=ym;const rows=_pay=buildPay(ym);
+  const active=rows.filter(p=>p.present||p.ot15||p.ot3||p.salary);
+  let tnh=0,t15=0,t3=0,ttot=0;active.forEach(p=>{tnh+=p.normalH;t15+=p.ot15;t3+=p.ot3;ttot+=p.total;});
+  $('pay-nh').textContent=tnh.toFixed(1);$('pay-ot15').textContent=t15.toFixed(1);$('pay-ot3').textContent=t3.toFixed(1);
+  $('pay-total').textContent=Math.round(ttot).toLocaleString();
+  $('pay-body').innerHTML=active.length?active.sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')||a.disp.localeCompare(b.disp)).map(p=>`<tr>
+    <td><b>${esc(p.disp)}</b></td><td>${esc(p.dept)}</td><td class="ctr mono">${p.present}</td>
+    <td class="num">${p.normalH.toFixed(1)}</td>
+    <td class="num" style="color:var(--orange2)">${p.ot15?p.ot15.toFixed(1):'—'}</td>
+    <td class="num" style="color:var(--amber)">${p.ot3?p.ot3.toFixed(1):'—'}</td>
+    <td class="num"><input type="number" min="0" step="500" value="${p.salary||''}" placeholder="—" onchange="setSalary('${p.key}',this.value)" style="width:110px;text-align:right;padding:6px 8px"></td>
+    <td class="num" style="color:var(--muted)">${p.payOt?Math.round(p.payOt).toLocaleString():'—'}</td>
+    <td class="num"><b>${p.total?Math.round(p.total).toLocaleString():'—'}</b></td></tr>`).join('')
+    :'<tr class="empty"><td colspan="9">ไม่มีข้อมูลเดือนนี้</td></tr>';
+}
+function paySheets(){const rows=(_pay||buildPay(_payYm)).filter(p=>p.present||p.ot15||p.ot3||p.salary);
+  const hours=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1.5(ชม.)','OT×3(ชม.)'],
+    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1)])];
+  const money=[['เดือน','พนักงาน','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT×1.5','ค่า OT×3','ค่า OT รวม','รวมโดยประมาณ'],
+    ...rows.map(p=>[_payYm,p.disp,Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.hourly*OT_MULT.normal*p.ot15),Math.round(p.hourly*OT_MULT.holiday*p.ot3),Math.round(p.payOt),Math.round(p.total)])];
+  const all=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1.5(ชม.)','OT×3(ชม.)','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT','รวมโดยประมาณ'],
+    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1),Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.payOt),Math.round(p.total)])];
+  return {rows,hours,money,all};}
+function exportPayXlsx(){const D=paySheets();if(!D.rows.length){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_payroll_'+_payYm+'.xlsx',[{name:'ชั่วโมง',rows:D.hours},{name:'เงินเดือน',rows:D.money},{name:'รวม',rows:D.all}]);}
+function exportPayCsv(which){const D=paySheets();if(!D.rows.length){alert('ไม่มีข้อมูล');return;}
+  const set=which==='money'?D.money:which==='all'?D.all:D.hours;
+  csvDownload('RSC_payroll_'+which+'_'+_payYm+'.csv',set[0],set.slice(1));}
 
 /* ===== PEOPLE ===== */
 function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.value;
