@@ -6,6 +6,7 @@
       "name": "กัมปนาท ตันพิทักษ์สิทธิ์",
       "dept": "Administrative",
       "pos": "Managing Director",
+      "side": "office",
       "role": "director",
       "supervisor": ""
     },
@@ -15,6 +16,7 @@
       "name": "นิอาซิ ยูโซ๊ะ",
       "dept": "Sales & Marketing",
       "pos": "Sales & Marketing Manager",
+      "side": "office",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -24,6 +26,7 @@
       "name": "ชนาทิตย์ อ่อนคำ",
       "dept": "Sales & Marketing",
       "pos": "Sales Executive",
+      "side": "office",
       "role": "employee",
       "supervisor": "541223"
     },
@@ -33,6 +36,7 @@
       "name": "ณัฐนันท์ เชียงวิจิตร",
       "dept": "Sales & Marketing",
       "pos": "Sales Engineer",
+      "side": "office",
       "role": "employee",
       "supervisor": "541223"
     },
@@ -42,6 +46,7 @@
       "name": "วัชรพล รันเรือง",
       "dept": "Sales & Marketing",
       "pos": "Sales Support Engineer",
+      "side": "office",
       "role": "employee",
       "supervisor": ""
     },
@@ -51,6 +56,7 @@
       "name": "นัฎฐิชา ช่วยไว้",
       "dept": "Sales & Marketing",
       "pos": "Sales Coordinator",
+      "side": "office",
       "role": "employee",
       "supervisor": "541223"
     },
@@ -60,6 +66,7 @@
       "name": "วรเมธ พรกีรติจินดา",
       "dept": "Project",
       "pos": "Project Manager",
+      "side": "office",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -69,6 +76,7 @@
       "name": "ธงชัย พรหมรักษ์",
       "dept": "Project",
       "pos": "Robot Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "640433"
     },
@@ -78,6 +86,7 @@
       "name": "ณัฐพัชร์ พหลพลญาณ",
       "dept": "Project",
       "pos": "Robot Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "640433"
     },
@@ -87,6 +96,7 @@
       "name": "สันติศักดิ์ แย้มแก้ว",
       "dept": "Project",
       "pos": "Robot Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "640433"
     },
@@ -96,6 +106,7 @@
       "name": "ภูริวัฒน์ จันท์เพ็ชร์",
       "dept": "Mechatronic & production",
       "pos": "Mechatronics Manager",
+      "side": "factory",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -105,6 +116,7 @@
       "name": "อุทิศ ศิริพล",
       "dept": "Mechatronic & production",
       "pos": "Production Supervisor",
+      "side": "factory",
       "role": "supervisor",
       "supervisor": "530118"
     },
@@ -114,6 +126,7 @@
       "name": "ปองณัฐ ยั่งยืนตระกูล",
       "dept": "Mechatronic & production",
       "pos": "Design Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -123,6 +136,7 @@
       "name": "นิพัทธ์ เศษอาจ",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -132,6 +146,7 @@
       "name": "วุฒิพงษ์ พระกร่างทา",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -141,6 +156,7 @@
       "name": "อำนาจ มากะเรือน",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -150,6 +166,7 @@
       "name": "พรเชษ บัวปลื้ม",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -159,6 +176,7 @@
       "name": "เมธาวี รักชาติ",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -168,6 +186,7 @@
       "name": "สิทธิศักดิ์ ศรีประไหม",
       "dept": "Mechatronic & production",
       "pos": "Assembly & Installation Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "601215"
     },
@@ -177,6 +196,7 @@
       "name": "มนัสพงษ์ มงคลพิไลสกุล",
       "dept": "Electrical",
       "pos": "Electrical Engineering Manager",
+      "side": "factory",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -186,6 +206,7 @@
       "name": "เทพฤทธิ์ สัญญา",
       "dept": "Electrical",
       "pos": "Senior Electrical Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "611013"
     },
@@ -195,6 +216,7 @@
       "name": "จักรกฤษ บุญสุนีย์",
       "dept": "Electrical",
       "pos": "Electrical Engineer",
+      "side": "factory",
       "role": "employee",
       "supervisor": "611013"
     },
@@ -204,6 +226,7 @@
       "name": "สิทธิชัย ชัยสุข",
       "dept": "Electrical",
       "pos": "Electrical Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "611013"
     },
@@ -213,6 +236,7 @@
       "name": "ขรรค์ชัย แสงทอง",
       "dept": "Electrical",
       "pos": "Electrical Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "611013"
     },
@@ -222,6 +246,7 @@
       "name": "ธนภูมิ ศรีพฤกษ์ภูมิ",
       "dept": "Electrical",
       "pos": "Electrical Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "611013"
     },
@@ -231,6 +256,7 @@
       "name": "ณัฐพงษ์ คงคาลัย",
       "dept": "Key account",
       "pos": "Key Account Manager",
+      "side": "office",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -240,6 +266,7 @@
       "name": "พีรยุทธ หม่องแป๊ก",
       "dept": "Key account",
       "pos": "Programmer",
+      "side": "office",
       "role": "employee",
       "supervisor": "670811"
     },
@@ -249,6 +276,7 @@
       "name": "สุรยุทธ ปุราชะทำมัง",
       "dept": "Key account",
       "pos": "Design Engineer",
+      "side": "office",
       "role": "employee",
       "supervisor": "670811"
     },
@@ -258,6 +286,7 @@
       "name": "วีรยา บรรลือทรัพย์",
       "dept": "Support",
       "pos": "Support Manager",
+      "side": "office",
       "role": "hr",
       "supervisor": "530118"
     },
@@ -267,6 +296,7 @@
       "name": "อุไร บุญแตง",
       "dept": "Purchasing",
       "pos": "Procurement Officer",
+      "side": "office",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -276,6 +306,7 @@
       "name": "สหชาติ บุญเลา",
       "dept": "After sale",
       "pos": "After-Sales Technician",
+      "side": "factory",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -285,6 +316,7 @@
       "name": "พิพัฒน์พงษ์ สายทอง",
       "dept": "Store",
       "pos": "Storekeeper",
+      "side": "office",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -294,6 +326,7 @@
       "name": "มนูศักดิ์ สนธิภักดี",
       "dept": "HR & Admin",
       "pos": "Executive Driver",
+      "side": "office",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -303,6 +336,7 @@
       "name": "ณัฐพัชร์ ภากรกุลเศรษฐ์",
       "dept": "HR & Admin",
       "pos": "Company Driver",
+      "side": "office",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -312,6 +346,7 @@
       "name": "กานต์รวี วาจามั่น",
       "dept": "HR & Admin",
       "pos": "Office Cleaner",
+      "side": "office",
       "role": "employee",
       "supervisor": "530118"
     },
@@ -321,6 +356,7 @@
       "name": "นนทรัตน์ วาจามั่น",
       "dept": "HR & Admin",
       "pos": "Senior HR Officer",
+      "side": "office",
       "role": "hr",
       "supervisor": "530118"
     },
@@ -330,6 +366,7 @@
       "name": "วิภาดา สุดารัตน์",
       "dept": "Accounting",
       "pos": "Accounts Payable (AP) Officer",
+      "side": "office",
       "role": "employee",
       "supervisor": ""
     },
@@ -339,6 +376,7 @@
       "name": "สุกัญญา พะนะลาภ",
       "dept": "Accounting",
       "pos": "Accounts Receivable (AR) Officer",
+      "side": "office",
       "role": "employee",
       "supervisor": ""
     }
