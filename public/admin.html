@@ -364,17 +364,18 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
           <button class="btn sm" onclick="exportPayCsv('all')">CSV รวม</button>
         </div>
       </div>
-      <div class="grid g4" style="margin-bottom:18px">
-        <div class="stat"><div class="k">ชม.ปกติรวม</div><div class="v mono" id="pay-nh">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat o"><div class="k">OT ×1.5 รวม</div><div class="v mono" id="pay-ot15">0</div><div class="u">ชั่วโมง (วันทำงาน)</div></div>
-        <div class="stat a"><div class="k">OT ×3 รวม</div><div class="v mono" id="pay-ot3">0</div><div class="u">ชั่วโมง (วันหยุด)</div></div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:18px">
+        <div class="stat"><div class="k">ชม.ปกติรวม</div><div class="v mono" id="pay-nh">0</div><div class="u">ชั่วโมง (วันทำงาน)</div></div>
+        <div class="stat c"><div class="k">OT ×1 รวม</div><div class="v mono" id="pay-ot1">0</div><div class="u">ชม. วันหยุด-ปกติ</div></div>
+        <div class="stat o"><div class="k">OT ×1.5 รวม</div><div class="v mono" id="pay-ot15">0</div><div class="u">ชม. วันทำงาน</div></div>
+        <div class="stat a"><div class="k">OT ×3 รวม</div><div class="v mono" id="pay-ot3">0</div><div class="u">ชม. วันหยุด-เกิน 8</div></div>
         <div class="stat g"><div class="k">รวมจ่ายโดยประมาณ</div><div class="v mono" id="pay-total">0</div><div class="u">บาท (เงินเดือน+OT)</div></div>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>วันมา</th><th>ชม.ปกติ</th><th>OT×1.5</th><th>OT×3</th><th>เงินเดือน (บาท)</th><th>ค่า OT (บาท)</th><th>รวมโดยประมาณ</th></tr></thead>
+        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>วันมา</th><th>ชม.ปกติ</th><th>OT×1</th><th>OT×1.5</th><th>OT×3</th><th>เงินเดือน (บาท)</th><th>ค่า OT (บาท)</th><th>รวมโดยประมาณ</th></tr></thead>
         <tbody id="pay-body"></tbody>
       </table></div>
-      <div class="note">* กรอก “เงินเดือน” รายคนได้ในตาราง (บันทึกอัตโนมัติ เก็บแยกใน rsc_payroll เห็นเฉพาะ HR) • ค่าจ้าง/ชม. = เงินเดือน ÷ <b id="pay-div">240</b> • OT×1.5 = วันทำงาน, OT×3 = วันหยุด (เสาร์/อาทิตย์) • ชม.ปกติ = ชั่วโมงจริงจากเช็คอิน (จำกัดไม่เกิน <b id="pay-std">8</b> ชม./วัน) • ตัวเลขเป็น “ประมาณการ” — HR สรุปจริงใน Business Plus</div>
+      <div class="note">* กรอก “เงินเดือน” รายคนได้ในตาราง (บันทึกอัตโนมัติ เก็บแยกใน rsc_payroll เห็นเฉพาะ HR) • ค่าจ้าง/ชม. = เงินเดือน ÷ <b id="pay-div">240</b> • <b>OT×1.5</b> = OT วันทำงาน · <b>OT×1</b> = วันหยุด(เสาร์/อาทิตย์) เวลาปกติ ≤ <b id="pay-std2">8</b> ชม./วัน · <b>OT×3</b> = วันหยุดส่วนที่เกิน 8 ชม. • ชม.ปกติ = ชั่วโมงจริงจากเช็คอินวันทำงาน (จำกัดไม่เกิน <b id="pay-std">8</b> ชม./วัน) • ตัวเลขเป็น “ประมาณการ” — HR สรุปจริงใน Business Plus</div>
     </div>
   </section>
 
@@ -814,41 +815,47 @@ function buildPay(ym){
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
       if(rec&&rec.outTs){present++;const h=(rec.outTs-rec.inTs)/3600000;normalH+=Math.min(h,STD_HOURS);}
       else if(rec){present++;}});
-    let ot15=0,ot3=0;
-    otAppr.filter(o=>o.name===key).forEach(o=>{const dow=new Date(o.date).getDay();const h=+o.hours||0;if(dow===0||dow===6)ot3+=h;else ot15+=h;});
+    // OT×1.5 = OT วันทำงาน · วันหยุด (เสาร์/อาทิตย์): เวลาปกติ ≤8 ชม./วัน = ×1, ส่วนที่เกิน = ×3
+    let ot15=0; const holByDay={};
+    otAppr.filter(o=>o.name===key).forEach(o=>{const dow=new Date(o.date).getDay();const h=+o.hours||0;
+      if(dow===0||dow===6)holByDay[o.date]=(holByDay[o.date]||0)+h; else ot15+=h;});
+    let ot1=0,ot3=0;
+    Object.values(holByDay).forEach(dh=>{ot1+=Math.min(dh,STD_HOURS);ot3+=Math.max(0,dh-STD_HOURS);});
     const salary=pm[key]||0, hourly=salary/PAY_DIVISOR;
-    const payOt=hourly*OT_MULT.normal*ot15 + hourly*OT_MULT.holiday*ot3;
+    const payOt=hourly*(OT_MULT.holidayNormal||1)*ot1 + hourly*OT_MULT.normal*ot15 + hourly*OT_MULT.holiday*ot3;
     const total=salary+payOt;
-    rows.push({key,disp,dept,present,normalH,ot15,ot3,salary,hourly,payOt,total});
+    rows.push({key,disp,dept,present,normalH,ot1,ot15,ot3,salary,hourly,payOt,total});
   });
   return rows;
 }
 function renderPay(){
   if(!$('s-pay'))return;
-  if($('pay-div'))$('pay-div').textContent=PAY_DIVISOR; if($('pay-std'))$('pay-std').textContent=STD_HOURS;
+  if($('pay-div'))$('pay-div').textContent=PAY_DIVISOR; if($('pay-std'))$('pay-std').textContent=STD_HOURS; if($('pay-std2'))$('pay-std2').textContent=STD_HOURS;
   let ym=$('pay-month').value;if(!ym){ym=todayStr().slice(0,7);$('pay-month').value=ym;}
   _payYm=ym;const rows=_pay=buildPay(ym);
-  const active=rows.filter(p=>p.present||p.ot15||p.ot3||p.salary);
-  let tnh=0,t15=0,t3=0,ttot=0;active.forEach(p=>{tnh+=p.normalH;t15+=p.ot15;t3+=p.ot3;ttot+=p.total;});
-  $('pay-nh').textContent=tnh.toFixed(1);$('pay-ot15').textContent=t15.toFixed(1);$('pay-ot3').textContent=t3.toFixed(1);
+  const active=rows.filter(p=>p.present||p.ot1||p.ot15||p.ot3||p.salary);
+  let tnh=0,t1=0,t15=0,t3=0,ttot=0;active.forEach(p=>{tnh+=p.normalH;t1+=p.ot1;t15+=p.ot15;t3+=p.ot3;ttot+=p.total;});
+  $('pay-nh').textContent=tnh.toFixed(1);$('pay-ot1').textContent=t1.toFixed(1);$('pay-ot15').textContent=t15.toFixed(1);$('pay-ot3').textContent=t3.toFixed(1);
   $('pay-total').textContent=Math.round(ttot).toLocaleString();
   $('pay-body').innerHTML=active.length?active.sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')||a.disp.localeCompare(b.disp)).map(p=>`<tr>
     <td><b>${esc(p.disp)}</b></td><td>${esc(p.dept)}</td><td class="ctr mono">${p.present}</td>
     <td class="num">${p.normalH.toFixed(1)}</td>
+    <td class="num" style="color:var(--cyan)">${p.ot1?p.ot1.toFixed(1):'—'}</td>
     <td class="num" style="color:var(--orange2)">${p.ot15?p.ot15.toFixed(1):'—'}</td>
     <td class="num" style="color:var(--amber)">${p.ot3?p.ot3.toFixed(1):'—'}</td>
     <td class="num"><input type="number" min="0" step="500" value="${p.salary||''}" placeholder="—" onchange="setSalary('${p.key}',this.value)" style="width:110px;text-align:right;padding:6px 8px"></td>
     <td class="num" style="color:var(--muted)">${p.payOt?Math.round(p.payOt).toLocaleString():'—'}</td>
     <td class="num"><b>${p.total?Math.round(p.total).toLocaleString():'—'}</b></td></tr>`).join('')
-    :'<tr class="empty"><td colspan="9">ไม่มีข้อมูลเดือนนี้</td></tr>';
+    :'<tr class="empty"><td colspan="10">ไม่มีข้อมูลเดือนนี้</td></tr>';
 }
-function paySheets(){const rows=(_pay||buildPay(_payYm)).filter(p=>p.present||p.ot15||p.ot3||p.salary);
-  const hours=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1.5(ชม.)','OT×3(ชม.)'],
-    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1)])];
-  const money=[['เดือน','พนักงาน','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT×1.5','ค่า OT×3','ค่า OT รวม','รวมโดยประมาณ'],
-    ...rows.map(p=>[_payYm,p.disp,Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.hourly*OT_MULT.normal*p.ot15),Math.round(p.hourly*OT_MULT.holiday*p.ot3),Math.round(p.payOt),Math.round(p.total)])];
-  const all=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1.5(ชม.)','OT×3(ชม.)','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT','รวมโดยประมาณ'],
-    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1),Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.payOt),Math.round(p.total)])];
+function paySheets(){const rows=(_pay||buildPay(_payYm)).filter(p=>p.present||p.ot1||p.ot15||p.ot3||p.salary);
+  const hn=OT_MULT.holidayNormal||1;
+  const hours=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1(ชม.)','OT×1.5(ชม.)','OT×3(ชม.)'],
+    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot1.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1)])];
+  const money=[['เดือน','พนักงาน','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT×1','ค่า OT×1.5','ค่า OT×3','ค่า OT รวม','รวมโดยประมาณ'],
+    ...rows.map(p=>[_payYm,p.disp,Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.hourly*hn*p.ot1),Math.round(p.hourly*OT_MULT.normal*p.ot15),Math.round(p.hourly*OT_MULT.holiday*p.ot3),Math.round(p.payOt),Math.round(p.total)])];
+  const all=[['เดือน','พนักงาน','แผนก','วันมา','ชม.ปกติ','OT×1(ชม.)','OT×1.5(ชม.)','OT×3(ชม.)','เงินเดือน','ค่าจ้าง/ชม.','ค่า OT','รวมโดยประมาณ'],
+    ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot1.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1),Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.payOt),Math.round(p.total)])];
   return {rows,hours,money,all};}
 function exportPayXlsx(){const D=paySheets();if(!D.rows.length){alert('ไม่มีข้อมูล');return;}
   saveXlsx('RSC_payroll_'+_payYm+'.xlsx',[{name:'ชั่วโมง',rows:D.hours},{name:'เงินเดือน',rows:D.money},{name:'รวม',rows:D.all}]);}
