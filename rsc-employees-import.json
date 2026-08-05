@@ -44,11 +44,11 @@
       "id": "emp_670813",
       "email": "670813",
       "name": "วัชรพล รันเรือง",
-      "dept": "Sales & Marketing",
+      "dept": "Key account",
       "pos": "Sales Support Engineer",
-      "side": "office",
+      "side": "factory",
       "role": "employee",
-      "supervisor": ""
+      "supervisor": "670811"
     },
     {
       "id": "emp_680819",
