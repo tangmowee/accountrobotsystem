@@ -15,7 +15,7 @@ body{background:var(--bg);color:var(--text);font-family:'Prompt',sans-serif;font
 .user{font-size:12px;color:var(--muted)}.user a{color:var(--orange2);cursor:pointer}
 .wrap{max-width:1340px;margin:0 auto;padding:24px}
 .h1{font-family:'Space Grotesk';font-size:22px;font-weight:600}.sub{color:var(--muted);font-size:12.5px;margin:3px 0 18px}
-.grid{display:grid;gap:14px}.g6{grid-template-columns:repeat(6,1fr)}@media(max-width:900px){.g6{grid-template-columns:repeat(2,1fr)}}
+.grid{display:grid;gap:14px}.g6{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}@media(max-width:900px){.g6{grid-template-columns:repeat(2,1fr)}}
 .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;overflow:hidden;margin-bottom:16px}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent)}
 .stat{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.005));border:1px solid var(--line);border-radius:13px;padding:15px 16px}
@@ -48,7 +48,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--line2);white-space:nowrap}tbody
 
 <div id="app">
 <div class="top"><div class="brand"><div class="logo"><svg viewBox="0 0 32 32" width="19" height="19" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h10"/><path d="M11 27V16.5"/><circle cx="11" cy="15" r="1.9" fill="#fff" stroke="none"/><path d="M12.6 13.7 21 8"/><circle cx="22.5" cy="7" r="1.9" fill="#fff" stroke="none"/><path d="M24.2 6h3M25.7 4.2v3.6"/></svg></div><div><b>RSC · JR 360</b><div class="t">MANAGEMENT & HR · DL COMPARE</div></div></div>
-<div style="display:flex;align-items:center;gap:12px"><span class="tag" id="src">SNAPSHOT</span><span class="user" id="who"></span></div></div>
+<div style="display:flex;align-items:center;gap:12px"><a href="index.html" title="เมนูรวมระบบ" style="text-decoration:none;color:var(--muted);font-size:17px;">🏠</a><span class="tag" id="src">SNAPSHOT</span><span class="user" id="who"></span></div></div>
 <div class="wrap">
 <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
 <div><div class="h1">ภาพรวมงานตามเลข JR</div><div class="sub">Project cost summary + Management — join ด้วย JR · เปรียบเทียบ DL (Direct Labor) งบ vs จริง รายโปรเจกต์</div></div>
@@ -59,18 +59,19 @@ td{padding:9px 8px;border-bottom:1px solid var(--line2);white-space:nowrap}tbody
 <div class="stat c"><div class="k">จำนวนงาน</div><div class="v" id="k-count">0</div><div class="u">JR</div></div>
 <div class="stat"><div class="k">DL งบรวม</div><div class="v" id="k-dlb">0</div><div class="u">Direct Labor (งบ)</div></div>
 <div class="stat a"><div class="k">DL จ่ายจริงรวม</div><div class="v" id="k-dla">0</div><div class="u">Direct Labor (จริง)</div></div>
-<div class="stat r"><div class="k">งาน DL เกินงบ</div><div class="v" id="k-over">0</div><div class="u">DL จริง &gt; งบ</div></div></div>
+<div class="stat r"><div class="k">งาน DL เกินงบ</div><div class="v" id="k-over">0</div><div class="u">DL จริง &gt; งบ</div></div>
+<div class="stat c"><div class="k">ชม.จริง (เช็คอิน)</div><div class="v" id="k-hours">0</div><div class="u">ชั่วโมงจาก RSC Connect</div></div></div>
 <div class="card" style="margin-bottom:18px"><div class="ct" style="margin:0 0 12px">📅 สรุปรายปี (คลิกแถวเพื่อกรอง)</div>
-<div class="tw"><table><thead><tr><th>ปี (พ.ศ.)</th><th class="num">จำนวน JR</th><th class="num">มูลค่างาน</th><th class="num">DL งบ</th><th class="num">DL จริง</th><th class="num">DL เกิน%</th><th class="num">งานเกินงบ</th></tr></thead><tbody id="ybody"></tbody></table></div>
+<div class="tw"><table><thead><tr><th>ปี (พ.ศ.)</th><th class="num">จำนวน JR</th><th class="num">มูลค่างาน</th><th class="num">DL งบ</th><th class="num">DL จริง</th><th class="num">DL เกิน%</th><th class="num">ชม.จริง (เช็คอิน)</th><th class="num">งานเกินงบ</th></tr></thead><tbody id="ybody"></tbody></table></div>
 <div class="note">* แสดงเฉพาะ JR ปี 2565–2569 (JR-22 ถึง JR-26) · คลิกแถว “ทั้งหมด” เพื่อดูภาพรวมทุกปี</div></div>
 <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
 <div class="ct" style="margin:0">📋 รายโปรเจกต์ (คลิกหัวคอลัมน์เพื่อเรียง)</div><input id="q" placeholder="ค้นหา JR / ลูกค้า / งาน ..." oninput="draw()"></div>
 <div class="tw"><table><thead><tr>
 <th data-k="jr">JR</th><th data-k="year">ปี</th><th data-k="customer">ลูกค้า</th><th data-k="project">งาน</th><th data-k="sale">Sale</th>
 <th data-k="sales" class="num">ยอดขาย</th><th data-k="actual" class="num">ต้นทุนจริง</th><th data-k="margin" class="num">กำไร%</th>
-<th data-k="dlB" class="num">DL งบ</th><th data-k="dlA" class="num">DL จริง</th><th data-k="dlVar" class="num">DL เกิน%</th><th data-k="status">สถานะ</th>
+<th data-k="dlB" class="num">DL งบ</th><th data-k="dlA" class="num">DL จริง</th><th data-k="dlVar" class="num">DL เกิน%</th><th data-k="actHours" class="num">ชม.จริง (เช็คอิน)</th><th data-k="status">สถานะ</th>
 </tr></thead><tbody id="body"></tbody></table></div>
-<div class="note">* DL งบ/จริง จาก Project cost summary → HR ทำรีพอทค่าแรงรายโปรเจกต์ได้ • ต่อยอด: เทียบ “ชั่วโมงเช็คอินจริง” จาก RSC Connect (ผูกด้วย JR)</div></div></div>
+<div class="note">* DL งบ/จริง (บาท) จาก Project cost summary • “ชม.จริง (เช็คอิน)” = ชั่วโมงแรงงานจริงที่พนักงานลงตาม JR ในระบบ RSC Connect (ผูกด้วยเลข JR) — เห็นแรงงานจริงแม้งานยังไม่ปิดบัญชี • เลข JR ต้องตรงกับชีต (รูปแบบ JR-YY-MM-nnn)</div></div></div>
 </div>
 <script>
 const CFG={
@@ -83,6 +84,16 @@ let ALL=[{"jr": "JR-24-03-011", "year": 2567, "customer": "DONALDSON", "project"
 const $=id=>document.getElementById(id);const fmt=n=>Math.round(n).toLocaleString();
 const YEARS=[2565,2566,2567,2568,2569]; // JR-22 ถึง JR-26 (ปีอื่นยังไม่รวม)
 const scoped=()=>ALL.filter(p=>YEARS.includes(p.year));
+const fmt1=n=>(+n||0).toLocaleString(undefined,{maximumFractionDigits:1});
+const normJR=s=>String(s||'').replace(/\s/g,'').toUpperCase();
+let HBYJR={}; // ชั่วโมงจริงจากเช็คอิน รวมต่อ JR (RSC Connect · rsc_timelog)
+function hoursOf(jr){return HBYJR[normJR(jr)]||0;}
+function loadHours(cb){
+  HBYJR={};
+  const apply=arr=>{(arr||[]).forEach(r=>{const jr=normJR(r.jr);if(!jr)return;HBYJR[jr]=(HBYJR[jr]||0)+(+r.hours||0);});cb&&cb();};
+  if(db){ db.collection('rsc').doc('rsc_timelog').get().then(s=>apply((s.exists&&s.data().items)||[])).catch(()=>apply([])); }
+  else { try{apply(JSON.parse(localStorage.getItem('rsc_timelog'))||[]);}catch(e){apply([]);} }
+}
 let sortK='sales',dir=-1,db=null,auth=null;
 function cls(m,inv){if(inv)return m>20?'r1':m>0?'a1':'g1';return m>=50?'g1':m>=40?'a1':'r1';}
 function short(e){return (e||'').split('@')[0];}
@@ -110,9 +121,9 @@ function showApp(who,role){
   $('app').classList.add('on');
   $('who').innerHTML=who?(who+(role?' · '+role:'')+' · <a onclick="doLogout()">ออก</a>'):'';
   if(CFG.DATA_URL){ $('src').textContent='LOADING…';
-    fetch(CFG.DATA_URL).then(r=>r.json()).then(d=>{ ALL=d.jobs||d; $('src').textContent='LIVE'; render(); })
-      .catch(function(){ $('src').textContent='SNAPSHOT (โหลดสดไม่สำเร็จ)'; render(); });
-  } else { $('src').textContent='SNAPSHOT'; render(); }
+    fetch(CFG.DATA_URL).then(r=>r.json()).then(d=>{ ALL=d.jobs||d; $('src').textContent='LIVE'; loadHours(render); })
+      .catch(function(){ $('src').textContent='SNAPSHOT (โหลดสดไม่สำเร็จ)'; loadHours(render); });
+  } else { $('src').textContent='SNAPSHOT'; loadHours(render); }
 }
 function render(){
   const yrs=[...new Set(scoped().map(p=>p.year).filter(Boolean))].sort();
@@ -124,8 +135,9 @@ function drawYearly(){
   const cur=$('yr').value||'all';
   const rowFor=list=>{const s=list.reduce((a,p)=>a+p.sales,0),b=list.reduce((a,p)=>a+(p.dlB||0),0),
     a2=list.reduce((a,p)=>a+(p.dlA||0),0),over=list.filter(p=>p.dlB>0&&p.dlA>p.dlB).length;
+    const seen=new Set();let h=0;list.forEach(p=>{const k=normJR(p.jr);if(!seen.has(k)){seen.add(k);h+=HBYJR[k]||0;}});
     const v=b>0?((a2-b)/b*100):0;
-    return {n:list.length,s,b,a2,over,v};};
+    return {n:list.length,s,b,a2,over,v,h};};
   let html='';
   YEARS.forEach(y=>{const r=rowFor(scoped().filter(p=>p.year===y));if(!r.n)return;
     const on=String(cur)===String(y);
@@ -133,23 +145,28 @@ function drawYearly(){
       <td class="jr">${y}</td><td class="num">${r.n}</td><td class="num">${fmt(r.s)}</td>
       <td class="num" style="color:var(--muted)">${fmt(r.b)}</td><td class="num">${fmt(r.a2)}</td>
       <td class="num"><span class="pill ${r.v>20?'r1':r.v>0?'a1':'g1'}">${r.v>0?'+':''}${r.v.toFixed(0)}%</span></td>
+      <td class="num" style="color:var(--cyan,#22D3EE)">${r.h?fmt1(r.h):'—'}</td>
       <td class="num">${r.over}</td></tr>`;});
   const rt=rowFor(scoped());const onAll=cur==='all';
   html+=`<tr onclick="pickYear('all')" style="cursor:pointer;font-weight:700;border-top:2px solid var(--line)${onAll?';background:rgba(249,115,22,.12)':''}">
     <td class="jr">ทั้งหมด</td><td class="num">${rt.n}</td><td class="num">${fmt(rt.s)}</td>
     <td class="num" style="color:var(--muted)">${fmt(rt.b)}</td><td class="num">${fmt(rt.a2)}</td>
     <td class="num"><span class="pill ${rt.v>20?'r1':rt.v>0?'a1':'g1'}">${rt.v>0?'+':''}${rt.v.toFixed(0)}%</span></td>
+    <td class="num" style="color:var(--cyan,#22D3EE)">${rt.h?fmt1(rt.h):'—'}</td>
     <td class="num">${rt.over}</td></tr>`;
   $('ybody').innerHTML=html;
 }
 function draw(){
   const year=$('yr').value||'all',q=($('q').value||'').toLowerCase();
   let rows=scoped().filter(p=>year==='all'||String(p.year)===year);
+  rows.forEach(p=>p.actHours=hoursOf(p.jr));
   const ts=rows.reduce((a,p)=>a+p.sales,0),ta=rows.reduce((a,p)=>a+p.actual,0);
   const b=rows.reduce((a,p)=>a+(p.dlB||0),0),a2=rows.reduce((a,p)=>a+(p.dlA||0),0);
+  const seenH=new Set();let totH=0;rows.forEach(p=>{const k=normJR(p.jr);if(!seenH.has(k)){seenH.add(k);totH+=HBYJR[k]||0;}});
   $('k-sales').textContent=fmt(ts);$('k-margin').textContent=(ts?((ts-ta)/ts*100):0).toFixed(1)+'%';
   $('k-count').textContent=rows.length;$('k-dlb').textContent=fmt(b);$('k-dla').textContent=fmt(a2);
   $('k-over').textContent=rows.filter(p=>p.dlB>0&&p.dlA>p.dlB).length;
+  $('k-hours').textContent=fmt1(totH);
   let t=rows.filter(p=>!q||[p.jr,p.customer,p.project,p.sale,p.status].join(' ').toLowerCase().includes(q));
   t.sort((x,y)=>{let a=x[sortK],b=y[sortK];if(typeof a==='string')return dir*(a||'').localeCompare(b||'');return dir*((a||0)-(b||0));});
   $('body').innerHTML=t.map(p=>`<tr><td class="jr">${p.jr}</td><td class="num" style="color:var(--muted)">${p.year||''}</td>
@@ -159,8 +176,9 @@ function draw(){
   <td class="num"><span class="pill ${cls(p.margin)}">${p.margin}%</span></td>
   <td class="num" style="color:var(--muted)">${p.dlB?fmt(p.dlB):'—'}</td><td class="num">${p.dlA?fmt(p.dlA):'—'}</td>
   <td class="num">${p.dlB?`<span class="pill ${cls(p.dlVar,1)}">${p.dlVar>0?'+':''}${p.dlVar}%</span>`:'—'}</td>
+  <td class="num" style="color:var(--cyan,#22D3EE)">${p.actHours?fmt1(p.actHours)+' ชม.':'—'}</td>
   <td style="color:var(--muted);font-size:11px">${p.status||'—'}</td></tr>`).join('');
 }
-document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)dir*=-1;else{sortK=k;dir=['sales','actual','margin','dlB','dlA','dlVar','year'].includes(k)?-1:1;}draw();});
+document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)dir*=-1;else{sortK=k;dir=['sales','actual','margin','dlB','dlA','dlVar','year','actHours'].includes(k)?-1:1;}draw();});
 boot();
 </script></body></html>
