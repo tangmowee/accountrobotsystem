@@ -248,12 +248,17 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       </table></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t">🌙 OT — รอฉันอนุมัติ</div><span class="tag" id="ap-ot-c">0</span></div>
+      <div class="card-h"><div class="card-t">🌙 คำขอ OT — รอฉันอนุมัติ</div><span class="tag" id="ap-ot-c">0</span></div>
       <div class="tw"><table>
-        <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน</th><th>เข้า–ออก</th><th>ชม.OT</th><th>ลำดับ</th><th></th></tr></thead>
-        <tbody id="ap-ot"><tr class="empty"><td colspan="7">ไม่มีรายการรออนุมัติ</td></tr></tbody>
+        <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน</th><th>ชม.OT</th><th>เหตุผล</th><th>ที่มา</th><th>ลำดับ</th><th></th></tr></thead>
+        <tbody id="ap-ot"><tr class="empty"><td colspan="8">ไม่มีคำขอ OT รอคุณอนุมัติ</td></tr></tbody>
       </table></div>
-      <div class="note">OT ตรวจจับอัตโนมัติจากการเช็คเอาท์ (เกินมาตรฐาน หรือวันหยุด) → อนุมัติ 2 ลำดับ → นับเข้ารายงาน</div>
+      <div class="subttl" style="margin-top:18px">🔎 OT ที่ระบบตรวจพบจากการเช็คเอาท์ (ยังไม่ได้ขอ)</div>
+      <div class="tw"><table>
+        <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน</th><th>เข้า–ออก</th><th>ชม.OT</th><th></th></tr></thead>
+        <tbody id="ap-ot-sugg"><tr class="empty"><td colspan="6">ไม่มี</td></tr></tbody>
+      </table></div>
+      <div class="note">พนักงานขอ OT ล่วงหน้าได้จากหน้ามือถือ (อ้างอิงจ๊อป Planner) • ระบบยังตรวจ OT จากการเช็คเอาท์จริงให้ด้วย — กด “สร้างคำขอ” เพื่อส่งเข้าอนุมัติ 2 ลำดับ • รายงานนับเฉพาะ OT ที่อนุมัติครบ</div>
     </div>
   </section>
 
@@ -342,11 +347,11 @@ const WORK_DAYS=window.WORK_DAYS||[1,2,3,4,5];
 const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[]};
 const $=id=>document.getElementById(id);
 const load=k=>(state[k]||[]).slice();
 function save(k,arr){state[k]=arr.slice();
@@ -382,7 +387,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 /* ===== firebase ===== */
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
-function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
+function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
   const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
@@ -467,24 +472,34 @@ function renderLeave(){const arr=load(LS_LEAVE).slice().filter(r=>canSee(r.name)
 
 /* ===== APPROVAL QUEUE (ลา + OT, 2 ลำดับ) ===== */
 function levelChip(s){return s==='pending_l1'?'<span class="chip late">ลำดับ 1</span>':'<span class="chip plan">ลำดับ 2</span>';}
-function approveOT(id){const a=load(LS_LOG),r=a.find(x=>x.id===id);if(!r)return;const s=otStatusOf(r);
-  if(s==='pending_l1'){if(!canL1(r.name)){alert('ไม่มีสิทธิ์อนุมัติลำดับ 1');return;}r.otStatus='pending_l2';r.otL1By=myName();}
-  else if(s==='pending_l2'){if(!canL2()){alert('ต้องเป็นผู้จัดการ/HR');return;}r.otStatus='approved';r.otL2By=myName();}
-  save(LS_LOG,a);renderAll();}
-function rejectOT(id){const a=load(LS_LOG),r=a.find(x=>x.id===id);if(!r)return;if(!(canL1(r.name)||canL2()||isHR())){alert('ไม่มีสิทธิ์');return;}r.otStatus='rejected';save(LS_LOG,a);renderAll();}
+function approveOT(id){const a=load(LS_OT),r=a.find(x=>x.id===id);if(!r)return;const s=r.status==='pending'?'pending_l1':r.status;
+  if(s==='pending_l1'){if(!canL1(r.name)){alert('ไม่มีสิทธิ์อนุมัติลำดับ 1');return;}r.l1By=myName();r.l1At=Date.now();r.status='pending_l2';}
+  else if(s==='pending_l2'){if(!canL2()){alert('ต้องเป็นผู้จัดการ/HR');return;}r.l2By=myName();r.l2At=Date.now();r.status='approved';}
+  save(LS_OT,a);renderAll();}
+function rejectOT(id){const a=load(LS_OT),r=a.find(x=>x.id===id);if(!r)return;if(!(canL1(r.name)||canL2()||isHR())){alert('ไม่มีสิทธิ์');return;}r.status='rejected';r.rejBy=myName();save(LS_OT,a);renderAll();}
+function createOTFromLog(logId){const lg=load(LS_LOG).find(r=>r.id===logId);if(!lg)return;const h=otOf(lg);if(h<=0.01)return;
+  const a=load(LS_OT);a.push({id:uid(),name:lg.name,date:lg.date,jobId:lg.jobId||'',jobTitle:lg.jobTitle||'',hours:+h.toFixed(2),reason:'ตรวจพบจากการเช็คเอาท์',status:'pending_l1',source:'auto',logId:lg.id,createdTs:Date.now()});
+  save(LS_OT,a);renderAll();}
 function renderApprovals(){
   const lv=load(LS_LEAVE).filter(r=>{const s=r.status==='pending'?'pending_l1':r.status;return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
-  const ot=load(LS_LOG).filter(r=>{if(otOf(r)<=0.01)return false;const s=otStatusOf(r);return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
-  $('ap-badge').textContent=lv.length+ot.length;$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
+  const ot=load(LS_OT).filter(r=>{const s=r.status==='pending'?'pending_l1':r.status;return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
+  const claimed=new Set(load(LS_OT).map(o=>o.logId).filter(Boolean));
+  const sugg=load(LS_LOG).filter(r=>otOf(r)>0.01&&r.outTs&&!claimed.has(r.id)&&canSee(r.name)&&canL1(r.name));
+  $('ap-badge').textContent=lv.length+ot.length+sugg.length;$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
   $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}</td>
     <td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td><td>${esc(r.reason)||'—'}</td><td>${levelChip(s)}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveLeave('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectLeave('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
     :'<tr class="empty"><td colspan="8">ไม่มีคำขอลารอคุณอนุมัติ</td></tr>';
-  $('ap-ot').innerHTML=ot.length?ot.map(r=>{const s=otStatusOf(r);return `<tr><td>${fmtD(r.inTs)}</td><td><b>${nameOf(r.name)}</b></td>
-    <td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'—'}</td><td class="mono">${fmtT(r.inTs)}–${fmtT(r.outTs)}</td>
-    <td class="ctr" style="color:var(--orange2);font-weight:600">${otOf(r).toFixed(1)}</td><td>${levelChip(s)}</td>
+  $('ap-ot').innerHTML=ot.length?ot.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;const src=r.source==='auto'?'<span class="chip out">เช็คเอาท์</span>':'<span class="chip plan">ขอเอง</span>';
+    return `<tr><td>${esc(r.date)}</td><td><b>${nameOf(r.name)}</b></td><td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'—'}</td>
+    <td class="ctr" style="color:var(--orange2);font-weight:600">${(+r.hours).toFixed(1)}</td><td>${esc(r.reason)||'—'}</td><td>${src}</td><td>${levelChip(s)}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveOT('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectOT('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
-    :'<tr class="empty"><td colspan="7">ไม่มี OT รอคุณอนุมัติ</td></tr>';}
+    :'<tr class="empty"><td colspan="8">ไม่มีคำขอ OT รอคุณอนุมัติ</td></tr>';
+  $('ap-ot-sugg').innerHTML=sugg.length?sugg.map(r=>`<tr><td>${fmtD(r.inTs)}</td><td><b>${nameOf(r.name)}</b></td>
+    <td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'—'}</td><td class="mono">${fmtT(r.inTs)}–${fmtT(r.outTs)}</td>
+    <td class="ctr" style="color:var(--orange2);font-weight:600">${otOf(r).toFixed(1)}</td>
+    <td class="ctr"><button class="btn sm" onclick="createOTFromLog('${r.id}')">สร้างคำขอ</button></td></tr>`).join('')
+    :'<tr class="empty"><td colspan="6">ไม่มี OT ค้างที่ตรวจพบ</td></tr>';}
 function renderBalance(){const year=todayStr().slice(0,4);$('lv-year').textContent='ปี '+(+year+543);
   const emps=load(LS_EMP).filter(e=>canSee(e.email||e.name));const body=$('lv-bal');
   const appr=load(LS_LEAVE).filter(l=>l.status==='approved'&&(l.from||'').slice(0,4)===year);
@@ -500,16 +515,18 @@ function buildReport(ym){
   const emps=load(LS_EMP);
   const logs=load(LS_LOG).filter(r=>r.date&&r.date.slice(0,7)===ym);
   const appr=load(LS_LEAVE).filter(l=>l.status==='approved');
+  const otAppr=load(LS_OT).filter(o=>o.status==='approved'&&o.date&&o.date.slice(0,7)===ym);
+  const otByKey={};otAppr.forEach(o=>{otByKey[o.name]=(otByKey[o.name]||0)+(+o.hours||0);});
   const today=todayStr(),[Y,M]=ym.split('-').map(Number);
   const dim=new Date(Y,M,0).getDate();const startMin=parseHM(WORK_START);
   const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&ds<=today)workdays.push(ds);}
   const keys=new Set();emps.forEach(e=>keys.add(e.email||e.name));logs.forEach(r=>keys.add(r.name));
   const persons=[],depts={},jobs={};
   [...keys].filter(k=>canSee(k)).forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'ไม่ระบุแผนก';
-    let present=0,wh=0,ot=0,lateDays=0,lateMin=0,absent=0,leaveDays=0;
+    let present=0,wh=0,lateDays=0,lateMin=0,absent=0,leaveDays=0;const ot=otByKey[key]||0;
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
       const lv=appr.some(l=>(l.name===key||l.name===(e&&(e.email||'').split('@')[0]))&&ds>=l.from&&ds<=l.to);
-      if(rec){present++;if(rec.outTs){const h=(rec.outTs-rec.inTs)/3600000;wh+=h;ot+=(otStatusOf(rec)==='approved')?otOf(rec):0;}
+      if(rec){present++;if(rec.outTs){const h=(rec.outTs-rec.inTs)/3600000;wh+=h;}
         const ci=new Date(rec.inTs);const late=ci.getHours()*60+ci.getMinutes()-startMin-GRACE;if(late>0){lateDays++;lateMin+=late;}
         const jt=rec.jobTitle?rec.jobTitle.split(' @ ')[0]:'(ไม่ระบุงาน)';const j=jobs[jt]||(jobs[jt]={ppl:new Set(),wh:0});j.ppl.add(key);if(rec.outTs)j.wh+=(rec.outTs-rec.inTs)/3600000;}
       else if(lv){leaveDays++;}else if(ds<today){absent++;}});
@@ -577,14 +594,15 @@ function seedLocal(){if(localStorage.getItem(LS_EMP))return;
   const t=todayStr();save(LS_PLAN,[{id:'p1',title:'ติดตั้งแขนกลสายการผลิต',site:'โรงงานลูกค้า ศรีราชา',owner:'ทีมวิศวกรรม A',date:t,time:'08:30',geo:'13.1745,100.9310',assignees:['joe','nong'],status:'in'},{id:'p2',title:'PM ระบบ CNC',site:'RSC สำนักงานใหญ่',owner:'ทีมซ่อมบำรุง',date:t,time:'13:00',geo:'13.7563,100.5018',assignees:['ping'],status:'plan'}]);
   function ts(h,m){const d=new Date();d.setHours(h,m,0,0);return d.getTime();}
   save(LS_LOG,[{id:'l1',name:'joe',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,55),inGeo:'13.1746,100.9311',outTs:ts(18,20),outGeo:'13.1745,100.9309',otStatus:'pending_l1'},{id:'l2',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,20),inGeo:'13.1744,100.9312',outTs:null,outGeo:''}]);
-  save(LS_LEAVE,[{id:'v1',name:'joe',type:'vacation',from:t,to:t,days:1,reason:'ธุระครอบครัว',status:'pending_l1',createdTs:Date.now()-3600000},{id:'v2',name:'nong',type:'sick',from:t,to:t,days:1,reason:'ไข้หวัด',status:'approved',l1By:'lek',l2By:'boss',createdTs:Date.now()-9e7}]);}
+  save(LS_LEAVE,[{id:'v1',name:'joe',type:'vacation',from:t,to:t,days:1,reason:'ธุระครอบครัว',status:'pending_l1',createdTs:Date.now()-3600000},{id:'v2',name:'nong',type:'sick',from:t,to:t,days:1,reason:'ไข้หวัด',status:'approved',l1By:'lek',l2By:'boss',createdTs:Date.now()-9e7}]);
+  save(LS_OT,[{id:'o1',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',hours:2,reason:'เร่งงานส่งมอบ',status:'pending_l1',source:'request',createdTs:Date.now()-1800000}]);}
 
 initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');$('conn').innerHTML='<span class="dot"></span>'+(MODE==='firebase'?'CLOUD':'LOCAL');
 setInterval(clock,1000);clock();
 if(MODE==='firebase'){listen();auth.onAuthStateChanged(onAuth);}
-else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
-  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
+else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
+  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
   $('login').classList.remove('on');$('user').textContent='ทดลอง (LOCAL)';renderAll();}
 </script>
 </body>
