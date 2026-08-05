@@ -684,7 +684,9 @@ function saveXlsx(name,sheets){const blob=new Blob([_xlsx(sheets)],{type:'applic
 
 /* ===== ชั่วโมงจริงตาม JR — แยกฝั่งสำนักงาน/โรงงาน (ให้บัญชีแยกค่าแรงเอง) ===== */
 let _dl=null,_dlYm='';
-const OFFICE_JR=window.OFFICE_JR||'JR OFFICE';
+const CENTRAL_JRS=window.OFFICE_JRS||[window.OFFICE_JR||'JR OFFICE'];
+const OFFICE_JR=CENTRAL_JRS[0];
+const isCentralJR=jr=>CENTRAL_JRS.includes(jr);
 const SIDE_LBL={office:'สำนักงาน',factory:'โรงงาน'};
 function sideOf(name){const e=empOf(name);return (e&&e.side)==='factory'?'factory':'office';}
 function buildDL(ym){
@@ -692,7 +694,7 @@ function buildDL(ym){
   const byJR={},byPerson={};let totOffice=0,totFactory=0;
   rows.forEach(r=>{
     const h=+r.hours||0, side=sideOf(r.name);
-    const isOffice=(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR); // JR OFFICE = งานส่วนกลาง (ไม่ผูกโปรเจกต์)
+    const isOffice=(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr)); // JR ส่วนกลาง (ไม่ผูกโปรเจกต์)
     if(side==='factory')totFactory+=h; else totOffice+=h;
     const jr=r.jr||OFFICE_JR;
     const g=byJR[jr]||(byJR[jr]={jr,title:'',central:isOffice,ppl:new Set(),n:0,h:0,office:0,factory:0});
@@ -709,7 +711,7 @@ function renderDL(){
   if(!_dlYm){const d=new Date();_dlYm=d.toISOString().slice(0,7);if($('dl-month'))$('dl-month').value=_dlYm;}
   _dlYm=($('dl-month')&&$('dl-month').value)||_dlYm;
   const R=_dl=buildDL(_dlYm);
-  if($('dl-officejr'))$('dl-officejr').textContent=OFFICE_JR;
+  if($('dl-officejr'))$('dl-officejr').textContent=CENTRAL_JRS.join(' / ');
   const jrs=Object.values(R.byJR).sort((a,b)=>(a.central-b.central)||b.h-a.h);
   $('dl-total').textContent=(R.totOffice+R.totFactory).toFixed(1);
   $('dl-office').textContent=R.totOffice.toFixed(1);
@@ -740,7 +742,7 @@ function dlSheets(){const R=_dl||buildDL(_dlYm);
     ...ppl.map(p=>[p.name,p.dept,SIDE_LBL[p.side]||p.side,+p.proj.toFixed(1),+p.central.toFixed(1),+(p.proj+p.central).toFixed(1)])];
   const dets=R.rows.slice().sort((a,b)=>(a.date+a.timeStart).localeCompare(b.date+b.timeStart));
   const detailRows=[['วันที่','พนักงาน','ฝั่ง','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
-    ...dets.map(r=>{const off=(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR);
+    ...dets.map(r=>{const off=(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr));
       return [r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,SIDE_LBL[sideOf(r.name)],r.jr,(r.jobTitle||'').split(' @ ')[0],off?'ส่วนกลาง':'โปรเจกต์',_SL[r.slot]||r.slot,r.timeStart,r.timeEnd,+(+r.hours).toFixed(1),r.note||''];})];
   return {R,byJRrows,byPersonRows,detailRows};}
 function exportDLcsv(){const D=dlSheets();if(D.byJRrows.length<=2){alert('ไม่มีข้อมูล');return;}

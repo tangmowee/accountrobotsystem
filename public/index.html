@@ -241,7 +241,9 @@ const WORK_START = window.WORK_START || '08:30';
 const GRACE = window.LATE_GRACE_MIN || 0;
 const SLOTS = window.SLOTS || {full:{label:'เต็มวัน',start:'08:30',end:'17:30'},morning:{label:'เช้า',start:'08:30',end:'12:00'},afternoon:{label:'บ่าย',start:'13:00',end:'17:30'}};
 const LUNCH_S = parseHM(window.LUNCH_START||'12:00'), LUNCH_E = parseHM(window.LUNCH_END||'13:00');
-const OFFICE_JR = window.OFFICE_JR || 'JR OFFICE';
+const CENTRAL_JRS = window.OFFICE_JRS || [window.OFFICE_JR || 'JR OFFICE'];
+const OFFICE_JR = CENTRAL_JRS[0];
+const isCentralJR = jr => CENTRAL_JRS.includes(jr);
 function shortName(email){return (email||'').split('@')[0];}
 function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
 
@@ -345,7 +347,7 @@ function renderJobs(){
     const jrJobs=jobs.filter(p=>p.jr);
     tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
       jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
-      `<option value="__office__" data-jr="${esc(OFFICE_JR)}">🏢 ${esc(OFFICE_JR)} — งานออฟฟิศ/ส่วนกลาง</option>`+
+      CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
 }
@@ -390,7 +392,7 @@ function tlRecalc(){
   const h=calcHours($('tl-start').value,$('tl-end').value);
   $('tl-hours').textContent=h.toFixed(1);
   const jr=tlSelectedJR();
-  $('tl-kind').innerHTML=jr?`· ${jr===OFFICE_JR?'งานส่วนกลาง (JR OFFICE)':'งานโปรเจกต์'}`:'';
+  $('tl-kind').innerHTML=jr?`· ${isCentralJR(jr)?'งานส่วนกลาง':'งานโปรเจกต์'}`:'';
   return {h,jr};
 }
 function submitTimelog(){
@@ -401,11 +403,11 @@ function submitTimelog(){
   if(!s||!e){toast('เลือกเวลาเริ่ม–สิ้นสุด');return;}
   const h=calcHours(s,e);if(h<=0){toast('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');return;}
   const o=tj.options[tj.selectedIndex];
-  const jobId=(tj.value==='__office__'||tj.value==='__manual__')?'':tj.value;
+  const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
   const rec={id:uid(),name,date:$('tl-date').value||todayStr(),jr,
     jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
     slot:tlSlot,timeStart:s,timeEnd:e,hours:h,
-    kind:(jr!==OFFICE_JR)?'project':'office',note:$('tl-note').value.trim(),createdTs:Date.now()};
+    kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim(),createdTs:Date.now()};
   const arr=load(LS_TL);arr.unshift(rec);save(LS_TL,arr);
   $('tl-note').value='';renderMyTL();
   toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
@@ -421,7 +423,7 @@ function renderMyTL(){
   const slotLbl=s=>({full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'}[s]||s||'');
   let html=`<div class="muted" style="margin-bottom:6px;">วันนี้รวม <b style="color:var(--orange-light)">${todayH.toFixed(1)}</b> ชม.`+
     (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
-  const isOffice=r=>(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR);
+  const isOffice=r=>(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr));
   html+=recent.length?recent.map(r=>`<div class="rec">
     <div><div>${isOffice(r)?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
       <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
