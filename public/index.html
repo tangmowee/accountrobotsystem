@@ -144,8 +144,8 @@
 
   <!-- time log (DL cost capture) -->
   <div class="card">
-    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ต้นทุนแรงงาน)</div>
-    <div class="muted" style="margin:-6px 0 4px;">ลงเวลาที่ทำงานให้แต่ละ JR เพื่อเก็บต้นทุนจริง · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE”</div>
+    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR)</div>
+    <div class="muted" style="margin:-6px 0 4px;">ลงเวลาที่ทำงานให้แต่ละ JR · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE” — บัญชีจะนำชั่วโมงไปแยกค่าแรงเอง</div>
 
     <label>งาน / JR</label>
     <select id="tl-job" onchange="tlJobChange()"><option value="">— เลือกงาน/JR —</option></select>
@@ -390,9 +390,8 @@ function tlRecalc(){
   const h=calcHours($('tl-start').value,$('tl-end').value);
   $('tl-hours').textContent=h.toFixed(1);
   const jr=tlSelectedJR();
-  const kind=(jr&&jr!==OFFICE_JR)?'DL':'OH';
-  $('tl-kind').innerHTML=jr?`· ${jr===OFFICE_JR?'ส่วนกลาง (OH)':'ต้นทุนโปรเจกต์ (DL)'}`:'';
-  return {h,jr,kind};
+  $('tl-kind').innerHTML=jr?`· ${jr===OFFICE_JR?'งานส่วนกลาง (JR OFFICE)':'งานโปรเจกต์'}`:'';
+  return {h,jr};
 }
 function submitTimelog(){
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
@@ -406,7 +405,7 @@ function submitTimelog(){
   const rec={id:uid(),name,date:$('tl-date').value||todayStr(),jr,
     jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
     slot:tlSlot,timeStart:s,timeEnd:e,hours:h,
-    kind:(jr!==OFFICE_JR)?'DL':'OH',note:$('tl-note').value.trim(),createdTs:Date.now()};
+    kind:(jr!==OFFICE_JR)?'project':'office',note:$('tl-note').value.trim(),createdTs:Date.now()};
   const arr=load(LS_TL);arr.unshift(rec);save(LS_TL,arr);
   $('tl-note').value='';renderMyTL();
   toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
@@ -422,8 +421,9 @@ function renderMyTL(){
   const slotLbl=s=>({full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'}[s]||s||'');
   let html=`<div class="muted" style="margin-bottom:6px;">วันนี้รวม <b style="color:var(--orange-light)">${todayH.toFixed(1)}</b> ชม.`+
     (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
+  const isOffice=r=>(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR);
   html+=recent.length?recent.map(r=>`<div class="rec">
-    <div><div>${r.kind==='OH'?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
+    <div><div>${isOffice(r)?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
       <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
     <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div><a onclick="delTimelog('${r.id}')" style="color:var(--red);cursor:pointer;font-size:11px;">ลบ</a></div></div>`).join('')
     :'<div class="muted">ยังไม่มีการบันทึกเวลา</div>';

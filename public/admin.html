@@ -170,7 +170,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
     <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
-    <a data-s="dl" onclick="showSec('dl')">🧾 ต้นทุน DL</a>
+    <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -310,40 +310,40 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
-  <!-- ===== DL / ต้นทุนเวลาแรงงานตาม JR ===== -->
+  <!-- ===== เวลาทำงานจริงตาม JR (ให้บัญชีแยกค่าแรงเอง) ===== -->
   <section class="sec" id="s-dl">
-    <div class="h1">ต้นทุนแรงงานตามจ๊อป (DL)</div>
-    <div class="sub">รวมชั่วโมงจริงที่พนักงานบันทึกตาม JR — แยก DL (ต้นทุนโปรเจกต์) กับ OH (ส่วนกลาง/ออฟฟิศ) · แสดงเป็นชั่วโมง</div>
+    <div class="h1">ชั่วโมงทำงานจริงตาม JR</div>
+    <div class="sub">รวมชั่วโมงที่พนักงานบันทึกตาม JR — แยกฝั่งสำนักงาน/โรงงาน เพื่อให้บัญชีนำไปแยกค่าแรงทางตรงเอง · แสดงเป็นชั่วโมง (ไม่มีการตีเป็นต้นทุน)</div>
     <div class="card">
       <div class="card-h">
         <div class="card-t">🧾 สรุปชั่วโมงตาม JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="dl-month" onchange="renderDL()" style="width:auto">
           <button class="btn sm p" onclick="exportDLxlsx()">⬇️ Excel (3 ชีท)</button>
-          <button class="btn sm" onclick="exportDLcsv()">CSV รายโปรเจกต์</button>
+          <button class="btn sm" onclick="exportDLcsv()">CSV ตาม JR</button>
           <button class="btn sm" onclick="exportDLdetail()">CSV รายบันทึก</button>
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:18px">
         <div class="stat"><div class="k">ชม.รวมทั้งหมด</div><div class="v mono" id="dl-total">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat o"><div class="k">DL (โปรเจกต์)</div><div class="v mono" id="dl-dl">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat a"><div class="k">OH (ส่วนกลาง)</div><div class="v mono" id="dl-oh">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat r"><div class="k">จำนวน JR</div><div class="v mono" id="dl-jrs">0</div><div class="u">งาน</div></div>
+        <div class="stat o"><div class="k">🏢 ฝั่งสำนักงาน</div><div class="v mono" id="dl-office">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat a"><div class="k">🏭 ฝั่งโรงงาน</div><div class="v mono" id="dl-factory">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat r"><div class="k">จำนวน JR โปรเจกต์</div><div class="v mono" id="dl-jrs">0</div><div class="u">งาน</div></div>
       </div>
 
-      <div class="subttl">🗂️ ตาม JR (ต้นทุน DL)</div>
+      <div class="subttl">🗂️ ตาม JR</div>
       <div class="tw"><table>
-        <thead><tr><th>JR</th><th>งาน</th><th>คน</th><th>รายการ</th><th>ชม.รวม</th><th>เต็มวัน/เช้า/บ่าย/เอง</th></tr></thead>
+        <thead><tr><th>JR</th><th>งาน</th><th>ประเภท</th><th>คน</th><th>ชม.สำนักงาน</th><th>ชม.โรงงาน</th><th>ชม.รวม</th></tr></thead>
         <tbody id="dl-jr"></tbody>
       </table></div>
 
       <hr class="divider">
-      <div class="subttl">👤 รายคน (DL vs OH)</div>
+      <div class="subttl">👤 รายคน</div>
       <div class="tw"><table>
-        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>ชม. DL</th><th>ชม. OH</th><th>รวม</th></tr></thead>
+        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>ฝั่ง</th><th>ชม.งานโปรเจกต์</th><th>ชม.ส่วนกลาง</th><th>รวม</th></tr></thead>
         <tbody id="dl-person"></tbody>
       </table></div>
-      <div class="note">* DL = เวลาที่ผูกกับ JR โปรเจกต์ (ต้นทุนแรงงานตรง) • OH = <b id="dl-officejr">JR OFFICE</b>/งานส่วนกลาง (ค่าใช้จ่ายส่วนกลาง) • นำ “ชม.รวม” ต่อ JR ไปเทียบกับงบ DL ใน JR 360 ได้</div>
+      <div class="note">* ระบบเก็บ “ชั่วโมงจริง” เท่านั้น ไม่ตีเป็นต้นทุน • งานส่วนกลาง = <b id="dl-officejr">JR OFFICE</b> • ฝั่ง (สำนักงาน/โรงงาน) กำหนดที่บัตรพนักงาน • บัญชีนำชั่วโมงแยกตามฝั่งไปคำนวณค่าแรงทางตรงเอง</div>
     </div>
   </section>
 
@@ -386,6 +386,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="f"><label>ชื่อผู้ใช้ / ชื่อเล่น (ใช้ล็อกอิน)</label><input id="em-user" placeholder="joe"></div>
         <div class="f"><label>ชื่อ–สกุล</label><input id="em-name" placeholder="สมชาย ใจดี"></div>
         <div class="grid g2"><div class="f"><label>แผนก</label><input id="em-dept" placeholder="วิศวกรรม"></div><div class="f"><label>ตำแหน่ง</label><input id="em-pos" placeholder="วิศวกร"></div></div>
+        <div class="f"><label>ฝั่ง (ให้บัญชีแยกค่าแรงทางตรง)</label><select id="em-side"><option value="office">สำนักงาน</option><option value="factory">โรงงาน</option></select></div>
         <div class="grid g2">
           <div class="f"><label>ระดับสิทธิ์</label><select id="em-role">
             <option value="employee">พนักงาน</option>
@@ -681,24 +682,27 @@ function _xlsx(sheets){const enc=new TextEncoder();const files=[];
 function saveXlsx(name,sheets){const blob=new Blob([_xlsx(sheets)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
 
-/* ===== DL / ต้นทุนเวลาแรงงานตาม JR ===== */
+/* ===== ชั่วโมงจริงตาม JR — แยกฝั่งสำนักงาน/โรงงาน (ให้บัญชีแยกค่าแรงเอง) ===== */
 let _dl=null,_dlYm='';
 const OFFICE_JR=window.OFFICE_JR||'JR OFFICE';
+const SIDE_LBL={office:'สำนักงาน',factory:'โรงงาน'};
+function sideOf(name){const e=empOf(name);return (e&&e.side)==='factory'?'factory':'office';}
 function buildDL(ym){
   const rows=load(LS_TL).filter(r=>canSee(r.name)&&(!ym||(r.date||'').slice(0,7)===ym));
-  const byJR={},byPerson={};let totDL=0,totOH=0;
+  const byJR={},byPerson={};let totOffice=0,totFactory=0;
   rows.forEach(r=>{
-    const h=+r.hours||0, isOH=(r.kind==='OH'||r.jr===OFFICE_JR);
-    if(isOH)totOH+=h; else totDL+=h;
+    const h=+r.hours||0, side=sideOf(r.name);
+    const isOffice=(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR); // JR OFFICE = งานส่วนกลาง (ไม่ผูกโปรเจกต์)
+    if(side==='factory')totFactory+=h; else totOffice+=h;
     const jr=r.jr||OFFICE_JR;
-    const g=byJR[jr]||(byJR[jr]={jr,title:'',ppl:new Set(),n:0,h:0,isOH,slots:{full:0,morning:0,afternoon:0,custom:0}});
+    const g=byJR[jr]||(byJR[jr]={jr,title:'',central:isOffice,ppl:new Set(),n:0,h:0,office:0,factory:0});
     if(r.jobTitle&&!g.title)g.title=r.jobTitle.split(' @ ')[0];
-    g.ppl.add(r.name);g.n++;g.h+=h;g.slots[r.slot]=(g.slots[r.slot]||0)+1;
+    g.ppl.add(r.name);g.n++;g.h+=h;g[side]+=h;
     const e=empOf(r.name),key=r.name;
-    const p=byPerson[key]||(byPerson[key]={name:(e&&e.name)||r.name,dept:(e&&e.dept)||'—',dl:0,oh:0});
-    if(isOH)p.oh+=h; else p.dl+=h;
+    const p=byPerson[key]||(byPerson[key]={name:(e&&e.name)||r.name,dept:(e&&e.dept)||'—',side,proj:0,central:0});
+    if(isOffice)p.central+=h; else p.proj+=h;
   });
-  return {rows,byJR,byPerson,totDL,totOH};
+  return {rows,byJR,byPerson,totOffice,totFactory};
 }
 function renderDL(){
   if(!$('s-dl'))return;
@@ -706,46 +710,47 @@ function renderDL(){
   _dlYm=($('dl-month')&&$('dl-month').value)||_dlYm;
   const R=_dl=buildDL(_dlYm);
   if($('dl-officejr'))$('dl-officejr').textContent=OFFICE_JR;
-  const jrs=Object.values(R.byJR);
-  $('dl-total').textContent=(R.totDL+R.totOH).toFixed(1);
-  $('dl-dl').textContent=R.totDL.toFixed(1);
-  $('dl-oh').textContent=R.totOH.toFixed(1);
-  $('dl-jrs').textContent=jrs.filter(g=>!g.isOH).length;
-  const dlJobs=jrs.filter(g=>!g.isOH).sort((a,b)=>b.h-a.h);
-  $('dl-jr').innerHTML=dlJobs.length?dlJobs.map(g=>`<tr><td class="mono"><b>${esc(g.jr)}</b></td><td>${esc(g.title)||'—'}</td>
-    <td class="ctr mono">${g.ppl.size}</td><td class="ctr mono">${g.n}</td><td class="num"><b>${g.h.toFixed(1)}</b></td>
-    <td class="mono" style="font-size:12px;color:var(--muted)">${g.slots.full}/${g.slots.morning}/${g.slots.afternoon}/${g.slots.custom}</td></tr>`).join('')
-    :'<tr class="empty"><td colspan="6">ยังไม่มีการบันทึกเวลา</td></tr>';
-  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.dl+b.oh)-(a.dl+a.oh));
+  const jrs=Object.values(R.byJR).sort((a,b)=>(a.central-b.central)||b.h-a.h);
+  $('dl-total').textContent=(R.totOffice+R.totFactory).toFixed(1);
+  $('dl-office').textContent=R.totOffice.toFixed(1);
+  $('dl-factory').textContent=R.totFactory.toFixed(1);
+  $('dl-jrs').textContent=jrs.filter(g=>!g.central).length;
+  $('dl-jr').innerHTML=jrs.length?jrs.map(g=>`<tr><td class="mono"><b>${esc(g.jr)}</b></td><td>${esc(g.title)||'—'}</td>
+    <td>${g.central?'<span class="chip out">ส่วนกลาง</span>':'<span class="chip in">โปรเจกต์</span>'}</td>
+    <td class="ctr mono">${g.ppl.size}</td><td class="num">${g.office.toFixed(1)}</td><td class="num">${g.factory.toFixed(1)}</td><td class="num"><b>${g.h.toFixed(1)}</b></td></tr>`).join('')
+    :'<tr class="empty"><td colspan="7">ยังไม่มีการบันทึกเวลา</td></tr>';
+  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.proj+b.central)-(a.proj+a.central));
   $('dl-person').innerHTML=ppl.length?ppl.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.dept)}</td>
-    <td class="num">${p.dl.toFixed(1)}</td><td class="num">${p.oh.toFixed(1)}</td><td class="num"><b>${(p.dl+p.oh).toFixed(1)}</b></td></tr>`).join('')
-    :'<tr class="empty"><td colspan="5">ยังไม่มีข้อมูล</td></tr>';
+    <td>${p.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}</td>
+    <td class="num">${p.proj.toFixed(1)}</td><td class="num">${p.central.toFixed(1)}</td><td class="num"><b>${(p.proj+p.central).toFixed(1)}</b></td></tr>`).join('')
+    :'<tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr>';
 }
 function csvCell(c){return `"${(c==null?'':c).toString().replace(/"/g,'""')}"`;}
 function csvDownload(name,head,body){const csv='﻿'+[head.map(csvCell).join(','),...body.map(r=>r.map(csvCell).join(','))].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;a.click();}
 const _SL={full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'};
-// เตรียมข้อมูล 3 ชุด (ตาม JR / รายคน / รายบันทึก) ใช้ร่วมกันทั้ง CSV และ Excel
+// เตรียมข้อมูล 3 ชุด (ตาม JR / รายคน / รายบันทึก) ใช้ร่วมทั้ง CSV และ Excel
 function dlSheets(){const R=_dl||buildDL(_dlYm);
-  const jrs=Object.values(R.byJR).sort((a,b)=>(a.isOH-b.isOH)||b.h-a.h);
-  const byJRrows=[['เดือน','JR','งาน','ประเภท','คน','จำนวนรายการ','ชม.รวม'],
-    ...jrs.map(g=>[_dlYm,g.jr,g.title,g.isOH?'OH ส่วนกลาง':'DL โปรเจกต์',g.ppl.size,g.n,+g.h.toFixed(1)]),
-    ['รวม','','','',' ',' ',+(R.totDL+R.totOH).toFixed(1)]];
-  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.dl+b.oh)-(a.dl+a.oh));
-  const byPersonRows=[['พนักงาน','แผนก','ชม. DL','ชม. OH','รวม'],
-    ...ppl.map(p=>[p.name,p.dept,+p.dl.toFixed(1),+p.oh.toFixed(1),+(p.dl+p.oh).toFixed(1)])];
+  const jrs=Object.values(R.byJR).sort((a,b)=>(a.central-b.central)||b.h-a.h);
+  const byJRrows=[['เดือน','JR','งาน','ประเภท','คน','ชม.สำนักงาน','ชม.โรงงาน','ชม.รวม'],
+    ...jrs.map(g=>[_dlYm,g.jr,g.title,g.central?'ส่วนกลาง':'โปรเจกต์',g.ppl.size,+g.office.toFixed(1),+g.factory.toFixed(1),+g.h.toFixed(1)]),
+    ['รวม','','','',' ',+R.totOffice.toFixed(1),+R.totFactory.toFixed(1),+(R.totOffice+R.totFactory).toFixed(1)]];
+  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.proj+b.central)-(a.proj+a.central));
+  const byPersonRows=[['พนักงาน','แผนก','ฝั่ง','ชม.งานโปรเจกต์','ชม.ส่วนกลาง','รวม'],
+    ...ppl.map(p=>[p.name,p.dept,SIDE_LBL[p.side]||p.side,+p.proj.toFixed(1),+p.central.toFixed(1),+(p.proj+p.central).toFixed(1)])];
   const dets=R.rows.slice().sort((a,b)=>(a.date+a.timeStart).localeCompare(b.date+b.timeStart));
-  const detailRows=[['วันที่','พนักงาน','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
-    ...dets.map(r=>[r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,r.jr,(r.jobTitle||'').split(' @ ')[0],r.kind==='OH'?'OH':'DL',_SL[r.slot]||r.slot,r.timeStart,r.timeEnd,+(+r.hours).toFixed(1),r.note||''])];
+  const detailRows=[['วันที่','พนักงาน','ฝั่ง','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
+    ...dets.map(r=>{const off=(r.kind==='office'||r.kind==='OH'||r.jr===OFFICE_JR);
+      return [r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,SIDE_LBL[sideOf(r.name)],r.jr,(r.jobTitle||'').split(' @ ')[0],off?'ส่วนกลาง':'โปรเจกต์',_SL[r.slot]||r.slot,r.timeStart,r.timeEnd,+(+r.hours).toFixed(1),r.note||''];})];
   return {R,byJRrows,byPersonRows,detailRows};}
 function exportDLcsv(){const D=dlSheets();if(D.byJRrows.length<=2){alert('ไม่มีข้อมูล');return;}
-  csvDownload('RSC_DL_by_JR_'+_dlYm+'.csv',D.byJRrows[0],D.byJRrows.slice(1));}
+  csvDownload('RSC_hours_by_JR_'+_dlYm+'.csv',D.byJRrows[0],D.byJRrows.slice(1));}
 function exportDLdetail(){const D=dlSheets();if(D.detailRows.length<=1){alert('ไม่มีข้อมูล');return;}
-  csvDownload('RSC_DL_detail_'+_dlYm+'.csv',D.detailRows[0],D.detailRows.slice(1));}
+  csvDownload('RSC_hours_detail_'+_dlYm+'.csv',D.detailRows[0],D.detailRows.slice(1));}
 function exportDLxlsx(){const D=dlSheets();if(D.detailRows.length<=1){alert('ไม่มีข้อมูล');return;}
-  saveXlsx('RSC_DL_'+_dlYm+'.xlsx',[
-    {name:'สรุปตาม JR',rows:D.byJRrows},
-    {name:'รายคน (DL-OH)',rows:D.byPersonRows},
+  saveXlsx('RSC_hours_by_JR_'+_dlYm+'.xlsx',[
+    {name:'ตาม JR',rows:D.byJRrows},
+    {name:'รายคน',rows:D.byPersonRows},
     {name:'รายบันทึก',rows:D.detailRows}]);}
 
 /* ===== PEOPLE ===== */
@@ -755,9 +760,9 @@ function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.val
   sel.value=cur;}
 function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
   const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;
-  const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),role:$('em-role').value,supervisor:$('em-sup').value,active:(ex?ex.active!==false:true)};
+  const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),side:$('em-side').value||'office',role:$('em-role').value,supervisor:$('em-sup').value,active:(ex?ex.active!==false:true)};
   if(ex)Object.assign(ex,rec);else arr.push(rec);save(LS_EMP,arr);
-  ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-sup').value='';
+  ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-side').value='office';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
 function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
@@ -775,7 +780,7 @@ function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;c
   r.onload=e=>{try{const d=JSON.parse(e.target.result);const list=Array.isArray(d)?d:(d.employees||[]);
     const arr=load(LS_EMP);const byKey=new Map(arr.map(x=>[x.email||x.name,x]));let add=0,upd=0;
     list.forEach(x=>{if(!x)return;const key=x.email||x.name;if(!key)return;const ex=byKey.get(key);
-      const rec={id:(ex&&ex.id)||x.id||uid(),email:x.email||'',name:x.name||'',dept:x.dept||'',pos:x.pos||x.position||'',role:x.role||'employee',supervisor:x.supervisor||''};
+      const rec={id:(ex&&ex.id)||x.id||uid(),email:x.email||'',name:x.name||'',dept:x.dept||'',pos:x.pos||x.position||'',side:x.side||(ex&&ex.side)||'office',role:x.role||'employee',supervisor:x.supervisor||''};
       if(ex){Object.assign(ex,rec);upd++;}else{arr.push(rec);byKey.set(key,rec);add++;}});
     save(LS_EMP,arr);renderEmps();renderBalance();renderReport();fillAssignees();
     alert(`นำเข้าพนักงานสำเร็จ ✅\nเพิ่มใหม่ ${add} คน · อัปเดต ${upd} คน`);
@@ -786,7 +791,7 @@ function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count
   const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
   body.innerHTML=arr.slice().sort((a,b)=>(a.active===false)-(b.active===false)||(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;const off=e.active===false;
     return `<tr${off?' style="opacity:.5"':''}><td><b>${esc(e.name||e.email)}</b>${off?' <span class="chip absent" style="font-size:10px">ลาออก</span>':''}</td>
-    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}</td>
+    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}</div></td>
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
     <td class="ctr" style="white-space:nowrap">${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
