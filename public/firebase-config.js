@@ -39,6 +39,10 @@ window.SLOTS = {
   morning:   { label:'เช้า',    start:'08:30', end:'12:00' },  // 3.5 ชม.
   afternoon: { label:'บ่าย',    start:'13:00', end:'17:30' }   // 4.5 ชม.
 };
+/* บังคับให้พนักงานบันทึกเวลาตาม JR ก่อนเช็คเอาท์ (true = บังคับทุกคน, false = ไม่บังคับ)
+   งานสำนักงาน/ส่วนกลางเลือก JR OFFICE ได้ */
+window.REQUIRE_JR = true;
+
 /* รหัสงานส่วนกลาง (เวลาที่ลงตรงนี้ = งานส่วนกลาง ไม่ผูกโปรเจกต์ — เพิ่ม/แก้รายการได้) */
 window.OFFICE_JRS = ['JR OFFICE', 'JR Marketing'];
 window.OFFICE_JR  = window.OFFICE_JRS[0]; // ค่าเริ่มต้น (เผื่อโค้ดเก่าอ้างถึง)

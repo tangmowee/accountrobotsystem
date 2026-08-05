@@ -145,8 +145,8 @@
 
   <!-- time log (DL cost capture) -->
   <div class="card">
-    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR)</div>
-    <div class="muted" style="margin:-6px 0 4px;">ลงเวลาที่ทำงานให้แต่ละ JR · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE” — บัญชีจะนำชั่วโมงไปแยกค่าแรงเอง</div>
+    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR) <span id="tl-req" style="display:none;color:var(--orange-light);font-weight:700;">· จำเป็น</span></div>
+    <div class="muted" style="margin:-6px 0 4px;" id="tl-hint">ลงเวลาที่ทำงานให้แต่ละ JR · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE” — บัญชีจะนำชั่วโมงไปแยกค่าแรงเอง</div>
 
     <label>งาน / JR</label>
     <select id="tl-job" onchange="tlJobChange()"><option value="">— เลือกงาน/JR —</option></select>
@@ -246,6 +246,7 @@ const LUNCH_S = parseHM(window.LUNCH_START||'12:00'), LUNCH_E = parseHM(window.L
 const CENTRAL_JRS = window.OFFICE_JRS || [window.OFFICE_JR || 'JR OFFICE'];
 const OFFICE_JR = CENTRAL_JRS[0];
 const isCentralJR = jr => CENTRAL_JRS.includes(jr);
+const REQUIRE_JR = window.REQUIRE_JR !== false; // ค่าเริ่มต้น = บังคับ
 function shortName(email){return (email||'').split('@')[0];}
 function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
 
@@ -322,8 +323,15 @@ function checkin(){
   const ci=new Date(now);const lateMin=ci.getHours()*60+ci.getMinutes()-parseHM(WORK_START)-GRACE;
   toast(lateMin>0?('⏰ เช็คอินสำเร็จ · มาสาย '+lateMin+' นาที'):('✅ เช็คอินสำเร็จ '+fmtT(now)));
 }
+function hasTimelogToday(){const n=myName(),t=todayStr();return load(LS_TL).some(r=>r.name===n&&r.date===t);}
 function checkout(){
   const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
+  if(REQUIRE_JR&&!hasTimelogToday()){
+    toast('⚠️ กรุณาบันทึกเวลาตาม JR ของวันนี้ก่อนเช็คเอาท์ (งานออฟฟิศเลือก JR OFFICE)');
+    const card=$('tl-job');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});
+      const box=card.closest('.card');if(box){box.style.transition='box-shadow .3s';box.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>box.style.boxShadow='',1800);}}
+    return;
+  }
   if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?'))return;
   const log=load(LS_LOG);const r=log.find(x=>x.id===rec.id);
   r.outTs=Date.now();r.outGeo=currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'';save(LS_LOG,log);
@@ -569,6 +577,8 @@ setInterval(tick,1000);tick();
 /* ตั้งค่าเริ่มต้นการ์ดบันทึกเวลา */
 if($('tl-date'))$('tl-date').value=todayStr();
 tlPickSlot('full');
+if(REQUIRE_JR){if($('tl-req'))$('tl-req').style.display='inline';
+  if($('tl-hint'))$('tl-hint').innerHTML='⚠️ <b style="color:var(--orange-light)">ต้องบันทึกเวลาตาม JR ก่อนเช็คเอาท์</b> · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE”';}
 if(MODE==='firebase'){listeners();auth.onAuthStateChanged(onAuth);}
 else{
   // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
