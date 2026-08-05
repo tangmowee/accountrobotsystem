@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RSC Connect">
 <meta name="mobile-web-app-capable" content="yes">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -24,13 +24,13 @@
     --text:#EAEAF0; --muted:#7C808C; --green:#34D399; --red:#F87171; --yellow:#FBBF24; --cyan:#22D3EE;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;font-variant-numeric:tabular-nums;
+  body{color:var(--text);font-family:'Prompt',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;font-variant-numeric:tabular-nums;
     background:radial-gradient(700px 380px at 15% -6%,rgba(249,115,22,0.12),transparent 60%),radial-gradient(600px 360px at 100% 0,rgba(34,211,238,0.08),transparent 55%),linear-gradient(180deg,var(--dark),var(--dark2));background-attachment:fixed;}
 
   .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
   .brand{display:flex;align-items:center;gap:10px;}
-  .logo-mark{width:32px;height:32px;background:var(--orange);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:12px;color:#fff;}
-  .brand b{font-family:'Space Grotesk',sans-serif;letter-spacing:2px;font-size:18px;}
+  .logo-mark{width:32px;height:32px;background:var(--orange);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk','Prompt',sans-serif;font-size:12px;color:#fff;}
+  .brand b{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:18px;}
   .conn{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;}
   .conn.cloud{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
   .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
@@ -39,7 +39,7 @@
   .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);}
   .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
 
-  .clock{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--orange);line-height:1;text-align:center;}
+  .clock{font-family:'Space Grotesk','Prompt',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--orange);line-height:1;text-align:center;}
   .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
   .statusline{text-align:center;margin-top:14px;}
   .chip{display:inline-block;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
@@ -47,7 +47,7 @@
   .chip.out{background:rgba(136,136,136,0.15);color:var(--muted);border:1px solid rgba(136,136,136,0.3);}
 
   label{display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
-  select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:16px;padding:13px;outline:none;}
+  select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Prompt',sans-serif;font-size:16px;padding:13px;outline:none;}
   select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
 
   .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
@@ -57,7 +57,7 @@
   .geo .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
   .maplink{color:var(--green);text-decoration:none;}
 
-  .btn{width:100%;font-family:'IBM Plex Sans Thai',sans-serif;font-size:17px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);padding:16px;border-radius:10px;cursor:pointer;margin-top:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn{width:100%;font-family:'Prompt',sans-serif;font-size:17px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);padding:16px;border-radius:10px;cursor:pointer;margin-top:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
   .btn:active{transform:scale(.98);}
   .btn:disabled{opacity:.35;}
   .btn.gps{background:var(--dark2);}
@@ -76,7 +76,7 @@
   .overlay{position:fixed;inset:0;background:rgba(5,5,5,0.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
   .overlay.show{display:flex;}
   .overlay .card{width:100%;max-width:400px;}
-  .overlay h2{font-family:'Space Grotesk',sans-serif;letter-spacing:2px;font-size:26px;margin-bottom:2px;}
+  .overlay h2{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:26px;margin-bottom:2px;}
   .overlay .sub{color:var(--muted);font-size:12px;margin-bottom:8px;}
   .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px;}
   .user{font-size:11px;color:var(--muted);}
