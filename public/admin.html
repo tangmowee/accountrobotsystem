@@ -170,6 +170,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
     <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
+    <a data-s="dl" onclick="showSec('dl')">🧾 ต้นทุน DL</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -201,6 +202,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       <div class="card">
         <div class="card-h"><div class="card-t">＋ เพิ่มแผนงาน</div></div>
         <div class="f"><label>ชื่องาน / โปรเจกต์</label><input id="pl-title" placeholder="ติดตั้งหุ่นยนต์สายการผลิต"></div>
+        <div class="f"><label>เลขที่งาน JR (สำหรับเก็บต้นทุน DL — เว้นว่าง = งานส่วนกลาง)</label><input id="pl-jr" placeholder="เช่น JR-68-05-012"></div>
         <div class="f"><label>สถานที่ / ไซต์งาน</label><input id="pl-site" placeholder="โรงงานลูกค้า ศรีราชา"></div>
         <div class="f"><label>ทีม / ผู้รับผิดชอบ</label><input id="pl-owner" placeholder="ทีมวิศวกรรม A"></div>
         <div class="f"><label>มอบหมายให้ (เลือกหลายคน — เว้นว่าง = งานกลาง)</label><select id="pl-assignees" multiple size="4"></select></div>
@@ -211,8 +213,8 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       <div class="card">
         <div class="card-h"><div class="card-t">🗓️ แผนงานทั้งหมด</div><span class="tag" id="pl-count">0 งาน</span></div>
         <div class="tw"><table>
-          <thead><tr><th>วัน/เวลา</th><th>งาน</th><th>ไซต์</th><th>มอบหมาย</th><th>พิกัด</th><th>สถานะ</th><th></th></tr></thead>
-          <tbody id="pl-body"><tr class="empty"><td colspan="7">ยังไม่มีแผนงาน</td></tr></tbody>
+          <thead><tr><th>วัน/เวลา</th><th>งาน</th><th>JR</th><th>ไซต์</th><th>มอบหมาย</th><th>พิกัด</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="pl-body"><tr class="empty"><td colspan="8">ยังไม่มีแผนงาน</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -307,6 +309,42 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== DL / ต้นทุนเวลาแรงงานตาม JR ===== -->
+  <section class="sec" id="s-dl">
+    <div class="h1">ต้นทุนแรงงานตามจ๊อป (DL)</div>
+    <div class="sub">รวมชั่วโมงจริงที่พนักงานบันทึกตาม JR — แยก DL (ต้นทุนโปรเจกต์) กับ OH (ส่วนกลาง/ออฟฟิศ) · แสดงเป็นชั่วโมง</div>
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">🧾 สรุปชั่วโมงตาม JR</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="month" id="dl-month" onchange="renderDL()" style="width:auto">
+          <button class="btn sm" onclick="exportDLcsv()">⬇️ CSV รายโปรเจกต์</button>
+          <button class="btn sm" onclick="exportDLdetail()">⬇️ CSV รายบันทึก</button>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-bottom:18px">
+        <div class="stat"><div class="k">ชม.รวมทั้งหมด</div><div class="v mono" id="dl-total">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat o"><div class="k">DL (โปรเจกต์)</div><div class="v mono" id="dl-dl">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat a"><div class="k">OH (ส่วนกลาง)</div><div class="v mono" id="dl-oh">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat r"><div class="k">จำนวน JR</div><div class="v mono" id="dl-jrs">0</div><div class="u">งาน</div></div>
+      </div>
+
+      <div class="subttl">🗂️ ตาม JR (ต้นทุน DL)</div>
+      <div class="tw"><table>
+        <thead><tr><th>JR</th><th>งาน</th><th>คน</th><th>รายการ</th><th>ชม.รวม</th><th>เต็มวัน/เช้า/บ่าย/เอง</th></tr></thead>
+        <tbody id="dl-jr"></tbody>
+      </table></div>
+
+      <hr class="divider">
+      <div class="subttl">👤 รายคน (DL vs OH)</div>
+      <div class="tw"><table>
+        <thead><tr><th>พนักงาน</th><th>แผนก</th><th>ชม. DL</th><th>ชม. OH</th><th>รวม</th></tr></thead>
+        <tbody id="dl-person"></tbody>
+      </table></div>
+      <div class="note">* DL = เวลาที่ผูกกับ JR โปรเจกต์ (ต้นทุนแรงงานตรง) • OH = <b id="dl-officejr">JR OFFICE</b>/งานส่วนกลาง (ค่าใช้จ่ายส่วนกลาง) • นำ “ชม.รวม” ต่อ JR ไปเทียบกับงบ DL ใน JR 360 ได้</div>
+    </div>
+  </section>
+
   <!-- ===== FLEET / BOOKING ===== -->
   <section class="sec" id="s-fleet">
     <div class="h1">จองรถ</div>
@@ -386,11 +424,11 @@ const WORK_DAYS=window.WORK_DAYS||[1,2,3,4,5];
 const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[]};
 const $=id=>document.getElementById(id);
 const load=k=>(state[k]||[]).slice();
 function save(k,arr){state[k]=arr.slice();
@@ -426,7 +464,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 /* ===== firebase ===== */
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
-function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
+function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
   const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
@@ -440,10 +478,11 @@ function showSec(id){document.querySelectorAll('.sec').forEach(s=>s.classList.re
   $('s-'+id).classList.add('on');document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
   if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
+  if(id==='dl')renderDL();
   if(id==='fleet'){renderFleet();renderBookings();}}
 
 /* ===== render all ===== */
-function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();}
+function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderDL();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -477,15 +516,16 @@ function assigneeNames(list){if(!list||!list.length)return '<span class="chip al
 function plGeo(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>$('pl-geo').value=`${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`,e=>alert(e.message),{enableHighAccuracy:true});}
 function addPlan(){const t=$('pl-title').value.trim();if(!t){alert('กรอกชื่องาน');return;}
   const assignees=Array.from($('pl-assignees').selectedOptions).map(o=>o.value);
-  const p=load(LS_PLAN);p.push({id:uid(),title:t,site:$('pl-site').value.trim(),owner:$('pl-owner').value.trim(),
+  const p=load(LS_PLAN);p.push({id:uid(),title:t,jr:($('pl-jr').value||'').trim(),site:$('pl-site').value.trim(),owner:$('pl-owner').value.trim(),
     date:$('pl-date').value||todayStr(),time:$('pl-time').value||'09:00',geo:$('pl-geo').value.trim(),assignees,status:'plan'});
   p.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));save(LS_PLAN,p);
-  ['pl-title','pl-site','pl-owner','pl-geo','pl-time'].forEach(i=>$(i).value='');$('pl-assignees').selectedIndex=-1;renderPlans();}
+  ['pl-title','pl-jr','pl-site','pl-owner','pl-geo','pl-time'].forEach(i=>$(i).value='');$('pl-assignees').selectedIndex=-1;renderPlans();}
 function delPlan(id){if(!confirm('ลบแผนงานนี้?'))return;save(LS_PLAN,load(LS_PLAN).filter(p=>p.id!==id));renderPlans();}
 function renderPlans(){fillAssignees();const p=load(LS_PLAN);$('pl-count').textContent=p.length+' งาน';const body=$('pl-body');
-  if(!p.length){body.innerHTML='<tr class="empty"><td colspan="7">ยังไม่มีแผนงาน</td></tr>';return;}
+  if(!p.length){body.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีแผนงาน</td></tr>';return;}
   const cm={plan:'<span class="chip plan">วางแผน</span>',in:'<span class="chip in">กำลังทำ</span>',done:'<span class="chip out">เสร็จสิ้น</span>'};
   body.innerHTML=p.map(x=>`<tr><td><b>${fmtD(x.date)}</b><div class="note">${x.time} น.</div></td><td><b>${esc(x.title)}</b></td>
+    <td>${x.jr?'<span class="mono">'+esc(x.jr)+'</span>':'<span class="note">ส่วนกลาง</span>'}</td>
     <td>${esc(x.site)||'—'}</td><td>${assigneeNames(x.assignees)}</td><td>${mapLink(x.geo)}</td><td>${cm[x.status]||''}</td>
     <td class="ctr"><button class="btn sm no" onclick="delPlan('${x.id}')">ลบ</button></td></tr>`).join('');}
 
@@ -600,6 +640,59 @@ function exportCSV(){if(!_rp)return;const rows=_rp.persons.filter(p=>p.present||
   const body=rows.map(p=>[_rpYm,p.disp,p.dept,p.present,p.wh.toFixed(1),p.ot.toFixed(1),p.lateDays,Math.round(p.lateMin),p.absent,p.leaveDays].map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(','));
   const csv='﻿'+[head.join(','),...body].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='RSC_attendance_'+_rpYm+'.csv';a.click();}
 
+/* ===== DL / ต้นทุนเวลาแรงงานตาม JR ===== */
+let _dl=null,_dlYm='';
+const OFFICE_JR=window.OFFICE_JR||'JR OFFICE';
+function buildDL(ym){
+  const rows=load(LS_TL).filter(r=>canSee(r.name)&&(!ym||(r.date||'').slice(0,7)===ym));
+  const byJR={},byPerson={};let totDL=0,totOH=0;
+  rows.forEach(r=>{
+    const h=+r.hours||0, isOH=(r.kind==='OH'||r.jr===OFFICE_JR);
+    if(isOH)totOH+=h; else totDL+=h;
+    const jr=r.jr||OFFICE_JR;
+    const g=byJR[jr]||(byJR[jr]={jr,title:'',ppl:new Set(),n:0,h:0,isOH,slots:{full:0,morning:0,afternoon:0,custom:0}});
+    if(r.jobTitle&&!g.title)g.title=r.jobTitle.split(' @ ')[0];
+    g.ppl.add(r.name);g.n++;g.h+=h;g.slots[r.slot]=(g.slots[r.slot]||0)+1;
+    const e=empOf(r.name),key=r.name;
+    const p=byPerson[key]||(byPerson[key]={name:(e&&e.name)||r.name,dept:(e&&e.dept)||'—',dl:0,oh:0});
+    if(isOH)p.oh+=h; else p.dl+=h;
+  });
+  return {rows,byJR,byPerson,totDL,totOH};
+}
+function renderDL(){
+  if(!$('s-dl'))return;
+  if(!_dlYm){const d=new Date();_dlYm=d.toISOString().slice(0,7);if($('dl-month'))$('dl-month').value=_dlYm;}
+  _dlYm=($('dl-month')&&$('dl-month').value)||_dlYm;
+  const R=_dl=buildDL(_dlYm);
+  if($('dl-officejr'))$('dl-officejr').textContent=OFFICE_JR;
+  const jrs=Object.values(R.byJR);
+  $('dl-total').textContent=(R.totDL+R.totOH).toFixed(1);
+  $('dl-dl').textContent=R.totDL.toFixed(1);
+  $('dl-oh').textContent=R.totOH.toFixed(1);
+  $('dl-jrs').textContent=jrs.filter(g=>!g.isOH).length;
+  const dlJobs=jrs.filter(g=>!g.isOH).sort((a,b)=>b.h-a.h);
+  $('dl-jr').innerHTML=dlJobs.length?dlJobs.map(g=>`<tr><td class="mono"><b>${esc(g.jr)}</b></td><td>${esc(g.title)||'—'}</td>
+    <td class="ctr mono">${g.ppl.size}</td><td class="ctr mono">${g.n}</td><td class="num"><b>${g.h.toFixed(1)}</b></td>
+    <td class="mono" style="font-size:12px;color:var(--muted)">${g.slots.full}/${g.slots.morning}/${g.slots.afternoon}/${g.slots.custom}</td></tr>`).join('')
+    :'<tr class="empty"><td colspan="6">ยังไม่มีการบันทึกเวลา</td></tr>';
+  const ppl=Object.values(R.byPerson).sort((a,b)=>(b.dl+b.oh)-(a.dl+a.oh));
+  $('dl-person').innerHTML=ppl.length?ppl.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.dept)}</td>
+    <td class="num">${p.dl.toFixed(1)}</td><td class="num">${p.oh.toFixed(1)}</td><td class="num"><b>${(p.dl+p.oh).toFixed(1)}</b></td></tr>`).join('')
+    :'<tr class="empty"><td colspan="5">ยังไม่มีข้อมูล</td></tr>';
+}
+function csvCell(c){return `"${(c==null?'':c).toString().replace(/"/g,'""')}"`;}
+function dlDownload(name,head,body){const csv='﻿'+[head.map(csvCell).join(','),...body.map(r=>r.map(csvCell).join(','))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;a.click();}
+function exportDLcsv(){const R=_dl||buildDL(_dlYm);const jrs=Object.values(R.byJR).sort((a,b)=>(a.isOH-b.isOH)||b.h-a.h);
+  if(!jrs.length){alert('ไม่มีข้อมูล');return;}
+  dlDownload('RSC_DL_by_JR_'+_dlYm+'.csv',['เดือน','JR','งาน','ประเภท','คน','จำนวนรายการ','ชม.รวม'],
+    jrs.map(g=>[_dlYm,g.jr,g.title,g.isOH?'OH ส่วนกลาง':'DL โปรเจกต์',g.ppl.size,g.n,g.h.toFixed(1)]));}
+function exportDLdetail(){const R=_dl||buildDL(_dlYm);if(!R.rows.length){alert('ไม่มีข้อมูล');return;}
+  const sl={full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'};
+  const rows=R.rows.slice().sort((a,b)=>(a.date+a.timeStart).localeCompare(b.date+b.timeStart));
+  dlDownload('RSC_DL_detail_'+_dlYm+'.csv',['วันที่','พนักงาน','JR','งาน','ประเภท','ช่วง','เริ่ม','สิ้นสุด','ชม.','หมายเหตุ'],
+    rows.map(r=>[r.date,(empOf(r.name)&&empOf(r.name).name)||r.name,r.jr,(r.jobTitle||'').split(' @ ')[0],r.kind==='OH'?'OH':'DL',sl[r.slot]||r.slot,r.timeStart,r.timeEnd,(+r.hours).toFixed(1),r.note||'']));}
+
 /* ===== PEOPLE ===== */
 function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.value;
   const sups=load(LS_EMP).filter(e=>e.active!==false&&(e.role==='supervisor'||e.role==='manager'||e.role==='hr'));
@@ -694,8 +787,8 @@ initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');$('conn').innerHTML='<span class="dot"></span>'+(MODE==='firebase'?'CLOUD':'LOCAL');
 setInterval(clock,1000);clock();
 if(MODE==='firebase'){listen();auth.onAuthStateChanged(onAuth);}
-else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
-  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
+else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
+  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
   $('login').classList.remove('on');$('user').textContent='ทดลอง (LOCAL)';renderAll();}
 </script>
 </body>

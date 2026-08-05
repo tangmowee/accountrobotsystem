@@ -82,6 +82,10 @@
   .user{font-size:11px;color:var(--muted);}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--card);border:1px solid var(--orange);color:var(--text);padding:12px 20px;border-radius:24px;font-size:14px;z-index:300;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);}
   .toast.show{opacity:1;}
+  .slots{display:flex;gap:8px;flex-wrap:wrap;}
+  .slot{flex:1;min-width:70px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:600;padding:11px 6px;border-radius:9px;border:1px solid var(--border);background:var(--dark2);color:var(--muted);cursor:pointer;transition:.12s;}
+  .slot:active{transform:scale(.97);}
+  .slot.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange-light);}
 </style>
 </head>
 <body>
@@ -136,6 +140,36 @@
   <div class="card">
     <div class="title">🕓 ประวัติล่าสุดของฉัน</div>
     <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
+  </div>
+
+  <!-- time log (DL cost capture) -->
+  <div class="card">
+    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ต้นทุนแรงงาน)</div>
+    <div class="muted" style="margin:-6px 0 4px;">ลงเวลาที่ทำงานให้แต่ละ JR เพื่อเก็บต้นทุนจริง · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE”</div>
+
+    <label>งาน / JR</label>
+    <select id="tl-job" onchange="tlJobChange()"><option value="">— เลือกงาน/JR —</option></select>
+    <input type="text" id="tl-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-68-05-012" style="display:none;margin-top:8px;">
+
+    <label>ช่วงเวลา</label>
+    <div class="slots" id="tl-slots">
+      <button type="button" class="slot active" data-slot="full"      onclick="tlPickSlot('full')">เต็มวัน</button>
+      <button type="button" class="slot"        data-slot="morning"   onclick="tlPickSlot('morning')">เช้า</button>
+      <button type="button" class="slot"        data-slot="afternoon" onclick="tlPickSlot('afternoon')">บ่าย</button>
+      <button type="button" class="slot"        data-slot="custom"    onclick="tlPickSlot('custom')">กำหนดเอง</button>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>เวลาเริ่ม</label><input type="time" id="tl-start" onchange="tlTimeEdited()"></div>
+      <div style="flex:1;"><label>เวลาสิ้นสุด</label><input type="time" id="tl-end" onchange="tlTimeEdited()"></div>
+      <div style="flex:1;"><label>วันที่</label><input type="date" id="tl-date"></div>
+    </div>
+    <div class="geo" id="tl-calc" style="margin-top:12px;"><span class="lbl">รวมชั่วโมง (หักพักเที่ยง)</span> <span class="coord" id="tl-hours">0.0</span> <span class="lbl">ชม.</span> <span id="tl-kind" class="lbl"></span></div>
+
+    <label>หมายเหตุ (ถ้ามี)</label>
+    <input type="text" id="tl-note" placeholder="เช่น เดินสายไฟ / ประกอบชุดแขนกล">
+    <button class="btn gps" onclick="submitTimelog()">🧾 บันทึกเวลา</button>
+    <div id="mytl" style="margin-top:14px;"></div>
   </div>
 
   <!-- leave request -->
@@ -197,14 +231,17 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
 const DOMAIN = window.LOGIN_DOMAIN || 'rsc.local';
 const WORK_START = window.WORK_START || '08:30';
 const GRACE = window.LATE_GRACE_MIN || 0;
+const SLOTS = window.SLOTS || {full:{label:'เต็มวัน',start:'08:30',end:'17:30'},morning:{label:'เช้า',start:'08:30',end:'12:00'},afternoon:{label:'บ่าย',start:'13:00',end:'17:30'}};
+const LUNCH_S = parseHM(window.LUNCH_START||'12:00'), LUNCH_E = parseHM(window.LUNCH_END||'13:00');
+const OFFICE_JR = window.OFFICE_JR || 'JR OFFICE';
 function shortName(email){return (email||'').split('@')[0];}
 function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
 
@@ -226,8 +263,8 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();},e=>console.error(e));
+function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();},e=>console.error(e));
 });}
 
 /* ===== auth ===== */
@@ -236,7 +273,7 @@ function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
 function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();}
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();}
   else{$('login').classList.add('show');$('user').textContent='';}
 }
 function myName(){return user?shortName(user.email):'';}
@@ -303,6 +340,14 @@ function renderJobs(){
   sel.value=cur;
   const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
     jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
+  // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
+  const tj=$('tl-job');if(tj){const c3=tj.value;
+    const jrJobs=jobs.filter(p=>p.jr);
+    tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      `<option value="__office__" data-jr="${esc(OFFICE_JR)}">🏢 ${esc(OFFICE_JR)} — งานออฟฟิศ/ส่วนกลาง</option>`+
+      `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
+    tj.value=c3;}
 }
 function renderMyLog(){
   const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,8);
@@ -312,6 +357,77 @@ function renderMyLog(){
     <div><div>${new Date(r.inTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''}</div>
       <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${fmtT(r.outTs)}</div></div>
     <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div></div>`).join('');
+}
+
+/* ===== time log (เก็บต้นทุนแรงงาน DL/OH ตาม JR) ===== */
+let tlSlot='full';
+function tlHM(v){return String(v||'').slice(0,5);}
+function calcHours(s,e){ // ชั่วโมงจากเวลาเริ่ม–สิ้นสุด หักช่วงพักเที่ยงที่ทับกัน
+  const a=parseHM(s),b=parseHM(e);if(!(b>a))return 0;
+  const lunch=Math.max(0,Math.min(b,LUNCH_E)-Math.max(a,LUNCH_S));
+  return Math.round((b-a-lunch)/6)/10; // นาที→ชม. ทศนิยม 1 ตำแหน่ง
+}
+function tlSelectedJR(){
+  const tj=$('tl-job'),o=tj.options[tj.selectedIndex];
+  if(tj.value==='__manual__')return ($('tl-jr-manual').value||'').trim();
+  return o&&o.dataset.jr?o.dataset.jr:'';
+}
+function tlJobChange(){
+  const man=$('tl-jr-manual');man.style.display=$('tl-job').value==='__manual__'?'block':'none';
+  tlRecalc();
+}
+function tlPickSlot(s){
+  tlSlot=s;
+  document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot===s));
+  if(s!=='custom'&&SLOTS[s]){$('tl-start').value=SLOTS[s].start;$('tl-end').value=SLOTS[s].end;}
+  tlRecalc();
+}
+function tlTimeEdited(){ // แก้เวลาเอง → สลับเป็นโหมดกำหนดเอง
+  tlSlot='custom';document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot==='custom'));
+  tlRecalc();
+}
+function tlRecalc(){
+  const h=calcHours($('tl-start').value,$('tl-end').value);
+  $('tl-hours').textContent=h.toFixed(1);
+  const jr=tlSelectedJR();
+  const kind=(jr&&jr!==OFFICE_JR)?'DL':'OH';
+  $('tl-kind').innerHTML=jr?`· ${jr===OFFICE_JR?'ส่วนกลาง (OH)':'ต้นทุนโปรเจกต์ (DL)'}`:'';
+  return {h,jr,kind};
+}
+function submitTimelog(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  const tj=$('tl-job');if(!tj.value){toast('เลือกงาน/JR');return;}
+  const jr=tlSelectedJR();if(!jr){toast('ระบุเลข JR');return;}
+  const s=$('tl-start').value,e=$('tl-end').value;
+  if(!s||!e){toast('เลือกเวลาเริ่ม–สิ้นสุด');return;}
+  const h=calcHours(s,e);if(h<=0){toast('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');return;}
+  const o=tj.options[tj.selectedIndex];
+  const jobId=(tj.value==='__office__'||tj.value==='__manual__')?'':tj.value;
+  const rec={id:uid(),name,date:$('tl-date').value||todayStr(),jr,
+    jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
+    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,
+    kind:(jr!==OFFICE_JR)?'DL':'OH',note:$('tl-note').value.trim(),createdTs:Date.now()};
+  const arr=load(LS_TL);arr.unshift(rec);save(LS_TL,arr);
+  $('tl-note').value='';renderMyTL();
+  toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
+}
+function delTimelog(id){if(!confirm('ลบรายการนี้?'))return;save(LS_TL,load(LS_TL).filter(x=>x.id!==id));renderMyTL();}
+function renderMyTL(){
+  const el=$('mytl');if(!el)return;
+  const today=todayStr();
+  const mine=load(LS_TL).filter(r=>r.name===myName());
+  const todayList=mine.filter(r=>r.date===today);
+  const todayH=todayList.reduce((s,r)=>s+(+r.hours||0),0);
+  const recent=mine.slice(0,6);
+  const slotLbl=s=>({full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'}[s]||s||'');
+  let html=`<div class="muted" style="margin-bottom:6px;">วันนี้รวม <b style="color:var(--orange-light)">${todayH.toFixed(1)}</b> ชม.`+
+    (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
+  html+=recent.length?recent.map(r=>`<div class="rec">
+    <div><div>${r.kind==='OH'?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
+      <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
+    <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div><a onclick="delTimelog('${r.id}')" style="color:var(--red);cursor:pointer;font-size:11px;">ลบ</a></div></div>`).join('')
+    :'<div class="muted">ยังไม่มีการบันทึกเวลา</div>';
+  el.innerHTML=html;
 }
 
 /* ===== leave ===== */
@@ -419,6 +535,9 @@ initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');
 $('conn').textContent=MODE==='firebase'?'CLOUD':'LOCAL';
 setInterval(tick,1000);tick();
+/* ตั้งค่าเริ่มต้นการ์ดบันทึกเวลา */
+if($('tl-date'))$('tl-date').value=todayStr();
+tlPickSlot('full');
 if(MODE==='firebase'){listeners();auth.onAuthStateChanged(onAuth);}
 else{
   // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
@@ -428,11 +547,12 @@ else{
   try{state[LS_OT]=JSON.parse(localStorage.getItem(LS_OT))||[];}catch(e){}
   try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
+  try{state[LS_TL]=JSON.parse(localStorage.getItem(LS_TL))||[];}catch(e){}
   $('login').classList.remove('show');
   user={email:localStorage.getItem('rsc_local_name')||''};
   if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}
   $('user').textContent=user.email;
-  renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();
+  renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();
 }
 </script>
 </body>
