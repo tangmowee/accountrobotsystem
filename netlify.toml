@@ -1,5 +1,5 @@
 # Netlify — โฮสต์หน้าเว็บ/มือถือ ส่วน Firebase = ฐานข้อมูล+ล็อกอิน (backend)
-# / = หน้ามือถือพนักงาน (index.html) • /admin = หน้า HR admin (admin.html)
+# / = เมนูรวมระบบ (Hub) • /checkin = แอปพนักงาน • /admin = HR • /jr360 • /finance
 
 [build]
   publish = "public"
@@ -8,6 +8,21 @@
 [[redirects]]
   from = "/admin"
   to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/checkin"
+  to = "/checkin.html"
+  status = 200
+
+[[redirects]]
+  from = "/jr360"
+  to = "/RSC-JR360.html"
+  status = 200
+
+[[redirects]]
+  from = "/finance"
+  to = "/finance.html"
   status = 200
 
 [[headers]]

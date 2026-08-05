@@ -2,559 +2,138 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0A0B0D">
-<title>RSC Connect — พนักงาน</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>RSC Connect — เมนูรวมระบบ</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RSC Connect">
-<meta name="mobile-web-app-capable" content="yes">
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
-  :root{
-    --orange:#F97316; --orange-light:#FB923C; --orange-dim:rgba(249,115,22,0.12);
-    --dark:#0A0B0D; --dark2:#0E0F13; --card:rgba(255,255,255,0.035); --border:rgba(255,255,255,0.08);
-    --text:#EAEAF0; --muted:#7C808C; --green:#34D399; --red:#F87171; --yellow:#FBBF24; --cyan:#22D3EE;
-  }
+  :root{--orange:#F97316;--orange-light:#FB923C;--dark:#0A0B0D;--dark2:#0E0F13;--card:rgba(255,255,255,.035);
+    --border:rgba(255,255,255,.08);--text:#EAEAF0;--muted:#7C808C;--green:#34D399;--yellow:#FBBF24;--cyan:#22D3EE;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{color:var(--text);font-family:'Prompt',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;font-variant-numeric:tabular-nums;
-    background:radial-gradient(700px 380px at 15% -6%,rgba(249,115,22,0.12),transparent 60%),radial-gradient(600px 360px at 100% 0,rgba(34,211,238,0.08),transparent 55%),linear-gradient(180deg,var(--dark),var(--dark2));background-attachment:fixed;}
-
-  .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-  .brand{display:flex;align-items:center;gap:10px;}
-  .logo-mark{width:32px;height:32px;background:var(--orange);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk','Prompt',sans-serif;font-size:12px;color:#fff;}
-  .brand b{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:18px;}
-  .conn{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;}
-  .conn.cloud{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
-  .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
-
-  .wrap{max-width:520px;margin:0 auto;padding:16px;}
-  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);}
-  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
-
-  .clock{font-family:'Space Grotesk','Prompt',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--orange);line-height:1;text-align:center;}
-  .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
-  .statusline{text-align:center;margin-top:14px;}
-  .chip{display:inline-block;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
-  .chip.in{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
-  .chip.out{background:rgba(136,136,136,0.15);color:var(--muted);border:1px solid rgba(136,136,136,0.3);}
-
-  label{display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
-  select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Prompt',sans-serif;font-size:16px;padding:13px;outline:none;}
-  select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
-
-  .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
-  .geo.ok{border-style:solid;border-color:rgba(46,204,113,0.4);}
-  .geo.err{border-style:solid;border-color:rgba(231,76,60,0.4);}
-  .geo .coord{color:var(--orange-light);font-weight:600;font-size:15px;}
-  .geo .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
-  .maplink{color:var(--green);text-decoration:none;}
-
-  .btn{width:100%;font-family:'Prompt',sans-serif;font-size:17px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);padding:16px;border-radius:10px;cursor:pointer;margin-top:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
-  .btn:active{transform:scale(.98);}
-  .btn:disabled{opacity:.35;}
-  .btn.gps{background:var(--dark2);}
-  .btn.in{background:var(--orange);border-color:var(--orange);color:#fff;font-size:19px;}
-  .btn.out{border-color:rgba(231,76,60,0.5);color:var(--red);font-size:19px;}
-  .btn.ghost{padding:11px;font-size:13px;font-weight:600;}
-
-  .rec{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;}
-  .rec:last-child{border-bottom:none;}
-  .rec .t{font-family:'IBM Plex Mono',monospace;color:var(--muted);}
-  .rec .h{color:var(--orange-light);font-family:'IBM Plex Mono',monospace;font-weight:600;}
-  .muted{color:var(--muted);font-size:12px;}
-  .title{font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
-
+  body{color:var(--text);font-family:'Prompt',sans-serif;font-size:15px;line-height:1.5;min-height:100vh;
+    background:radial-gradient(760px 400px at 12% -6%,rgba(249,115,22,.14),transparent 60%),radial-gradient(680px 380px at 100% 0,rgba(34,211,238,.08),transparent 55%),linear-gradient(180deg,var(--dark),var(--dark2));background-attachment:fixed;}
+  .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .logo{width:34px;height:34px;background:var(--orange);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;}
+  .brand b{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:19px;}
+  .conn{font-family:monospace;font-size:10px;padding:2px 8px;border-radius:20px;}
+  .conn.cloud{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.3);}
+  .conn.local{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3);}
+  .user{font-size:12px;color:var(--muted);}
+  .user a{color:var(--orange-light);cursor:pointer;}
+  .wrap{max-width:920px;margin:0 auto;padding:34px 18px 60px;}
+  .hi{font-family:'Space Grotesk','Prompt',sans-serif;font-size:30px;font-weight:600;margin-bottom:4px;}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+  .tile{position:relative;overflow:hidden;display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;backdrop-filter:blur(8px);transition:.15s;}
+  .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,var(--orange)),transparent);}
+  .tile:hover{border-color:var(--accent,var(--orange));transform:translateY(-3px);box-shadow:0 14px 40px -22px var(--accent,var(--orange));}
+  .tile.lock{opacity:.4;pointer-events:none;filter:grayscale(.5);}
+  .ico{font-size:30px;margin-bottom:12px;display:block;}
+  .tile h3{font-size:18px;font-weight:600;margin-bottom:5px;}
+  .tile p{color:var(--muted);font-size:13px;line-height:1.45;}
+  .badge{display:inline-block;margin-top:12px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);}
+  .badge.on{color:var(--accent,var(--orange));border-color:var(--accent,var(--orange));}
+  .note{color:var(--muted);font-size:12.5px;margin-top:26px;text-align:center;}
   /* login */
-  .overlay{position:fixed;inset:0;background:rgba(5,5,5,0.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .overlay{position:fixed;inset:0;background:rgba(5,5,5,.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
   .overlay.show{display:flex;}
-  .overlay .card{width:100%;max-width:400px;}
-  .overlay h2{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:26px;margin-bottom:2px;}
-  .overlay .sub{color:var(--muted);font-size:12px;margin-bottom:8px;}
-  .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px;}
-  .user{font-size:11px;color:var(--muted);}
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--card);border:1px solid var(--orange);color:var(--text);padding:12px 20px;border-radius:24px;font-size:14px;z-index:300;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);}
-  .toast.show{opacity:1;}
-  .slots{display:flex;gap:8px;flex-wrap:wrap;}
-  .slot{flex:1;min-width:70px;font-family:'Prompt',sans-serif;font-size:14px;font-weight:600;padding:11px 6px;border-radius:9px;border:1px solid var(--border);background:var(--dark2);color:var(--muted);cursor:pointer;transition:.12s;}
-  .slot:active{transform:scale(.97);}
-  .slot.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange-light);}
+  .lcard{width:100%;max-width:390px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;}
+  .lcard h2{font-family:'Space Grotesk','Prompt',sans-serif;letter-spacing:2px;font-size:24px;margin-bottom:2px;}
+  .lcard .s{color:var(--muted);font-size:12px;margin-bottom:14px;}
+  label{display:block;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;}
+  input{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Prompt',sans-serif;font-size:16px;padding:13px;outline:none;}
+  input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+  .btn{width:100%;font-family:'Prompt',sans-serif;font-size:16px;font-weight:700;border:none;background:var(--orange);color:#fff;padding:14px;border-radius:10px;cursor:pointer;margin-top:16px;}
+  .err{color:#F87171;font-size:13px;min-height:18px;margin-top:8px;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="overlay" id="login">
-  <div class="card">
-    <div class="logo-mark" style="margin-bottom:14px;"><svg viewBox="0 0 32 32" width="19" height="19" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h10"/><path d="M11 27V16.5"/><circle cx="11" cy="15" r="1.9" fill="#fff" stroke="none"/><path d="M12.6 13.7 21 8"/><circle cx="22.5" cy="7" r="1.9" fill="#fff" stroke="none"/><path d="M24.2 6h3M25.7 4.2v3.6"/></svg></div>
-    <h2>เข้าสู่ระบบ</h2>
-    <div class="sub">ระบบลงเวลาพนักงาน — Robot System</div>
-    <label>ชื่อผู้ใช้ / ชื่อเล่น / รหัสพนักงาน</label><input type="text" id="l-email" autocomplete="username" placeholder="เช่น joe หรือ eng014">
-    <label>รหัสผ่าน</label><input type="password" id="l-pass" autocomplete="current-password" placeholder="••••••••">
-    <button class="btn in" onclick="doLogin()">เข้าสู่ระบบ</button>
-    <div class="err" id="l-err"></div>
-    <div class="muted" style="margin-top:10px;">พิมพ์แค่ชื่อผู้ใช้ ไม่ต้องใส่อีเมล • บัญชีสร้างโดยแอดมิน</div>
+  <div class="lcard">
+    <div class="logo" style="margin-bottom:14px;"><svg viewBox="0 0 32 32" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h10"/><path d="M11 27V16.5"/><circle cx="11" cy="15" r="1.9" fill="#fff" stroke="none"/><path d="M12.6 13.7 21 8"/><circle cx="22.5" cy="7" r="1.9" fill="#fff" stroke="none"/><path d="M24.2 6h3M25.7 4.2v3.6"/></svg></div>
+    <h2>RSC Connect</h2><div class="s">เข้าสู่ระบบเพื่อเข้าใช้งานทุกระบบ</div>
+    <label>ชื่อผู้ใช้ / รหัสพนักงาน</label><input id="lu" autocomplete="username" placeholder="เช่น joe หรือ 601215">
+    <label>รหัสผ่าน</label><input id="lp" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="err" id="le"></div>
   </div>
 </div>
 
 <div class="topbar">
-  <div class="brand"><div class="logo-mark"><svg viewBox="0 0 32 32" width="19" height="19" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h10"/><path d="M11 27V16.5"/><circle cx="11" cy="15" r="1.9" fill="#fff" stroke="none"/><path d="M12.6 13.7 21 8"/><circle cx="22.5" cy="7" r="1.9" fill="#fff" stroke="none"/><path d="M24.2 6h3M25.7 4.2v3.6"/></svg></div><b>RSC Connect</b></div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <button id="install-btn" onclick="installApp()" style="display:none;align-items:center;gap:6px;background:var(--orange);color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">📲 ติดตั้งแอป</button>
-    <span class="conn local" id="conn">LOCAL</span>
-    <span class="user" id="user"></span>
-  </div>
+  <div class="brand"><div class="logo"><svg viewBox="0 0 32 32" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 27h10"/><path d="M11 27V16.5"/><circle cx="11" cy="15" r="1.9" fill="#fff" stroke="none"/><path d="M12.6 13.7 21 8"/><circle cx="22.5" cy="7" r="1.9" fill="#fff" stroke="none"/><path d="M24.2 6h3M25.7 4.2v3.6"/></svg></div><b>RSC Connect</b></div>
+  <div style="display:flex;align-items:center;gap:12px;"><span class="conn local" id="conn">LOCAL</span><span class="user" id="who"></span></div>
 </div>
 
-<div class="wrap" id="app">
-  <!-- status -->
-  <div class="card">
-    <div class="clock" id="clock">--:--:--</div>
-    <div class="date" id="date">—</div>
-    <div class="statusline" id="statusline"><span class="chip out">ยังไม่เช็คอิน</span></div>
-  </div>
-
-  <!-- form -->
-  <div class="card">
-    <label>งานวันนี้ (จาก RSC Planner)</label>
-    <select id="job"><option value="">— เลือกงาน/ไซต์งาน —</option></select>
-
-    <label>หมายเหตุ (ถ้ามี)</label>
-    <input type="text" id="note" placeholder="เช่น ติดตั้งแขนกล / เข้าพบลูกค้า">
-
-    <div class="geo" id="geo"><div class="lbl">พิกัด GPS</div><div id="geo-txt">ยังไม่ได้ระบุพิกัด</div></div>
-
-    <button class="btn gps" onclick="getLoc()">🛰️ ดึงพิกัด GPS</button>
-    <button class="btn in"  id="btn-in"  onclick="checkin()">✅ เช็คอิน</button>
-    <button class="btn out" id="btn-out" onclick="checkout()" disabled>🔴 เช็คเอาท์</button>
-  </div>
-
-  <!-- my history -->
-  <div class="card">
-    <div class="title">🕓 ประวัติล่าสุดของฉัน</div>
-    <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
-  </div>
-
-  <!-- time log (DL cost capture) -->
-  <div class="card">
-    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR)</div>
-    <div class="muted" style="margin:-6px 0 4px;">ลงเวลาที่ทำงานให้แต่ละ JR · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE” — บัญชีจะนำชั่วโมงไปแยกค่าแรงเอง</div>
-
-    <label>งาน / JR</label>
-    <select id="tl-job" onchange="tlJobChange()"><option value="">— เลือกงาน/JR —</option></select>
-    <input type="text" id="tl-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-68-05-012" style="display:none;margin-top:8px;">
-
-    <label>ช่วงเวลา</label>
-    <div class="slots" id="tl-slots">
-      <button type="button" class="slot active" data-slot="full"      onclick="tlPickSlot('full')">เต็มวัน</button>
-      <button type="button" class="slot"        data-slot="morning"   onclick="tlPickSlot('morning')">เช้า</button>
-      <button type="button" class="slot"        data-slot="afternoon" onclick="tlPickSlot('afternoon')">บ่าย</button>
-      <button type="button" class="slot"        data-slot="custom"    onclick="tlPickSlot('custom')">กำหนดเอง</button>
-    </div>
-
-    <div style="display:flex;gap:10px;">
-      <div style="flex:1;"><label>เวลาเริ่ม</label><input type="time" id="tl-start" onchange="tlTimeEdited()"></div>
-      <div style="flex:1;"><label>เวลาสิ้นสุด</label><input type="time" id="tl-end" onchange="tlTimeEdited()"></div>
-      <div style="flex:1;"><label>วันที่</label><input type="date" id="tl-date"></div>
-    </div>
-    <div class="geo" id="tl-calc" style="margin-top:12px;"><span class="lbl">รวมชั่วโมง (หักพักเที่ยง)</span> <span class="coord" id="tl-hours">0.0</span> <span class="lbl">ชม.</span> <span id="tl-kind" class="lbl"></span></div>
-
-    <label>หมายเหตุ (ถ้ามี)</label>
-    <input type="text" id="tl-note" placeholder="เช่น เดินสายไฟ / ประกอบชุดแขนกล">
-    <button class="btn gps" onclick="submitTimelog()">🧾 บันทึกเวลา</button>
-    <div id="mytl" style="margin-top:14px;"></div>
-  </div>
-
-  <!-- leave request -->
-  <div class="card">
-    <div class="title">🏖️ ขอลางาน</div>
-    <label>ประเภทการลา</label>
-    <select id="lv-type">
-      <option value="sick">ลาป่วย</option>
-      <option value="personal">ลากิจ</option>
-      <option value="vacation">ลาพักร้อน</option>
-      <option value="other">อื่นๆ</option>
-    </select>
-    <div style="display:flex;gap:10px;">
-      <div style="flex:1;"><label>ตั้งแต่</label><input type="date" id="lv-from"></div>
-      <div style="flex:1;"><label>ถึง</label><input type="date" id="lv-to"></div>
-    </div>
-    <label>เหตุผล</label>
-    <input type="text" id="lv-reason" placeholder="เช่น พาลูกไปหาหมอ">
-    <button class="btn gps" onclick="submitLeave()">📨 ส่งคำขอลา</button>
-    <div id="myleave" style="margin-top:14px;"></div>
-  </div>
-
-  <!-- OT request -->
-  <div class="card">
-    <div class="title">🌙 ขอ OT ล่วงหน้า</div>
-    <label>งาน (จาก RSC Planner)</label>
-    <select id="ot-job"><option value="">— เลือกงาน —</option></select>
-    <div style="display:flex;gap:10px;">
-      <div style="flex:1;"><label>วันที่</label><input type="date" id="ot-date"></div>
-      <div style="flex:1;"><label>จำนวน ชม.</label><input type="number" id="ot-hours" min="0.5" step="0.5" placeholder="2"></div>
-    </div>
-    <label>เหตุผล</label>
-    <input type="text" id="ot-reason" placeholder="เช่น เร่งงานส่งมอบ">
-    <button class="btn gps" onclick="submitOT()">📨 ส่งคำขอ OT</button>
-    <div id="myot" style="margin-top:14px;"></div>
-  </div>
-
-  <!-- vehicle booking -->
-  <div class="card">
-    <div class="title">🚗 จองรถ</div>
-    <div style="display:flex;gap:10px;">
-      <div style="flex:1.2;"><label>วันที่</label><input type="date" id="bk-date" onchange="refreshBookVeh()"></div>
-      <div style="flex:1;"><label>ไป</label><input type="time" id="bk-from" onchange="refreshBookVeh()"></div>
-      <div style="flex:1;"><label>กลับ</label><input type="time" id="bk-to" onchange="refreshBookVeh()"></div>
-    </div>
-    <label>รถที่ว่างในช่วงเวลานี้</label>
-    <select id="bk-veh"><option value="">— เลือกวันเวลาก่อน —</option></select>
-    <label>งาน (จาก Planner)</label>
-    <select id="bk-job" onchange="bkJobDest()"><option value="">— ไม่ระบุ —</option></select>
-    <label>ปลายทาง</label>
-    <input type="text" id="bk-dest" placeholder="เช่น โรงงานลูกค้า ศรีราชา">
-    <button class="btn gps" onclick="submitBooking()">🚗 จองรถ</button>
-    <div id="mybook" style="margin-top:14px;"></div>
-  </div>
+<div class="wrap">
+  <div class="hi" id="greet">ยินดีต้อนรับ</div>
+  <div class="sub">เลือกระบบที่ต้องการใช้งาน — เห็นเฉพาะระบบที่คุณมีสิทธิ์เข้าถึง</div>
+  <div class="grid" id="tiles"></div>
+  <div class="note" id="note"></div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-/* ===== state ===== */
-let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[]};
-const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const CFG = window.FIREBASE_CONFIG || {apiKey:''};
-const RADIUS = window.GEOFENCE_RADIUS_M || 300;
-const DOMAIN = window.LOGIN_DOMAIN || 'rsc.local';
-const WORK_START = window.WORK_START || '08:30';
-const GRACE = window.LATE_GRACE_MIN || 0;
-const SLOTS = window.SLOTS || {full:{label:'เต็มวัน',start:'08:30',end:'17:30'},morning:{label:'เช้า',start:'08:30',end:'12:00'},afternoon:{label:'บ่าย',start:'13:00',end:'17:30'}};
-const LUNCH_S = parseHM(window.LUNCH_START||'12:00'), LUNCH_E = parseHM(window.LUNCH_END||'13:00');
-const CENTRAL_JRS = window.OFFICE_JRS || [window.OFFICE_JR || 'JR OFFICE'];
-const OFFICE_JR = CENTRAL_JRS[0];
-const isCentralJR = jr => CENTRAL_JRS.includes(jr);
-function shortName(email){return (email||'').split('@')[0];}
-function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
-
-/* ===== helpers ===== */
+const CFG=window.FIREBASE_CONFIG||{apiKey:''};
+const DOMAIN=window.LOGIN_DOMAIN||'rsc.local';
+let MODE='local',db=null,auth=null,ROLE='',NAME='';
 const $=id=>document.getElementById(id);
-function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
-function todayStr(){return new Date().toISOString().slice(0,10);}
-function fmtT(ts){return ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';}
-function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
-function hrs(a,b){return b&&a?((b-a)/3600000).toFixed(1):'—';}
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLon=r(d-b);const h=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
-const load=k=>(state[k]||[]).slice();
-function save(k,arr){state[k]=arr.slice();if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>toast('บันทึกไม่สำเร็จ'));}else{localStorage.setItem(k,JSON.stringify(arr));}}
+const short=e=>(e||'').split('@')[0];
+const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 
-/* ===== firebase ===== */
-function initFb(){
-  if(!CFG.apiKey||typeof firebase==='undefined')return false;
-  try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
-  catch(e){console.error(e);return false;}
+/* ทุกระบบ + สิทธิ์ที่เข้าถึงได้ */
+const APPS=[
+  {href:'checkin.html', ico:'🕐', accent:'#F97316', title:'ลงเวลา / เช็คอิน', desc:'เช็คอิน-เอาท์ GPS · ขอลา · OT · จองรถ · บันทึกเวลาตาม JR', roles:'*'},
+  {href:'admin',        ico:'📊', accent:'#22D3EE', title:'แดชบอร์ด HR', desc:'ภาพรวมวันนี้ · Planner · อนุมัติลา/OT · รายงาน · ชั่วโมงตาม JR · พนักงาน', roles:['supervisor','manager','hr','director','admin']},
+  {href:'RSC-JR360.html', ico:'📈', accent:'#FB923C', title:'JR 360 (ผู้บริหาร)', desc:'ภาพรวมงานตามเลข JR · เปรียบเทียบ DL งบ vs จริง · สรุปรายปี', roles:['manager','hr','director','admin']},
+  {href:'finance.html', ico:'💰', accent:'#34D399', title:'แดชบอร์ดการเงิน', desc:'สรุปการเงินบริษัท (ข้อมูลลับ — เฉพาะผู้บริหาร/บัญชี)', roles:['manager','hr','director','admin','finance']},
+];
+const can=a=>a.roles==='*'||(MODE==='local')||a.roles.includes(ROLE);
+
+function render(){
+  $('greet').textContent=NAME?('สวัสดี, '+NAME):'ยินดีต้อนรับ';
+  $('tiles').innerHTML=APPS.map(a=>{const ok=can(a);
+    const inner=`<span class="ico">${a.ico}</span><h3>${a.title}</h3><p>${a.desc}</p>
+      <span class="badge ${ok?'on':''}">${ok?'เปิดใช้งาน →':'🔒 ไม่มีสิทธิ์'}</span>`;
+    return ok?`<a class="tile" style="--accent:${a.accent}" href="${a.href}">${inner}</a>`
+             :`<div class="tile lock" style="--accent:${a.accent}">${inner}</div>`;
+  }).join('');
+  $('note').innerHTML=MODE==='local'
+    ?'⚠️ โหมดทดลอง (ยังไม่ได้ตั้งค่า Firebase) — แสดงทุกระบบ · เมื่อเปิดใช้จริงจะเห็นเฉพาะตามสิทธิ์'
+    :'สิทธิ์ของคุณ: <b style="color:var(--orange-light)">'+esc(ROLE||'พนักงาน')+'</b> · ระบบอื่นถูกล็อกตามระดับสิทธิ์';
 }
-function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();},e=>console.error(e));
-});}
 
-/* ===== auth ===== */
-function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
+function doLogin(){const raw=$('lu').value.trim(),p=$('lp').value;$('le').textContent='';
   const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
-  auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
+  auth.signInWithEmailAndPassword(e,p).catch(x=>$('le').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
-function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();}
-  else{$('login').classList.add('show');$('user').textContent='';}
-}
-function myName(){return user?shortName(user.email):'';}
 
-/* ===== geolocation ===== */
-function getLoc(){
-  const box=$('geo'),txt=$('geo-txt');box.className='geo';txt.textContent='กำลังระบุพิกัด...';
-  if(!navigator.geolocation){box.className='geo err';txt.textContent='อุปกรณ์ไม่รองรับ GPS';return;}
-  navigator.geolocation.getCurrentPosition(p=>{
-    currentGeo={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};
-    box.className='geo ok';
-    const g=`${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
-    txt.innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div>
-      <div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่ 🗺️</a></div>`;
-  },e=>{box.className='geo err';txt.textContent='ระบุพิกัดไม่สำเร็จ: '+e.message;},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
-}
-
-/* ===== check-in / out (โครงสร้างข้อมูลเดียวกับแดชบอร์ด) ===== */
-function myOpen(){const n=myName();return load(LS_LOG).find(r=>!r.outTs&&r.name===n);}
-function refreshState(){
-  const open=myOpen();
-  if(open){$('statusline').innerHTML=`<span class="chip in">กำลังปฏิบัติงาน · เข้า ${fmtT(open.inTs)}</span>`;$('btn-out').disabled=false;$('btn-in').disabled=true;}
-  else{$('statusline').innerHTML=`<span class="chip out">ยังไม่เช็คอิน</span>`;$('btn-out').disabled=true;$('btn-in').disabled=false;}
-}
-function checkin(){
-  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  if(myOpen()){toast('คุณเช็คอินอยู่แล้ว');return;}
-  const jobSel=$('job');
-  if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คอินโดยไม่มีพิกัด?'))return;
-  if(jobSel.value&&currentGeo){
-    const job=load(LS_PLAN).find(p=>p.id===jobSel.value);
-    if(job&&job.geo){const[la,ln]=job.geo.split(',').map(Number);
-      if(!isNaN(la)&&!isNaN(ln)){const d=haversine(currentGeo.lat,currentGeo.lng,la,ln);
-        if(d>RADIUS&&!confirm(`⚠️ อยู่ห่างจากไซต์งาน "${job.title}" ~${Math.round(d)} ม. (เกิน ${RADIUS} ม.)\nยืนยันเช็คอิน?`))return;}}
-  }
-  const now=Date.now();
-  const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
-    note:$('note').value.trim(),inTs:now,inGeo:currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'',outTs:null,outGeo:''};
-  const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
-  if(rec.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===rec.jobId);if(j){j.status='in';save(LS_PLAN,p);}}
-  currentGeo=null;$('note').value='';resetGeo();refreshState();renderMyLog();
-  const ci=new Date(now);const lateMin=ci.getHours()*60+ci.getMinutes()-parseHM(WORK_START)-GRACE;
-  toast(lateMin>0?('⏰ เช็คอินสำเร็จ · มาสาย '+lateMin+' นาที'):('✅ เช็คอินสำเร็จ '+fmtT(now)));
-}
-function checkout(){
-  const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
-  if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?'))return;
-  const log=load(LS_LOG);const r=log.find(x=>x.id===rec.id);
-  r.outTs=Date.now();r.outGeo=currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'';save(LS_LOG,log);
-  if(r.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===r.jobId);if(j){j.status='done';save(LS_PLAN,p);}}
-  currentGeo=null;resetGeo();refreshState();renderMyLog();
-  toast('🔴 เช็คเอาท์สำเร็จ '+fmtT(r.outTs));
-}
-function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยังไม่ได้ระบุพิกัด';}
-
-/* ===== render ===== */
-function renderJobs(){
-  const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
-  // เห็นเฉพาะจ๊อปที่มอบหมายให้เรา หรือจ๊อปกลาง (ไม่ระบุผู้รับ)
-  const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
-    &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
-  sel.innerHTML='<option value="">— เลือกงาน/ไซต์งาน —</option>'+
-    jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);return `<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`;}).join('');
-  sel.value=cur;
-  const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
-    jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
-  // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
-  const tj=$('tl-job');if(tj){const c3=tj.value;
-    const jrJobs=jobs.filter(p=>p.jr);
-    tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
-      CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
-      `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
-    tj.value=c3;}
-}
-function renderMyLog(){
-  const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,8);
-  const el=$('mylog');
-  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีข้อมูล</div>';return;}
-  el.innerHTML=mine.map(r=>`<div class="rec">
-    <div><div>${new Date(r.inTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''}</div>
-      <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${fmtT(r.outTs)}</div></div>
-    <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div></div>`).join('');
-}
-
-/* ===== time log (เก็บต้นทุนแรงงาน DL/OH ตาม JR) ===== */
-let tlSlot='full';
-function tlHM(v){return String(v||'').slice(0,5);}
-function calcHours(s,e){ // ชั่วโมงจากเวลาเริ่ม–สิ้นสุด หักช่วงพักเที่ยงที่ทับกัน
-  const a=parseHM(s),b=parseHM(e);if(!(b>a))return 0;
-  const lunch=Math.max(0,Math.min(b,LUNCH_E)-Math.max(a,LUNCH_S));
-  return Math.round((b-a-lunch)/6)/10; // นาที→ชม. ทศนิยม 1 ตำแหน่ง
-}
-function tlSelectedJR(){
-  const tj=$('tl-job'),o=tj.options[tj.selectedIndex];
-  if(tj.value==='__manual__')return ($('tl-jr-manual').value||'').trim();
-  return o&&o.dataset.jr?o.dataset.jr:'';
-}
-function tlJobChange(){
-  const man=$('tl-jr-manual');man.style.display=$('tl-job').value==='__manual__'?'block':'none';
-  tlRecalc();
-}
-function tlPickSlot(s){
-  tlSlot=s;
-  document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot===s));
-  if(s!=='custom'&&SLOTS[s]){$('tl-start').value=SLOTS[s].start;$('tl-end').value=SLOTS[s].end;}
-  tlRecalc();
-}
-function tlTimeEdited(){ // แก้เวลาเอง → สลับเป็นโหมดกำหนดเอง
-  tlSlot='custom';document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot==='custom'));
-  tlRecalc();
-}
-function tlRecalc(){
-  const h=calcHours($('tl-start').value,$('tl-end').value);
-  $('tl-hours').textContent=h.toFixed(1);
-  const jr=tlSelectedJR();
-  $('tl-kind').innerHTML=jr?`· ${isCentralJR(jr)?'งานส่วนกลาง':'งานโปรเจกต์'}`:'';
-  return {h,jr};
-}
-function submitTimelog(){
-  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  const tj=$('tl-job');if(!tj.value){toast('เลือกงาน/JR');return;}
-  const jr=tlSelectedJR();if(!jr){toast('ระบุเลข JR');return;}
-  const s=$('tl-start').value,e=$('tl-end').value;
-  if(!s||!e){toast('เลือกเวลาเริ่ม–สิ้นสุด');return;}
-  const h=calcHours(s,e);if(h<=0){toast('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');return;}
-  const o=tj.options[tj.selectedIndex];
-  const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
-  const rec={id:uid(),name,date:$('tl-date').value||todayStr(),jr,
-    jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
-    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,
-    kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim(),createdTs:Date.now()};
-  const arr=load(LS_TL);arr.unshift(rec);save(LS_TL,arr);
-  $('tl-note').value='';renderMyTL();
-  toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
-}
-function delTimelog(id){if(!confirm('ลบรายการนี้?'))return;save(LS_TL,load(LS_TL).filter(x=>x.id!==id));renderMyTL();}
-function renderMyTL(){
-  const el=$('mytl');if(!el)return;
-  const today=todayStr();
-  const mine=load(LS_TL).filter(r=>r.name===myName());
-  const todayList=mine.filter(r=>r.date===today);
-  const todayH=todayList.reduce((s,r)=>s+(+r.hours||0),0);
-  const recent=mine.slice(0,6);
-  const slotLbl=s=>({full:'เต็มวัน',morning:'เช้า',afternoon:'บ่าย',custom:'กำหนดเอง'}[s]||s||'');
-  let html=`<div class="muted" style="margin-bottom:6px;">วันนี้รวม <b style="color:var(--orange-light)">${todayH.toFixed(1)}</b> ชม.`+
-    (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
-  const isOffice=r=>(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr));
-  html+=recent.length?recent.map(r=>`<div class="rec">
-    <div><div>${isOffice(r)?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
-      <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
-    <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div><a onclick="delTimelog('${r.id}')" style="color:var(--red);cursor:pointer;font-size:11px;">ลบ</a></div></div>`).join('')
-    :'<div class="muted">ยังไม่มีการบันทึกเวลา</div>';
-  el.innerHTML=html;
-}
-
-/* ===== leave ===== */
-function daysBetween(a,b){const d1=new Date(a),d2=new Date(b);if(isNaN(d1)||isNaN(d2))return 0;return Math.max(1,Math.round((d2-d1)/86400000)+1);}
-function submitLeave(){
-  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  const from=$('lv-from').value,to=$('lv-to').value||$('lv-from').value;
-  if(!from){toast('เลือกวันที่ลา');return;}
-  const rec={id:uid(),name,type:$('lv-type').value,from,to,days:daysBetween(from,to),
-    reason:$('lv-reason').value.trim(),status:'pending_l1',createdTs:Date.now()};
-  const arr=load(LS_LEAVE);arr.unshift(rec);save(LS_LEAVE,arr);
-  $('lv-reason').value='';renderMyLeave();
-  toast('📨 ส่งคำขอลาแล้ว รออนุมัติ');
-}
-function renderMyLeave(){
-  const el=$('myleave');if(!el)return;
-  const mine=load(LS_LEAVE).filter(r=>r.name===myName()).slice(0,5);
-  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีการลา</div>';return;}
-  const pend='style="font-size:11px;padding:3px 10px;background:rgba(251,191,36,0.15);color:var(--yellow);border:1px solid rgba(251,191,36,.3)"';
-  const chip=s=>s==='approved'?'<span class="chip in" style="font-size:11px;padding:3px 10px;">อนุมัติแล้ว</span>'
-    :s==='rejected'?'<span class="chip out" style="font-size:11px;padding:3px 10px;color:var(--red)">ไม่อนุมัติ</span>'
-    :s==='pending_l2'?`<span class="chip" ${pend}>รออนุมัติ (ลำดับ 2)</span>`
-    :`<span class="chip" ${pend}>รออนุมัติ (ลำดับ 1)</span>`;
-  el.innerHTML='<div class="muted" style="margin-bottom:6px;">การลาของฉัน</div>'+mine.map(r=>`<div class="rec">
-    <div><div>${LEAVE_TYPES[r.type]||esc(r.type)} · ${r.days} วัน</div><div class="t">${esc(r.from)}${r.to!==r.from?' – '+esc(r.to):''}</div></div>
-    <div>${chip(r.status)}</div></div>`).join('');
-}
-
-/* ===== OT request ===== */
-function submitOT(){
-  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  const hrs=parseFloat($('ot-hours').value);if(!hrs||hrs<=0){toast('กรอกจำนวนชั่วโมง OT');return;}
-  const j=$('ot-job');
-  const rec={id:uid(),name,date:$('ot-date').value||todayStr(),jobId:j.value||'',jobTitle:j.options[j.selectedIndex]?.dataset.title||'',
-    hours:hrs,reason:$('ot-reason').value.trim(),status:'pending_l1',source:'request',createdTs:Date.now()};
-  const arr=load(LS_OT);arr.unshift(rec);save(LS_OT,arr);
-  $('ot-hours').value='';$('ot-reason').value='';renderMyOT();
-  toast('📨 ส่งคำขอ OT แล้ว รออนุมัติ');
-}
-function renderMyOT(){
-  const el=$('myot');if(!el)return;
-  const mine=load(LS_OT).filter(r=>r.name===myName()).slice(0,5);
-  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีคำขอ OT</div>';return;}
-  const pend='style="font-size:11px;padding:3px 10px;background:rgba(251,191,36,0.15);color:var(--yellow);border:1px solid rgba(251,191,36,.3)"';
-  const chip=s=>s==='approved'?'<span class="chip in" style="font-size:11px;padding:3px 10px;">อนุมัติแล้ว</span>'
-    :s==='rejected'?'<span class="chip out" style="font-size:11px;padding:3px 10px;color:var(--red)">ไม่อนุมัติ</span>'
-    :s==='pending_l2'?`<span class="chip" ${pend}>รออนุมัติ (ลำดับ 2)</span>`:`<span class="chip" ${pend}>รออนุมัติ (ลำดับ 1)</span>`;
-  el.innerHTML='<div class="muted" style="margin-bottom:6px;">คำขอ OT ของฉัน</div>'+mine.map(r=>`<div class="rec">
-    <div><div>${esc(r.date)} · ${(+r.hours).toFixed(1)} ชม.</div><div class="t">${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):(esc(r.reason)||'—')}</div></div>
-    <div>${chip(r.status)}</div></div>`).join('');
-}
-
-/* ===== vehicle booking ===== */
-function bookBusy(vehId,date,from,to){return load(LS_BOOK).some(b=>b.vehicleId===vehId&&b.status!=='cancelled'&&b.date===date&&from<b.to&&to>b.from);}
-function refreshBookVeh(){
-  const sel=$('bk-veh');if(!sel)return;const d=$('bk-date').value,f=$('bk-from').value,t=$('bk-to').value;
-  // fill job options too
-  const jsel=$('bk-job');if(jsel){const c=jsel.value,me=myName(),today=todayStr();
-    const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
-    jsel.innerHTML='<option value="">— ไม่ระบุ —</option>'+jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}" data-site="${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');jsel.value=c;}
-  if(!d||!f||!t){sel.innerHTML='<option value="">— เลือกวันเวลาก่อน —</option>';return;}
-  if(t<=f){sel.innerHTML='<option value="">— เวลากลับต้องหลังเวลาไป —</option>';return;}
-  const avail=load(LS_VEH).filter(v=>v.active!==false&&!bookBusy(v.id,d,f,t));
-  sel.innerHTML=avail.length?avail.map(v=>`<option value="${v.id}">${esc(v.plate)}${v.type?' · '+esc(v.type):''}${v.seats?' · '+v.seats+' ที่นั่ง':''}</option>`).join('')
-    :'<option value="">❌ ไม่มีรถว่างช่วงเวลานี้ — ลองเปลี่ยนเวลา</option>';
-}
-function bkJobDest(){const j=$('bk-job');const o=j.options[j.selectedIndex];if(o&&o.dataset.site&&!$('bk-dest').value)$('bk-dest').value=o.dataset.site;}
-function submitBooking(){
-  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  const d=$('bk-date').value,f=$('bk-from').value,t=$('bk-to').value,veh=$('bk-veh').value;
-  if(!d||!f||!t){toast('เลือกวันและเวลา');return;}
-  if(t<=f){toast('เวลากลับต้องหลังเวลาไป');return;}
-  if(!veh){toast('เลือกรถ');return;}
-  if(bookBusy(veh,d,f,t)){toast('รถคันนี้เพิ่งถูกจอง ลองเลือกใหม่');refreshBookVeh();return;}
-  const j=$('bk-job');
-  const rec={id:uid(),vehicleId:veh,name,date:d,from:f,to:t,jobId:j.value||'',jobTitle:j.options[j.selectedIndex]?.dataset.title||'',
-    dest:$('bk-dest').value.trim(),status:'booked',createdTs:Date.now()};
-  const arr=load(LS_BOOK);arr.unshift(rec);save(LS_BOOK,arr);
-  $('bk-dest').value='';renderMyBookings();refreshBookVeh();
-  toast('🚗 จองรถสำเร็จ');
-}
-function cancelMyBooking(id){if(!confirm('ยกเลิกการจองนี้?'))return;const a=load(LS_BOOK);const r=a.find(x=>x.id===id);if(r){r.status='cancelled';save(LS_BOOK,a);renderMyBookings();refreshBookVeh();}}
-function vehName(id){const v=load(LS_VEH).find(x=>x.id===id);return v?esc(v.plate):'—';}
-function renderMyBookings(){
-  const el=$('mybook');if(!el)return;
-  const mine=load(LS_BOOK).filter(b=>b.name===myName()&&b.status!=='cancelled').slice(0,5);
-  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีการจองรถ</div>';return;}
-  el.innerHTML='<div class="muted" style="margin-bottom:6px;">การจองของฉัน</div>'+mine.map(b=>`<div class="rec">
-    <div><div>🚗 ${vehName(b.vehicleId)} · ${esc(b.date)}</div><div class="t">${b.from}–${b.to}${b.dest?' · '+esc(b.dest):''}</div></div>
-    <div><a onclick="cancelMyBooking('${b.id}')" style="color:var(--red);cursor:pointer;font-size:12px;">ยกเลิก</a></div></div>`).join('');
-}
-
-/* ===== PWA install ===== */
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=$('install-btn');if(b)b.style.display='flex';});
-function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.finally(()=>{deferredPrompt=null;const b=$('install-btn');if(b)b.style.display='none';});}
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
-
-/* ===== clock ===== */
-function tick(){const n=new Date();$('clock').textContent=n.toLocaleTimeString('th-TH',{hour12:false});
-  $('date').textContent=n.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-
-/* ===== init ===== */
-initFb();
-$('conn').className='conn '+(MODE==='firebase'?'cloud':'local');
-$('conn').textContent=MODE==='firebase'?'CLOUD':'LOCAL';
-setInterval(tick,1000);tick();
-/* ตั้งค่าเริ่มต้นการ์ดบันทึกเวลา */
-if($('tl-date'))$('tl-date').value=todayStr();
-tlPickSlot('full');
-if(MODE==='firebase'){listeners();auth.onAuthStateChanged(onAuth);}
-else{
-  // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
-  try{state[LS_LOG]=JSON.parse(localStorage.getItem(LS_LOG))||[];}catch(e){}
-  try{state[LS_PLAN]=JSON.parse(localStorage.getItem(LS_PLAN))||[];}catch(e){}
-  try{state[LS_LEAVE]=JSON.parse(localStorage.getItem(LS_LEAVE))||[];}catch(e){}
-  try{state[LS_OT]=JSON.parse(localStorage.getItem(LS_OT))||[];}catch(e){}
-  try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
-  try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
-  try{state[LS_TL]=JSON.parse(localStorage.getItem(LS_TL))||[];}catch(e){}
+function onAuth(u){
+  if(!u){$('login').classList.add('show');$('who').textContent='';return;}
   $('login').classList.remove('show');
-  user={email:localStorage.getItem('rsc_local_name')||''};
-  if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}
-  $('user').textContent=user.email;
-  renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();
+  db.collection('rsc').doc('rsc_employees').get().then(s=>{
+    const emps=(s.exists&&s.data().items)||[];const key=short(u.email);
+    const me=emps.find(x=>x.email===key||x.email===u.email||short(x.email)===key);
+    ROLE=(me&&me.role)||'employee';NAME=(me&&me.name)||key;
+    $('who').innerHTML=esc(NAME)+' · '+esc(ROLE)+' · <a onclick="doLogout()">ออก</a>';
+    render();
+  }).catch(()=>{ROLE='employee';NAME=short(u.email);render();});
+}
+
+/* init */
+if(CFG.apiKey&&typeof firebase!=='undefined'){
+  try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';
+    $('conn').className='conn cloud';$('conn').textContent='CLOUD';
+    auth.onAuthStateChanged(onAuth);
+  }catch(e){MODE='local';render();}
+}else{
+  MODE='local';$('who').textContent='โหมดทดลอง';render();
 }
 </script>
 </body>

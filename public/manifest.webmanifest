@@ -3,7 +3,7 @@
   "short_name": "RSC Connect",
   "description": "ระบบลงเวลา เช็คอิน/เช็คเอาท์ พร้อมพิกัด GPS และงาน HR — Robot System",
   "lang": "th",
-  "start_url": "./",
+  "start_url": "./checkin.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

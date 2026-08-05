@@ -4,7 +4,10 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "rewrites": [
-      { "source": "/admin", "destination": "/admin.html" }
+      { "source": "/admin", "destination": "/admin.html" },
+      { "source": "/checkin", "destination": "/checkin.html" },
+      { "source": "/jr360", "destination": "/RSC-JR360.html" },
+      { "source": "/finance", "destination": "/finance.html" }
     ],
     "headers": [
       {

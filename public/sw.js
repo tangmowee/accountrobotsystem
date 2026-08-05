@@ -1,6 +1,6 @@
 /* RSC Connect — service worker (network-first, offline fallback) */
 const C = 'rscc-v1';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
+const SHELL = ['./', './index.html', './checkin.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(caches.open(C).then(c => c.addAll(SHELL).catch(() => {})));
@@ -18,6 +18,6 @@ self.addEventListener('fetch', e => {
       const copy = res.clone();
       caches.open(C).then(c => c.put(e.request, copy)).catch(() => {});
       return res;
-    }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
+    }).catch(() => caches.match(e.request).then(r => r || caches.match('./checkin.html')))
   );
 });
