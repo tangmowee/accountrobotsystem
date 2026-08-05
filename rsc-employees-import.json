@@ -256,7 +256,7 @@
       "name": "ณัฐพงษ์ คงคาลัย",
       "dept": "Key account",
       "pos": "Key Account Manager",
-      "side": "office",
+      "side": "factory",
       "role": "manager",
       "supervisor": "530118"
     },
@@ -266,7 +266,7 @@
       "name": "พีรยุทธ หม่องแป๊ก",
       "dept": "Key account",
       "pos": "Programmer",
-      "side": "office",
+      "side": "factory",
       "role": "employee",
       "supervisor": "670811"
     },
@@ -276,7 +276,7 @@
       "name": "สุรยุทธ ปุราชะทำมัง",
       "dept": "Key account",
       "pos": "Design Engineer",
-      "side": "office",
+      "side": "factory",
       "role": "employee",
       "supervisor": "670811"
     },
