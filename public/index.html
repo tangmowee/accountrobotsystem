@@ -172,6 +172,24 @@
     <button class="btn gps" onclick="submitOT()">📨 ส่งคำขอ OT</button>
     <div id="myot" style="margin-top:14px;"></div>
   </div>
+
+  <!-- vehicle booking -->
+  <div class="card">
+    <div class="title">🚗 จองรถ</div>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1.2;"><label>วันที่</label><input type="date" id="bk-date" onchange="refreshBookVeh()"></div>
+      <div style="flex:1;"><label>ไป</label><input type="time" id="bk-from" onchange="refreshBookVeh()"></div>
+      <div style="flex:1;"><label>กลับ</label><input type="time" id="bk-to" onchange="refreshBookVeh()"></div>
+    </div>
+    <label>รถที่ว่างในช่วงเวลานี้</label>
+    <select id="bk-veh"><option value="">— เลือกวันเวลาก่อน —</option></select>
+    <label>งาน (จาก Planner)</label>
+    <select id="bk-job" onchange="bkJobDest()"><option value="">— ไม่ระบุ —</option></select>
+    <label>ปลายทาง</label>
+    <input type="text" id="bk-dest" placeholder="เช่น โรงงานลูกค้า ศรีราชา">
+    <button class="btn gps" onclick="submitBooking()">🚗 จองรถ</button>
+    <div id="mybook" style="margin-top:14px;"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -179,8 +197,8 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
@@ -208,8 +226,8 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshState();},e=>console.error(e));
+function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();},e=>console.error(e));
 });}
 
 /* ===== auth ===== */
@@ -218,7 +236,7 @@ function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
 function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshState();}
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();}
   else{$('login').classList.add('show');$('user').textContent='';}
 }
 function myName(){return user?shortName(user.email):'';}
@@ -346,6 +364,46 @@ function renderMyOT(){
     <div>${chip(r.status)}</div></div>`).join('');
 }
 
+/* ===== vehicle booking ===== */
+function bookBusy(vehId,date,from,to){return load(LS_BOOK).some(b=>b.vehicleId===vehId&&b.status!=='cancelled'&&b.date===date&&from<b.to&&to>b.from);}
+function refreshBookVeh(){
+  const sel=$('bk-veh');if(!sel)return;const d=$('bk-date').value,f=$('bk-from').value,t=$('bk-to').value;
+  // fill job options too
+  const jsel=$('bk-job');if(jsel){const c=jsel.value,me=myName(),today=todayStr();
+    const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
+    jsel.innerHTML='<option value="">— ไม่ระบุ —</option>'+jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}" data-site="${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');jsel.value=c;}
+  if(!d||!f||!t){sel.innerHTML='<option value="">— เลือกวันเวลาก่อน —</option>';return;}
+  if(t<=f){sel.innerHTML='<option value="">— เวลากลับต้องหลังเวลาไป —</option>';return;}
+  const avail=load(LS_VEH).filter(v=>v.active!==false&&!bookBusy(v.id,d,f,t));
+  sel.innerHTML=avail.length?avail.map(v=>`<option value="${v.id}">${esc(v.plate)}${v.type?' · '+esc(v.type):''}${v.seats?' · '+v.seats+' ที่นั่ง':''}</option>`).join('')
+    :'<option value="">❌ ไม่มีรถว่างช่วงเวลานี้ — ลองเปลี่ยนเวลา</option>';
+}
+function bkJobDest(){const j=$('bk-job');const o=j.options[j.selectedIndex];if(o&&o.dataset.site&&!$('bk-dest').value)$('bk-dest').value=o.dataset.site;}
+function submitBooking(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  const d=$('bk-date').value,f=$('bk-from').value,t=$('bk-to').value,veh=$('bk-veh').value;
+  if(!d||!f||!t){toast('เลือกวันและเวลา');return;}
+  if(t<=f){toast('เวลากลับต้องหลังเวลาไป');return;}
+  if(!veh){toast('เลือกรถ');return;}
+  if(bookBusy(veh,d,f,t)){toast('รถคันนี้เพิ่งถูกจอง ลองเลือกใหม่');refreshBookVeh();return;}
+  const j=$('bk-job');
+  const rec={id:uid(),vehicleId:veh,name,date:d,from:f,to:t,jobId:j.value||'',jobTitle:j.options[j.selectedIndex]?.dataset.title||'',
+    dest:$('bk-dest').value.trim(),status:'booked',createdTs:Date.now()};
+  const arr=load(LS_BOOK);arr.unshift(rec);save(LS_BOOK,arr);
+  $('bk-dest').value='';renderMyBookings();refreshBookVeh();
+  toast('🚗 จองรถสำเร็จ');
+}
+function cancelMyBooking(id){if(!confirm('ยกเลิกการจองนี้?'))return;const a=load(LS_BOOK);const r=a.find(x=>x.id===id);if(r){r.status='cancelled';save(LS_BOOK,a);renderMyBookings();refreshBookVeh();}}
+function vehName(id){const v=load(LS_VEH).find(x=>x.id===id);return v?esc(v.plate):'—';}
+function renderMyBookings(){
+  const el=$('mybook');if(!el)return;
+  const mine=load(LS_BOOK).filter(b=>b.name===myName()&&b.status!=='cancelled').slice(0,5);
+  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีการจองรถ</div>';return;}
+  el.innerHTML='<div class="muted" style="margin-bottom:6px;">การจองของฉัน</div>'+mine.map(b=>`<div class="rec">
+    <div><div>🚗 ${vehName(b.vehicleId)} · ${esc(b.date)}</div><div class="t">${b.from}–${b.to}${b.dest?' · '+esc(b.dest):''}</div></div>
+    <div><a onclick="cancelMyBooking('${b.id}')" style="color:var(--red);cursor:pointer;font-size:12px;">ยกเลิก</a></div></div>`).join('');
+}
+
 /* ===== PWA install ===== */
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=$('install-btn');if(b)b.style.display='flex';});
@@ -368,11 +426,13 @@ else{
   try{state[LS_PLAN]=JSON.parse(localStorage.getItem(LS_PLAN))||[];}catch(e){}
   try{state[LS_LEAVE]=JSON.parse(localStorage.getItem(LS_LEAVE))||[];}catch(e){}
   try{state[LS_OT]=JSON.parse(localStorage.getItem(LS_OT))||[];}catch(e){}
+  try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
+  try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
   $('login').classList.remove('show');
   user={email:localStorage.getItem('rsc_local_name')||''};
   if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}
   $('user').textContent=user.email;
-  renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshState();
+  renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();refreshState();
 }
 </script>
 </body>

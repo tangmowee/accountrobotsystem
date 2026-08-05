@@ -170,6 +170,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
     <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
+    <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
 
@@ -306,6 +307,35 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== FLEET / BOOKING ===== -->
+  <section class="sec" id="s-fleet">
+    <div class="h1">จองรถ</div>
+    <div class="sub">จองแบบมาก่อนได้ก่อน • ระบบกันเวลาชนกันอัตโนมัติ • ผู้ดูแลย้าย/ยกเลิกการจองได้</div>
+    <div class="grid g12">
+      <div class="card">
+        <div class="card-h"><div class="card-t">＋ เพิ่มรถ</div><span class="tag" id="veh-count">0 คัน</span></div>
+        <div class="f"><label>ทะเบียนรถ</label><input id="veh-plate" placeholder="1กก 1234"></div>
+        <div class="grid g2"><div class="f"><label>ประเภท</label><input id="veh-type" placeholder="กระบะ / ตู้ / เก๋ง"></div><div class="f"><label>ที่นั่ง</label><input type="number" id="veh-seats" min="1" placeholder="4"></div></div>
+        <button class="btn p" style="width:100%" onclick="addVeh()">บันทึกรถ</button>
+        <div class="tw" style="margin-top:16px"><table>
+          <thead><tr><th>ทะเบียน</th><th>ประเภท</th><th>ที่นั่ง</th><th>สถานะขณะนี้</th><th></th></tr></thead>
+          <tbody id="veh-body"><tr class="empty"><td colspan="5">ยังไม่มีรถ</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-h">
+          <div class="card-t">🗓️ ตารางการจอง</div>
+          <input type="date" id="bk-day" onchange="renderBookings()" style="width:auto">
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>เวลา</th><th>รถ</th><th>ผู้จอง</th><th>งาน/ปลายทาง</th><th>ย้ายรถ</th><th></th></tr></thead>
+          <tbody id="bk-body"><tr class="empty"><td colspan="6">ไม่มีการจองในวันนี้</td></tr></tbody>
+        </table></div>
+        <div class="note">“ย้ายรถ” = เลือกคันว่างอื่นเพื่อสลับให้ผู้จอง • คันที่ไม่ว่างช่วงเวลานั้นจะเลือกไม่ได้</div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== PEOPLE ===== -->
   <section class="sec" id="s-people">
     <div class="h1">ทะเบียนพนักงาน</div>
@@ -349,11 +379,11 @@ const WORK_DAYS=window.WORK_DAYS||[1,2,3,4,5];
 const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[]};
 const $=id=>document.getElementById(id);
 const load=k=>(state[k]||[]).slice();
 function save(k,arr){state[k]=arr.slice();
@@ -389,7 +419,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 /* ===== firebase ===== */
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
-function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
+function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
   const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
@@ -402,10 +432,11 @@ function onAuth(u){user=u;
 function showSec(id){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
   $('s-'+id).classList.add('on');document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
-  if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();}
+  if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
+  if(id==='fleet'){renderFleet();renderBookings();}}
 
 /* ===== render all ===== */
-function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();}
+function renderAll(){renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -584,6 +615,36 @@ function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
     <td class="ctr"><button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
 
+/* ===== FLEET / BOOKING ===== */
+function vehLabel(id){const v=load(LS_VEH).find(x=>x.id===id);return v?`${esc(v.plate)}${v.type?' ('+esc(v.type)+')':''}`:'—';}
+function bookOverlap(vehId,date,from,to,exceptId){return load(LS_BOOK).some(b=>b.vehicleId===vehId&&b.status!=='cancelled'&&b.date===date&&b.id!==exceptId&&from<b.to&&to>b.from);}
+function addVeh(){const p=$('veh-plate').value.trim();if(!p){alert('กรอกทะเบียนรถ');return;}
+  const a=load(LS_VEH);a.push({id:uid(),plate:p,type:$('veh-type').value.trim(),seats:+$('veh-seats').value||null,active:true});save(LS_VEH,a);
+  ['veh-plate','veh-type','veh-seats'].forEach(i=>$(i).value='');renderFleet();}
+function delVeh(id){if(!confirm('ลบรถคันนี้?'))return;save(LS_VEH,load(LS_VEH).filter(v=>v.id!==id));renderFleet();renderBookings();}
+function renderFleet(){const a=load(LS_VEH);const b=$('veh-body');if($('veh-count'))$('veh-count').textContent=a.length+' คัน';if(!b)return;
+  const now=new Date(),today=todayStr(),hm=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  if(!a.length){b.innerHTML='<tr class="empty"><td colspan="5">ยังไม่มีรถ</td></tr>';return;}
+  b.innerHTML=a.map(v=>{const busy=bookOverlap(v.id,today,hm,hm,null)||load(LS_BOOK).some(x=>x.vehicleId===v.id&&x.status!=='cancelled'&&x.date===today);
+    const st=load(LS_BOOK).some(x=>x.vehicleId===v.id&&x.status!=='cancelled'&&x.date===today&&x.from<=hm&&x.to>=hm)?'<span class="chip absent">กำลังใช้งาน</span>':'<span class="chip in">ว่าง</span>';
+    return `<tr><td><b>${esc(v.plate)}</b></td><td>${esc(v.type)||'—'}</td><td class="ctr">${v.seats||'—'}</td><td>${st}</td>
+      <td class="ctr"><button class="btn sm no" onclick="delVeh('${v.id}')">ลบ</button></td></tr>`;}).join('');}
+function cancelBooking(id){if(!confirm('ยกเลิกการจองนี้?'))return;const a=load(LS_BOOK);const r=a.find(x=>x.id===id);if(r){r.status='cancelled';save(LS_BOOK,a);renderBookings();renderFleet();}}
+function reassignBooking(id,vehId){if(!vehId)return;const a=load(LS_BOOK);const r=a.find(x=>x.id===id);if(!r)return;
+  if(bookOverlap(vehId,r.date,r.from,r.to,id)){alert('รถคันนี้ไม่ว่างในช่วงเวลานั้น');renderBookings();return;}
+  r.vehicleId=vehId;save(LS_BOOK,a);renderBookings();renderFleet();}
+function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('bk-day');let d=day.value;if(!d){d=todayStr();day.value=d;}
+  const list=load(LS_BOOK).filter(b=>b.date===d&&b.status!=='cancelled').filter(b=>canSee(b.name)).sort((a,b)=>a.from.localeCompare(b.from));
+  if(!list.length){body.innerHTML='<tr class="empty"><td colspan="6">ไม่มีการจองในวันนี้</td></tr>';return;}
+  const vehs=load(LS_VEH);
+  body.innerHTML=list.map(b=>{
+    const opts=vehs.map(v=>{const busy=v.id!==b.vehicleId&&bookOverlap(v.id,b.date,b.from,b.to,b.id);
+      return `<option value="${v.id}" ${v.id===b.vehicleId?'selected':''} ${busy?'disabled':''}>${esc(v.plate)}${busy?' (ไม่ว่าง)':''}</option>`;}).join('');
+    return `<tr><td class="mono">${b.from}–${b.to}</td><td><b>${vehLabel(b.vehicleId)}</b></td><td>${nameOf(b.name)}</td>
+      <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
+      <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
+      <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
 /* ===== clock + init ===== */
 function clock(){const c=$('t-clock');if(c)c.textContent=new Date().toLocaleTimeString('th-TH',{hour12:false});}
 function seedLocal(){if(localStorage.getItem(LS_EMP))return;
@@ -597,14 +658,16 @@ function seedLocal(){if(localStorage.getItem(LS_EMP))return;
   function ts(h,m){const d=new Date();d.setHours(h,m,0,0);return d.getTime();}
   save(LS_LOG,[{id:'l1',name:'joe',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,55),inGeo:'13.1746,100.9311',outTs:ts(18,20),outGeo:'13.1745,100.9309',otStatus:'pending_l1'},{id:'l2',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',inTs:ts(8,20),inGeo:'13.1744,100.9312',outTs:null,outGeo:''}]);
   save(LS_LEAVE,[{id:'v1',name:'joe',type:'vacation',from:t,to:t,days:1,reason:'ธุระครอบครัว',status:'pending_l1',createdTs:Date.now()-3600000},{id:'v2',name:'nong',type:'sick',from:t,to:t,days:1,reason:'ไข้หวัด',status:'approved',l1By:'lek',l2By:'boss',createdTs:Date.now()-9e7}]);
-  save(LS_OT,[{id:'o1',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',hours:2,reason:'เร่งงานส่งมอบ',status:'pending_l1',source:'request',createdTs:Date.now()-1800000}]);}
+  save(LS_OT,[{id:'o1',name:'nong',date:t,jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',hours:2,reason:'เร่งงานส่งมอบ',status:'pending_l1',source:'request',createdTs:Date.now()-1800000}]);
+  save(LS_VEH,[{id:'car1',plate:'1กก 1234',type:'กระบะ',seats:4,active:true},{id:'car2',plate:'2ขข 5678',type:'ตู้',seats:9,active:true},{id:'car3',plate:'3คค 9012',type:'เก๋ง',seats:4,active:true}]);
+  save(LS_BOOK,[{id:'bk1',vehicleId:'car1',name:'joe',date:t,from:'08:00',to:'17:00',jobId:'p1',jobTitle:'ติดตั้งแขนกลสายการผลิต @ ศรีราชา',dest:'โรงงานลูกค้า ศรีราชา',status:'booked',createdTs:Date.now()-7200000},{id:'bk2',vehicleId:'car2',name:'ping',date:t,from:'13:00',to:'16:00',jobId:'p2',jobTitle:'PM ระบบ CNC @ RSC',dest:'RSC สำนักงานใหญ่',status:'booked',createdTs:Date.now()-3600000}]);}
 
 initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');$('conn').innerHTML='<span class="dot"></span>'+(MODE==='firebase'?'CLOUD':'LOCAL');
 setInterval(clock,1000);clock();
 if(MODE==='firebase'){listen();auth.onAuthStateChanged(onAuth);}
-else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
-  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
+else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
+  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
   $('login').classList.remove('on');$('user').textContent='ทดลอง (LOCAL)';renderAll();}
 </script>
 </body>
