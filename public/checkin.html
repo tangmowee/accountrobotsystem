@@ -169,7 +169,8 @@
 
     <label>หมายเหตุ (ถ้ามี)</label>
     <input type="text" id="tl-note" placeholder="เช่น เดินสายไฟ / ประกอบชุดแขนกล">
-    <button class="btn gps" onclick="submitTimelog()">🧾 บันทึกเวลา</button>
+    <button class="btn gps" id="tl-save" onclick="submitTimelog()">🧾 บันทึกเวลา</button>
+    <button class="btn ghost" id="tl-cancel" onclick="tlCancelEdit()" style="display:none;">ยกเลิกการแก้ไข</button>
     <div id="mytl" style="margin-top:14px;"></div>
   </div>
 
@@ -396,6 +397,7 @@ function tlRecalc(){
   $('tl-kind').innerHTML=jr?`· ${isCentralJR(jr)?'งานส่วนกลาง':'งานโปรเจกต์'}`:'';
   return {h,jr};
 }
+let _tlEdit=null; // id ของรายการที่กำลังแก้ไข (null = เพิ่มใหม่)
 function submitTimelog(){
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
   const tj=$('tl-job');if(!tj.value){toast('เลือกงาน/JR');return;}
@@ -403,17 +405,41 @@ function submitTimelog(){
   const s=$('tl-start').value,e=$('tl-end').value;
   if(!s||!e){toast('เลือกเวลาเริ่ม–สิ้นสุด');return;}
   const h=calcHours(s,e);if(h<=0){toast('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');return;}
+  const date=$('tl-date').value||todayStr();
+  if(date>todayStr()){toast('ลงเวลาล่วงหน้า (วันอนาคต) ไม่ได้');return;}
   const o=tj.options[tj.selectedIndex];
   const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
-  const rec={id:uid(),name,date:$('tl-date').value||todayStr(),jr,
-    jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
-    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,
-    kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim(),createdTs:Date.now()};
-  const arr=load(LS_TL);arr.unshift(rec);save(LS_TL,arr);
+  const fields={jr,jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
+    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim()};
+  const arr=load(LS_TL);
+  if(_tlEdit){const r=arr.find(x=>x.id===_tlEdit&&x.name===name);
+    if(r){Object.assign(r,fields,{date,editedTs:Date.now()});save(LS_TL,arr);toast(`✏️ แก้ไขแล้ว ${h.toFixed(1)} ชม. → ${jr}`);}
+    tlCancelEdit();
+  }else{
+    arr.unshift(Object.assign({id:uid(),name,date,createdTs:Date.now()},fields));save(LS_TL,arr);
+    toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
+  }
   $('tl-note').value='';renderMyTL();
-  toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
 }
-function delTimelog(id){if(!confirm('ลบรายการนี้?'))return;save(LS_TL,load(LS_TL).filter(x=>x.id!==id));renderMyTL();}
+function editTimelog(id){
+  const r=load(LS_TL).find(x=>x.id===id&&x.name===myName());if(!r){toast('ไม่พบรายการ');return;}
+  _tlEdit=id;
+  $('tl-date').value=r.date; $('tl-note').value=r.note||'';
+  // เลือกงาน/JR ให้ตรงกับรายการเดิม
+  const tj=$('tl-job');let picked=false;
+  for(const o of tj.options){if(r.jobId&&o.value===r.jobId){o.selected=true;picked=true;break;}}
+  if(!picked){const c=[...tj.options].find(o=>o.value==='__central__'&&o.dataset.jr===r.jr);if(c){c.selected=true;picked=true;}}
+  if(!picked){const m=[...tj.options].find(o=>o.value==='__manual__');if(m)m.selected=true;}
+  tlJobChange(); if(!picked)$('tl-jr-manual').value=r.jr;
+  // ช่วง + เวลา
+  tlSlot=r.slot||'custom';document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot===tlSlot));
+  $('tl-start').value=r.timeStart;$('tl-end').value=r.timeEnd;tlRecalc();
+  $('tl-save').textContent='✏️ อัปเดตรายการ';$('tl-cancel').style.display='block';
+  $('tl-job').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function tlCancelEdit(){_tlEdit=null;$('tl-save').textContent='🧾 บันทึกเวลา';$('tl-cancel').style.display='none';
+  $('tl-date').value=todayStr();$('tl-note').value='';$('tl-jr-manual').value='';$('tl-job').selectedIndex=0;tlJobChange();tlPickSlot('full');}
+function delTimelog(id){if(!confirm('ลบรายการนี้?'))return;save(LS_TL,load(LS_TL).filter(x=>x.id!==id));if(_tlEdit===id)tlCancelEdit();renderMyTL();}
 function renderMyTL(){
   const el=$('mytl');if(!el)return;
   const today=todayStr();
@@ -428,7 +454,9 @@ function renderMyTL(){
   html+=recent.length?recent.map(r=>`<div class="rec">
     <div><div>${isOffice(r)?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
       <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
-    <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div><a onclick="delTimelog('${r.id}')" style="color:var(--red);cursor:pointer;font-size:11px;">ลบ</a></div></div>`).join('')
+    <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div>
+      <a onclick="editTimelog('${r.id}')" style="color:var(--cyan);cursor:pointer;font-size:11px;">แก้ไข</a>
+      <a onclick="delTimelog('${r.id}')" style="color:var(--red);cursor:pointer;font-size:11px;margin-left:8px;">ลบ</a></div></div>`).join('')
     :'<div class="muted">ยังไม่มีการบันทึกเวลา</div>';
   el.innerHTML=html;
 }
