@@ -368,14 +368,14 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="stat"><div class="k">ชม.ปกติรวม</div><div class="v mono" id="pay-nh">0</div><div class="u">ชั่วโมง (วันทำงาน)</div></div>
         <div class="stat c"><div class="k">OT ×1 รวม</div><div class="v mono" id="pay-ot1">0</div><div class="u">ชม. วันหยุด-ปกติ</div></div>
         <div class="stat o"><div class="k">OT ×1.5 รวม</div><div class="v mono" id="pay-ot15">0</div><div class="u">ชม. วันทำงาน</div></div>
-        <div class="stat a"><div class="k">OT ×3 รวม</div><div class="v mono" id="pay-ot3">0</div><div class="u">ชม. วันหยุด-เกิน 8</div></div>
+        <div class="stat a"><div class="k">OT ×3 รวม</div><div class="v mono" id="pay-ot3">0</div><div class="u">ชม. วันหยุด/นักขัต</div></div>
         <div class="stat g"><div class="k">รวมจ่ายโดยประมาณ</div><div class="v mono" id="pay-total">0</div><div class="u">บาท (เงินเดือน+OT)</div></div>
       </div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>วันมา</th><th>ชม.ปกติ</th><th>OT×1</th><th>OT×1.5</th><th>OT×3</th><th>เงินเดือน (บาท)</th><th>ค่า OT (บาท)</th><th>รวมโดยประมาณ</th></tr></thead>
         <tbody id="pay-body"></tbody>
       </table></div>
-      <div class="note">* กรอก “เงินเดือน” รายคนได้ในตาราง (บันทึกอัตโนมัติ เก็บแยกใน rsc_payroll เห็นเฉพาะ HR) • ค่าจ้าง/ชม. = เงินเดือน ÷ <b id="pay-div">240</b> • <b>OT×1.5</b> = OT วันทำงาน · <b>OT×1</b> = วันหยุด(เสาร์/อาทิตย์) เวลาปกติ ≤ <b id="pay-std2">8</b> ชม./วัน · <b>OT×3</b> = วันหยุดส่วนที่เกิน 8 ชม. • ชม.ปกติ = ชั่วโมงจริงจากเช็คอินวันทำงาน (จำกัดไม่เกิน <b id="pay-std">8</b> ชม./วัน) • ตัวเลขเป็น “ประมาณการ” — HR สรุปจริงใน Business Plus</div>
+      <div class="note">* กรอก “เงินเดือน” รายคนได้ในตาราง (บันทึกอัตโนมัติ เก็บแยกใน rsc_payroll เห็นเฉพาะ HR) • ค่าจ้าง/ชม. = เงินเดือน ÷ <b id="pay-div">240</b> • <b>OT×1.5</b> = OT วันทำงาน · <b>OT×1</b> = เสาร์/อาทิตย์ เวลาปกติ ≤ <b id="pay-std2">8</b> ชม./วัน · <b>OT×3</b> = เสาร์/อาทิตย์ส่วนเกิน 8 ชม. + <b>วันหยุดนักขัตฤกษ์ทั้งหมด</b> • วันหยุดนักขัตฤกษ์ไม่นับเป็นขาดงาน • ชม.ปกติ = ชั่วโมงจริงจากเช็คอินวันทำงาน (จำกัดไม่เกิน <b id="pay-std">8</b> ชม./วัน) • ตัวเลขเป็น “ประมาณการ” — HR สรุปจริงใน Business Plus</div>
     </div>
   </section>
 
@@ -458,6 +458,7 @@ const WORK_START=window.WORK_START||'08:30', WORK_END=window.WORK_END||'17:30';
 const WORK_DAYS=window.WORK_DAYS||[1,2,3,4,5];
 const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
+const HOLIDAYS=window.HOLIDAYS||[]; const isHoliday=ds=>HOLIDAYS.includes(ds);
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog';
 
@@ -638,7 +639,7 @@ function buildReport(ym){
   const otByKey={};otAppr.forEach(o=>{otByKey[o.name]=(otByKey[o.name]||0)+(+o.hours||0);});
   const today=todayStr(),[Y,M]=ym.split('-').map(Number);
   const dim=new Date(Y,M,0).getDate();const startMin=parseHM(WORK_START);
-  const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&ds<=today)workdays.push(ds);}
+  const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&!isHoliday(ds)&&ds<=today)workdays.push(ds);}
   const keys=new Set();emps.forEach(e=>keys.add(e.email||e.name));logs.forEach(r=>keys.add(r.name));
   const persons=[],depts={},jobs={};
   [...keys].filter(k=>canSee(k)).forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'ไม่ระบุแผนก';
@@ -806,7 +807,7 @@ function buildPay(ym){
   const otAppr=load(LS_OT).filter(o=>o.status==='approved'&&o.date&&o.date.slice(0,7)===ym);
   const today=todayStr(),[Y,M]=ym.split('-').map(Number);
   const dim=new Date(Y,M,0).getDate();
-  const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&ds<=today)workdays.push(ds);}
+  const workdays=[];for(let d=1;d<=dim;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`;const dow=new Date(Y,M-1,d).getDay();if(WORK_DAYS.includes(dow)&&!isHoliday(ds)&&ds<=today)workdays.push(ds);}
   const pm=payMap();
   const keys=new Set();emps.forEach(e=>keys.add(e.email||e.name));logs.forEach(r=>keys.add(r.name));otAppr.forEach(o=>keys.add(o.name));
   const rows=[];
@@ -815,12 +816,13 @@ function buildPay(ym){
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
       if(rec&&rec.outTs){present++;const h=(rec.outTs-rec.inTs)/3600000;normalH+=Math.min(h,STD_HOURS);}
       else if(rec){present++;}});
-    // OT×1.5 = OT วันทำงาน · วันหยุด (เสาร์/อาทิตย์): เวลาปกติ ≤8 ชม./วัน = ×1, ส่วนที่เกิน = ×3
-    let ot15=0; const holByDay={};
-    otAppr.filter(o=>o.name===key).forEach(o=>{const dow=new Date(o.date).getDay();const h=+o.hours||0;
-      if(dow===0||dow===6)holByDay[o.date]=(holByDay[o.date]||0)+h; else ot15+=h;});
-    let ot1=0,ot3=0;
-    Object.values(holByDay).forEach(dh=>{ot1+=Math.min(dh,STD_HOURS);ot3+=Math.max(0,dh-STD_HOURS);});
+    // OT×1.5 = OT วันทำงาน · เสาร์/อาทิตย์: ≤8 ชม.=×1, เกิน=×3 · วันหยุดนักขัตฤกษ์ = ×3 ทั้งหมด
+    let ot15=0,ot1=0,ot3=0; const weekendByDay={};
+    otAppr.filter(o=>o.name===key).forEach(o=>{const h=+o.hours||0;const dow=new Date(o.date).getDay();
+      if(isHoliday(o.date))ot3+=h;                                        // นักขัต ×3
+      else if(dow===0||dow===6)weekendByDay[o.date]=(weekendByDay[o.date]||0)+h; // เสาร์/อาทิตย์
+      else ot15+=h;});                                                    // วันทำงาน ×1.5
+    Object.values(weekendByDay).forEach(dh=>{ot1+=Math.min(dh,STD_HOURS);ot3+=Math.max(0,dh-STD_HOURS);});
     const salary=pm[key]||0, hourly=salary/PAY_DIVISOR;
     const payOt=hourly*(OT_MULT.holidayNormal||1)*ot1 + hourly*OT_MULT.normal*ot15 + hourly*OT_MULT.holiday*ot3;
     const total=salary+payOt;
