@@ -94,6 +94,12 @@ function loadHours(cb){
   if(db){ db.collection('rsc').doc('rsc_timelog').get().then(s=>apply((s.exists&&s.data().items)||[])).catch(()=>apply([])); }
   else { try{apply(JSON.parse(localStorage.getItem('rsc_timelog'))||[]);}catch(e){apply([]);} }
 }
+// รวมข้อมูลสด (จาก Apps Script) ทับ snapshot: JR ที่มีในชีตใช้ค่าสด, JR อื่น (งานใหม่ยังไม่ลงต้นทุน) คงไว้
+function mergeLive(base, live){
+  const by={}; (base||[]).forEach(p=>by[normJR(p.jr)]=Object.assign({},p));
+  (live||[]).forEach(p=>{const k=normJR(p.jr); by[k]=Object.assign({}, by[k]||{}, p);});
+  return Object.keys(by).map(k=>by[k]);
+}
 let sortK='sales',dir=-1,db=null,auth=null;
 function cls(m,inv){if(inv)return m>20?'r1':m>0?'a1':'g1';return m>=50?'g1':m>=40?'a1':'r1';}
 function short(e){return (e||'').split('@')[0];}
@@ -121,7 +127,7 @@ function showApp(who,role){
   $('app').classList.add('on');
   $('who').innerHTML=who?(who+(role?' · '+role:'')+' · <a onclick="doLogout()">ออก</a>'):'';
   if(CFG.DATA_URL){ $('src').textContent='LOADING…';
-    fetch(CFG.DATA_URL).then(r=>r.json()).then(d=>{ ALL=d.jobs||d; $('src').textContent='LIVE'; loadHours(render); })
+    fetch(CFG.DATA_URL).then(r=>r.json()).then(d=>{ ALL=mergeLive(ALL, d.jobs||d); $('src').textContent='LIVE'; loadHours(render); })
       .catch(function(){ $('src').textContent='SNAPSHOT (โหลดสดไม่สำเร็จ)'; loadHours(render); });
   } else { $('src').textContent='SNAPSHOT'; loadHours(render); }
 }
