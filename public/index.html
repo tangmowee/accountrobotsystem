@@ -94,7 +94,8 @@ const APPS=[
   {href:'RSC-JR360.html', ico:'📈', accent:'#FB923C', title:'JR 360 (ผู้บริหาร)', desc:'ภาพรวมงานตามเลข JR · เปรียบเทียบ DL งบ vs จริง · สรุปรายปี', roles:['manager','hr','director','admin']},
   {href:'finance.html', ico:'💰', accent:'#34D399', title:'แดชบอร์ดการเงิน', desc:'สรุปการเงินบริษัท (ข้อมูลลับ — เฉพาะผู้บริหาร/บัญชี)', roles:['manager','hr','director','admin','finance']},
 ];
-const can=a=>a.roles==='*'||(MODE==='local')||a.roles.includes(ROLE);
+let BOOTSTRAP=false; // ยังไม่มีข้อมูลพนักงาน (ตั้งค่าครั้งแรก) → ปลดล็อกชั่วคราวให้เข้าไป import ได้
+const can=a=>a.roles==='*'||(MODE==='local')||BOOTSTRAP||a.roles.includes(ROLE);
 
 function render(){
   $('greet').textContent=NAME?('สวัสดี, '+NAME):'ยินดีต้อนรับ';
@@ -106,6 +107,8 @@ function render(){
   }).join('');
   $('note').innerHTML=MODE==='local'
     ?'⚠️ โหมดทดลอง (ยังไม่ได้ตั้งค่า Firebase) — แสดงทุกระบบ · เมื่อเปิดใช้จริงจะเห็นเฉพาะตามสิทธิ์'
+    :BOOTSTRAP
+    ?'🛠️ <b style="color:var(--orange-light)">โหมดตั้งค่าครั้งแรก</b> — ยังไม่มีข้อมูลพนักงาน จึงเปิดทุกเมนูชั่วคราว · เข้า “แดชบอร์ด HR → พนักงาน → นำเข้า JSON” เพื่อลงทะเบียน 38 คน แล้วสิทธิ์จะเริ่มทำงาน'
     :'สิทธิ์ของคุณ: <b style="color:var(--orange-light)">'+esc(ROLE||'พนักงาน')+'</b> · ระบบอื่นถูกล็อกตามระดับสิทธิ์';
 }
 
@@ -119,6 +122,7 @@ function onAuth(u){
   $('login').classList.remove('show');
   db.collection('rsc').doc('rsc_employees').get().then(s=>{
     const emps=(s.exists&&s.data().items)||[];const key=short(u.email);
+    BOOTSTRAP=emps.length===0; // ฐานข้อมูลพนักงานว่าง = ยังไม่ได้ตั้งค่า
     const me=emps.find(x=>x.email===key||x.email===u.email||short(x.email)===key);
     ROLE=(me&&me.role)||'employee';NAME=(me&&me.name)||key;
     $('who').innerHTML=esc(NAME)+' · '+esc(ROLE)+' · <a onclick="doLogout()">ออก</a>';
