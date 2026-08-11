@@ -1,5 +1,5 @@
 /* RSC Connect — service worker (network-first, offline fallback) */
-const C = 'rscc-v1';
+const C = 'rscc-v2';
 const SHELL = ['./', './index.html', './checkin.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   self.skipWaiting();
