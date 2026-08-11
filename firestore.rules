@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// ============================================================
+// RSC Connect — Firestore Security Rules
+// วางใน Firebase Console → Firestore Database → Rules → Publish
+// ============================================================
+//
+// โมเดลข้อมูล: 1 คอลเลกชัน = 1 เอกสาร  →  rsc/{collection} = { items: [...] }
+//
+// - ข้อมูลทั่วไป (เช็คอิน/ลา/OT/แผนงาน/พนักงาน/รถ/จองรถ/เวลาตาม JR):
+//     อ่าน/เขียนได้เฉพาะคนที่ "ล็อกอินแล้ว"
+// - เงินเดือน (rsc_payroll):
+//     อ่าน/เขียนได้เฉพาะบัญชี HR ที่อยู่ในรายการ HR_EMAILS ด้านล่าง
+//     (พนักงาน/ผู้จัดการทั่วไป อ่านไม่ได้เลยแม้ล็อกอินอยู่)
+//
+// 👉 แก้รายการ HR_EMAILS ให้ตรงกับบัญชีล็อกอินของ HR จริง
+//    (รูปแบบ = ชื่อผู้ใช้@rsc.local — ดูจากที่สร้างใน Authentication)
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----- เงินเดือน: เฉพาะ HR -----
+    match /rsc/rsc_payroll {
+      allow read, write: if request.auth != null
+        && request.auth.token.email in [
+             '550642@rsc.local',   // วีรยา บรรลือทรัพย์ (Support Manager · HR)
+             '610814@rsc.local'    // นนทรัตน์ วาจามั่น (Senior HR Officer)
+             // เพิ่มบัญชี HR/บัญชีอื่นได้ที่นี่ เช่น '530118@rsc.local'
+           ];
+    }
+
+    // ----- ข้อมูลอื่นทั้งหมด: เฉพาะคนที่ล็อกอินแล้ว -----
+    match /rsc/{doc} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
