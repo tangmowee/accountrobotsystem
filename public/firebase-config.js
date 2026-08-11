@@ -4,12 +4,12 @@
    ปล่อย apiKey ว่าง = โหมด LOCAL (เก็บในเบราว์เซอร์ ใช้ทดลอง)
    ============================================================ */
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyBOt4Hwcpp4aoUdNZ7q7qdBWBp6tGvzx8o",
+  authDomain: "rsc-connect.firebaseapp.com",
+  projectId: "rsc-connect",
+  storageBucket: "rsc-connect.firebasestorage.app",
+  messagingSenderId: "590117381818",
+  appId: "1:590117381818:web:065295136ea06c29a44483"
 };
 
 /* โดเมนต่อท้ายชื่อผู้ใช้อัตโนมัติ — พนักงานล็อกอินด้วยชื่อเล่น/รหัส ไม่ต้องพิมพ์อีเมล
