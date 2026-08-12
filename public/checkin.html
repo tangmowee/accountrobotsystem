@@ -250,6 +250,27 @@ const REQUIRE_JR = window.REQUIRE_JR !== false; // ค่าเริ่มต�
 function shortName(email){return (email||'').split('@')[0];}
 function parseHM(hm){const p=(hm||'0:0').split(':');return (+p[0])*60+(+p[1]||0);}
 
+/* ===== เชื่อม RSC Planner (อ่านงานจริง) ===== */
+const PLANNER_URL = window.PLANNER_URL || '';
+let PLANNER = { people:[], jobs:[] };   // ข้อมูลสดจาก RSC Planner
+let EMP = [];                            // rsc_employees (ไว้หา "ชื่อจริง" ของผู้ใช้)
+function stripTitle(s){return (s||'').replace(/^(นาย|นางสาว|นาง|น\.ส\.|ดร\.)\s*/,'').replace(/\s+/g,' ').trim();}
+function myFullName(){const id=myName();const e=EMP.find(x=>x.email===id||shortName(x.email||'')===id);return e?(e.name||''):'';}
+function myPlannerId(){const fn=stripTitle(myFullName());if(!fn)return '';const p=PLANNER.people.find(pp=>stripTitle(pp.fullName)===fn);return p?p.id:'';}
+function plannerJobsForMe(){
+  const pid=myPlannerId();if(!pid)return [];const t=todayStr();
+  return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)
+      &&(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
+    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',
+      time:j.timeStart||'',date:t,assignees:[myName()],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
+}
+function fetchPlanner(){
+  if(!PLANNER_URL)return;
+  fetch(PLANNER_URL).then(r=>r.json()).then(d=>{
+    if(d&&d.ok){PLANNER.people=d.people||[];PLANNER.jobs=d.jobs||[];renderJobs();}
+  }).catch(e=>console.warn('planner fetch failed',e));
+}
+
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
 function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
@@ -270,7 +291,10 @@ function initFb(){
 }
 function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog'].forEach(k=>{
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();},e=>console.error(e));
-});}
+});
+  // รายชื่อพนักงาน — ไว้จับคู่ "ชื่อจริง" กับ RSC Planner
+  db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();},e=>console.error(e));
+}
 
 /* ===== auth ===== */
 function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
@@ -278,7 +302,7 @@ function doLogin(){const raw=$('l-email').value.trim(),p=$('l-pass').value;$('l-
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
 function doLogout(){if(auth)auth.signOut();}
 function onAuth(u){user=u;
-  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();}
+  if(u){$('login').classList.remove('show');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()" style="color:var(--orange-light);cursor:pointer;">ออก</a>';fetchPlanner();renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();}
   else{$('login').classList.add('show');$('user').textContent='';}
 }
 function myName(){return user?shortName(user.email):'';}
@@ -344,9 +368,11 @@ function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยัง
 /* ===== render ===== */
 function renderJobs(){
   const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
+  // งานสดจาก RSC Planner (เฉพาะที่มอบหมายให้เรา วันนี้) + แผนงานในแอดมิน
   // เห็นเฉพาะจ๊อปที่มอบหมายให้เรา หรือจ๊อปกลาง (ไม่ระบุผู้รับ)
-  const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
+  const internal=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
     &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
+  const jobs=plannerJobsForMe().concat(internal);
   sel.innerHTML='<option value="">— เลือกงาน/ไซต์งาน —</option>'+
     jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);return `<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`;}).join('');
   sel.value=cur;
@@ -589,6 +615,8 @@ else{
   try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
   try{state[LS_TL]=JSON.parse(localStorage.getItem(LS_TL))||[];}catch(e){}
+  try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
+  fetchPlanner();
   $('login').classList.remove('show');
   user={email:localStorage.getItem('rsc_local_name')||''};
   if(!user.email){const nm=prompt('โหมดทดลอง (LOCAL) — กรอกชื่อพนักงาน:')||'พนักงานทดลอง';localStorage.setItem('rsc_local_name',nm);user.email=nm;}

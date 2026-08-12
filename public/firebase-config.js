@@ -47,6 +47,12 @@ window.REQUIRE_JR = true;
 window.OFFICE_JRS = ['JR OFFICE', 'JR Marketing'];
 window.OFFICE_JR  = window.OFFICE_JRS[0]; // ค่าเริ่มต้น (เผื่อโค้ดเก่าอ้างถึง)
 
+/* ===== เชื่อม RSC Planner (อ่านงานจริงมาโชว์ในช่อง "งานวันนี้") =====
+   วางลิงก์ Web app (…/exec) ที่ได้จากการ Deploy สคริปต์ RSC-Planner-AppsScript.gs
+   ปล่อยว่าง = ปิดการเชื่อม (ใช้เฉพาะแผนงานที่กรอกในแอดมิน)
+   จับคู่คนด้วย "ชื่อจริง" (fullName) ระหว่าง RSC Connect กับ RSC Planner */
+window.PLANNER_URL = '';
+
 /* ===== เงินเดือน/ค่าแรง (เห็นเฉพาะ HR) — สำหรับสรุปชั่วโมง+เงินส่ง Business Plus ===== */
 /* ตัวหารหาค่าจ้างต่อชั่วโมง: เงินเดือน ÷ (30 วัน × 8 ชม.) = ÷240 (ปรับได้ตามระเบียบบริษัท) */
 window.PAY_DIVISOR = 240;
