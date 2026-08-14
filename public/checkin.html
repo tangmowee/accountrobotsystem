@@ -576,6 +576,17 @@ function submitTimelog(){
     if(r){Object.assign(r,fields,{date,editedTs:Date.now()});save(LS_TL,arr);toast(`✏️ แก้ไขแล้ว ${h.toFixed(1)} ชม. → ${jr}`);}
     tlCancelEdit();
   }else{
+    const day=arr.filter(x=>x.name===name&&x.date===date);
+    // กันรายการซ้ำเป๊ะ (JR + เวลาเดียวกัน)
+    if(day.some(x=>x.jr===jr&&x.timeStart===s&&x.timeEnd===e)){toast('⚠️ มีรายการนี้อยู่แล้ว (JR + เวลาเดียวกัน)');return;}
+    // กันเวลาซ้อนทับรายการเดิม
+    const a1=parseHM(s),a2=parseHM(e);
+    const ov=day.find(x=>{const b1=parseHM(x.timeStart),b2=parseHM(x.timeEnd);return a1<b2&&b1<a2;});
+    if(ov&&!confirm(`⚠️ เวลา ${s}–${e} ทับกับรายการเดิม\n(${ov.jr} · ${tlHM(ov.timeStart)}–${tlHM(ov.timeEnd)})\n\nยืนยันบันทึกซ้อนเวลา?`))return;
+    // กันเกินชั่วโมงต่อวัน
+    const total=day.reduce((t,x)=>t+(+x.hours||0),0)+h;
+    if(total>24){toast('⚠️ รวมเกิน 24 ชม./วันไม่ได้ — ลบรายการซ้ำก่อน');return;}
+    if(total>16&&!confirm(`วันนี้จะรวม ${total.toFixed(1)} ชม. (เกิน 16 ชม.)\nแน่ใจว่าถูกต้อง?`))return;
     arr.unshift(Object.assign({id:uid(),name,date,createdTs:Date.now()},fields));save(LS_TL,arr);
     toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
   }
