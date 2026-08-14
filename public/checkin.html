@@ -268,6 +268,13 @@
   </section>
 
   <section class="tab-sec" id="sec-more">
+  <!-- Directory / contacts -->
+  <div class="card">
+    <div class="title">📇 รายชื่อ/ติดต่อเพื่อนร่วมงาน</div>
+    <input type="text" id="dir-search" oninput="renderDirectory()" placeholder="ค้นหา ชื่อ / ชื่อเล่น / แผนก / เบอร์">
+    <div id="dir-list" style="margin-top:12px;"></div>
+  </div>
+
   <!-- Service Report -->
   <div class="card">
     <div class="title">📄 ใบรายงานบริการ (Service Report)</div>
@@ -417,7 +424,7 @@ function showTab(id){
   if(id==='cal')renderCalendar();
   if(id==='jobs')renderMyJobs();
   if(id==='checkin')renderTodaySummary();
-  if(id==='more'){srInitSig();renderSRList();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
+  if(id==='more'){srInitSig();renderSRList();renderDirectory();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
@@ -486,7 +493,7 @@ function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();refreshState();},e=>console.error(e));
 });
   // รายชื่อพนักงาน — ไว้จับคู่ "ชื่อจริง" กับ RSC Planner
-  db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();renderMyJobs();},e=>console.error(e));
+  db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();renderMyJobs();renderDirectory();},e=>console.error(e));
 }
 
 /* ===== auth ===== */
@@ -790,6 +797,28 @@ function renderMyLeave(){
   el.innerHTML='<div class="muted" style="margin-bottom:6px;">การลาของฉัน</div>'+mine.map(r=>`<div class="rec">
     <div><div>${LEAVE_TYPES[r.type]||esc(r.type)} · ${r.days} วัน</div><div class="t">${esc(r.from)}${r.to!==r.from?' – '+esc(r.to):''}</div></div>
     <div>${chip(r.status)}</div></div>`).join('');
+}
+
+/* ===== ไดเรกทอรี / ติดต่อ ===== */
+function renderDirectory(){
+  const el=$('dir-list');if(!el)return;
+  const q=(($('dir-search')||{}).value||'').trim().toLowerCase();
+  let list=EMP.filter(e=>e.active!==false);
+  if(q)list=list.filter(e=>((e.name||'')+' '+(e.nick||'')+' '+(e.dept||'')+' '+(e.pos||'')+' '+(e.phone||'')+' '+(e.cemail||'')+' '+(e.line||'')).toLowerCase().includes(q));
+  list.sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')||(a.name||'').localeCompare(b.name||''));
+  if(!list.length){el.innerHTML='<div class="muted">ไม่พบรายชื่อ</div>';return;}
+  const lk='style="color:var(--orange-light);text-decoration:none;font-weight:600;"';
+  el.innerHTML=list.map(e=>{
+    const c=[];
+    if(e.phone)c.push('<a '+lk+' href="tel:'+esc(e.phone)+'">📞 '+esc(e.phone)+'</a>');
+    if(e.cemail)c.push('<a '+lk+' href="mailto:'+esc(e.cemail)+'">✉️ '+esc(e.cemail)+'</a>');
+    if(e.line)c.push('<span>💬 '+esc(e.line)+'</span>');
+    return '<div class="rec-wrap"><div style="padding:13px 14px;">'
+      +'<div style="font-weight:600;font-size:16px;">'+esc(e.name||e.email)+(e.nick?' <span class="muted" style="font-size:14px;">('+esc(e.nick)+')</span>':'')+'</div>'
+      +'<div class="muted" style="font-size:13px;">'+(esc([e.pos,e.dept].filter(Boolean).join(' · '))||'-')+'</div>'
+      +(c.length?'<div style="margin-top:7px;display:flex;flex-direction:column;gap:4px;font-size:14px;">'+c.join('')+'</div>':'<div class="muted" style="font-size:13px;margin-top:5px;">— ยังไม่มีข้อมูลติดต่อ —</div>')
+      +'</div></div>';
+  }).join('');
 }
 
 /* ===== Service Report (ใบรายงานบริการ) ===== */
