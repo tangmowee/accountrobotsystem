@@ -150,6 +150,18 @@
     .legend{display:flex;flex-wrap:wrap;gap:9px 16px;margin-top:16px;font-size:14px;color:var(--muted);}
     .legend span{display:flex;align-items:center;gap:6px;}
     .legend i{width:11px;height:11px;border-radius:50%;display:inline-block;}
+    /* Service Report */
+    .sigpad{width:100%;height:170px;background:#fff;border:2px dashed var(--border);border-radius:10px;touch-action:none;display:block;}
+    .photo-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+    .photo-thumbs .ph{position:relative;width:78px;height:78px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+    .photo-thumbs .ph img{width:100%;height:100%;object-fit:cover;}
+    .photo-thumbs .ph button{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1;}
+    .parts-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
+    .parts-row .pn{flex:2;} .parts-row .pq{flex:1;}
+    .parts-row .del{flex:0 0 auto;background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 4px;}
+    .sr-seg{display:flex;gap:6px;flex-wrap:wrap;}
+    .sr-seg button{flex:1;min-width:64px;padding:11px 6px;border-radius:8px;border:1px solid var(--border);background:var(--dark2);color:var(--muted);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;}
+    .sr-seg button.on{background:var(--orange);color:#fff;border-color:var(--orange);}
   </style>
   <div class="botnav" id="tabbar">
     <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i">🕐</span>ลงเวลา</button>
@@ -256,6 +268,78 @@
   </section>
 
   <section class="tab-sec" id="sec-more">
+  <!-- Service Report -->
+  <div class="card">
+    <div class="title">📄 ใบรายงานบริการ (Service Report)</div>
+    <div class="muted" style="margin:-6px 0 4px;">สำหรับงานนอก/เข้าลูกค้า — เลขที่: <b id="sr-no" style="color:var(--orange-light)">—</b></div>
+
+    <label>งาน / JR</label>
+    <select id="sr-job" onchange="srJobChange()"><option value="">— เลือกงาน/JR —</option></select>
+    <input type="text" id="sr-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-26-01-003" style="display:none;margin-top:8px;">
+
+    <label>ลูกค้า</label>
+    <input type="text" id="sr-customer" placeholder="ชื่อลูกค้า / บริษัท">
+    <label>อีเมลลูกค้า (ถ้ามี)</label>
+    <input type="email" id="sr-email" placeholder="name@company.com">
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1.2;"><label>วันที่</label><input type="date" id="sr-date"></div>
+      <div style="flex:1;"><label>เริ่ม</label><input type="time" id="sr-from"></div>
+      <div style="flex:1;"><label>ถึง</label><input type="time" id="sr-to"></div>
+    </div>
+
+    <label>ข้อมูลเครื่อง</label>
+    <div style="display:flex;gap:10px;">
+      <input type="text" id="sr-model" placeholder="รุ่นเครื่อง">
+      <input type="text" id="sr-serial" placeholder="Serial">
+    </div>
+    <input type="text" id="sr-ctrl" placeholder="Controller" style="margin-top:8px;">
+
+    <label>ปัญหาที่พบ</label>
+    <textarea id="sr-problem" rows="2" placeholder="อาการ/ปัญหาที่ลูกค้าแจ้ง"></textarea>
+    <label>การแก้ไข / งานที่ทำ</label>
+    <textarea id="sr-performed" rows="2" placeholder="สิ่งที่ดำเนินการ"></textarea>
+
+    <label>อะไหล่ที่ใช้ (ถ้ามี)</label>
+    <div id="sr-parts"></div>
+    <button class="btn ghost" type="button" onclick="srAddPart()" style="margin-top:8px;">＋ เพิ่มอะไหล่</button>
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>ในประกัน?</label><div class="sr-seg" id="sr-warranty">
+        <button type="button" data-v="yes" onclick="srSeg('warranty','yes')">ในประกัน</button>
+        <button type="button" data-v="no" onclick="srSeg('warranty','no')">นอกประกัน</button></div></div>
+      <div style="flex:1;"><label>ชม.พัก</label><input type="number" id="sr-break" min="0" step="0.5" placeholder="0"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>ค่าบริการ</label><div class="sr-seg" id="sr-servicePay">
+        <button type="button" data-v="charge" onclick="srSeg('servicePay','charge')">คิดเงิน</button>
+        <button type="button" data-v="foc" onclick="srSeg('servicePay','foc')">ฟรี</button></div></div>
+      <div style="flex:1;"><label>ค่าอะไหล่</label><div class="sr-seg" id="sr-partPay">
+        <button type="button" data-v="charge" onclick="srSeg('partPay','charge')">คิดเงิน</button>
+        <button type="button" data-v="foc" onclick="srSeg('partPay','foc')">ฟรี</button></div></div>
+    </div>
+
+    <label>สถานะงาน</label>
+    <div class="sr-seg" id="sr-status">
+      <button type="button" data-v="completed" onclick="srSeg('workStatus','completed')">เสร็จสมบูรณ์</button>
+      <button type="button" data-v="followup" onclick="srSeg('workStatus','followup')">ต้องตามต่อ</button>
+    </div>
+    <div id="sr-reason-wrap" style="display:none;"><label>เหตุผล/สิ่งที่ต้องตามต่อ</label>
+      <input type="text" id="sr-reason" placeholder="เช่น รออะไหล่ / นัดเข้าใหม่"></div>
+
+    <label>รูปถ่ายหน้างาน (ไม่บังคับ — เฉพาะบางงาน)</label>
+    <input type="file" id="sr-photo" accept="image/*" capture="environment" multiple onchange="srAddPhotos(this)">
+    <div class="photo-thumbs" id="sr-thumbs"></div>
+
+    <label>ลายเซ็นลูกค้า</label>
+    <div class="sig-wrap"><canvas id="sr-sig" class="sigpad"></canvas></div>
+    <button class="btn ghost" type="button" onclick="srClearSig()" style="margin-top:6px;">🧹 ล้างลายเซ็น</button>
+
+    <button class="btn in" onclick="submitServiceReport()" style="margin-top:14px;">📄 บันทึกใบรายงาน</button>
+    <div id="sr-mylist" style="margin-top:16px;"></div>
+  </div>
+
   <!-- OT request -->
   <div class="card">
     <div class="title">🌙 ขอ OT ล่วงหน้า</div>
@@ -296,8 +380,8 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
@@ -333,6 +417,7 @@ function showTab(id){
   if(id==='cal')renderCalendar();
   if(id==='jobs')renderMyJobs();
   if(id==='checkin')renderTodaySummary();
+  if(id==='more'){srInitSig();renderSRList();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
@@ -397,8 +482,8 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();},e=>console.error(e));
+function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog','rsc_service'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();refreshState();},e=>console.error(e));
 });
   // รายชื่อพนักงาน — ไว้จับคู่ "ชื่อจริง" กับ RSC Planner
   db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();renderMyJobs();},e=>console.error(e));
@@ -494,6 +579,12 @@ function renderJobs(){
       CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
+  // service report: เลือกงาน/JR
+  const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=jobs.filter(p=>p.jr);
+    sj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
+    sj.value=c4;}
 }
 /* เรียกรวม: อัปเดตการ์ดเข้า-ออกวันนี้ + ปฏิทิน (ถ้าเปิดอยู่) */
 function renderMyLog(){renderTodaySummary();const c=$('sec-cal');if(c&&c.classList.contains('on'))renderCalendar();}
@@ -701,6 +792,87 @@ function renderMyLeave(){
     <div>${chip(r.status)}</div></div>`).join('');
 }
 
+/* ===== Service Report (ใบรายงานบริการ) ===== */
+const srState={warranty:'',servicePay:'',partPay:'',workStatus:''};
+let srPhotos=[],sigCtx=null,sigHas=false,sigDrawing=false;
+function srInitSig(){
+  const cv=$('sr-sig');if(!cv)return;
+  const r=cv.getBoundingClientRect();if(!r.width)return;
+  cv.width=r.width*2;cv.height=r.height*2;
+  sigCtx=cv.getContext('2d');sigCtx.scale(2,2);sigCtx.lineWidth=2.2;sigCtx.lineCap='round';sigCtx.strokeStyle='#111';sigHas=false;
+  const pos=e=>{const b=cv.getBoundingClientRect();return{x:e.clientX-b.left,y:e.clientY-b.top};};
+  cv.onpointerdown=e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);e.preventDefault();};
+  cv.onpointermove=e=>{if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHas=true;e.preventDefault();};
+  cv.onpointerup=cv.onpointerleave=()=>{sigDrawing=false;};
+}
+function srClearSig(){const cv=$('sr-sig');if(sigCtx&&cv){sigCtx.clearRect(0,0,cv.width,cv.height);sigHas=false;}}
+function srAddPhotos(input){
+  const files=Array.prototype.slice.call(input.files||[]);input.value='';
+  files.forEach(f=>{if(srPhotos.length>=4){toast('แนบได้สูงสุด 4 รูป');return;}
+    const rd=new FileReader();
+    rd.onload=e=>{const img=new Image();img.onload=()=>{
+      const max=1000;let w=img.width,h=img.height;
+      if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
+      srPhotos.push(cv.toDataURL('image/jpeg',0.55));srRenderThumbs();};img.src=e.target.result;};
+    rd.readAsDataURL(f);});
+}
+function srRenderThumbs(){$('sr-thumbs').innerHTML=srPhotos.map((p,i)=>'<div class="ph"><img src="'+p+'"><button type="button" onclick="srDelPhoto('+i+')">✕</button></div>').join('');}
+function srDelPhoto(i){srPhotos.splice(i,1);srRenderThumbs();}
+function srAddPart(){const wrap=$('sr-parts');const row=document.createElement('div');row.className='parts-row';
+  row.innerHTML='<input class="pn" placeholder="ชื่ออะไหล่"><input class="pq" type="number" min="1" placeholder="จำนวน"><button type="button" class="del" onclick="this.parentNode.remove()">🗑️</button>';
+  wrap.appendChild(row);}
+function srParts(){return Array.prototype.map.call(document.querySelectorAll('#sr-parts .parts-row'),r=>({name:r.querySelector('.pn').value.trim(),qty:r.querySelector('.pq').value})).filter(p=>p.name);}
+function srSeg(key,val){srState[key]=val;
+  const map={warranty:'sr-warranty',servicePay:'sr-servicePay',partPay:'sr-partPay',workStatus:'sr-status'};
+  const box=$(map[key]);if(box)box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===val));
+  if(key==='workStatus')$('sr-reason-wrap').style.display=(val==='followup')?'block':'none';
+}
+function srSelectedJR(){const s=$('sr-job');if(!s)return '';const o=s.options[s.selectedIndex];if(s.value==='__manual__')return ($('sr-jr-manual').value||'').trim();return o&&o.dataset.jr?o.dataset.jr:'';}
+function srJobChange(){const s=$('sr-job'),man=$('sr-jr-manual');
+  if(s.value==='__manual__'){man.style.display='block';}
+  else{man.style.display='none';const o=s.options[s.selectedIndex];if(o&&o.dataset.site&&!$('sr-customer').value)$('sr-customer').value=o.dataset.site;}
+}
+function srNextNo(){const be=(new Date().getFullYear()+543)%100;const prefix='RBS'+be+'-';
+  const nums=load(LS_SR).map(r=>{const m=(r.reportNo||'').match(new RegExp('^'+prefix+'(\\d+)$'));return m?+m[1]:0;});
+  const next=(nums.length?Math.max.apply(null,nums):0)+1;return prefix+String(next).padStart(3,'0');}
+function srResetForm(){
+  ['sr-customer','sr-email','sr-model','sr-serial','sr-ctrl','sr-problem','sr-performed','sr-reason','sr-break','sr-jr-manual'].forEach(i=>{if($(i))$(i).value='';});
+  if($('sr-job'))$('sr-job').value='';if($('sr-jr-manual'))$('sr-jr-manual').style.display='none';
+  $('sr-parts').innerHTML='';srPhotos=[];srRenderThumbs();srClearSig();
+  srState.warranty=srState.servicePay=srState.partPay=srState.workStatus='';
+  document.querySelectorAll('#sec-more .sr-seg button').forEach(b=>b.classList.remove('on'));
+  $('sr-reason-wrap').style.display='none';
+}
+async function submitServiceReport(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  const customer=$('sr-customer').value.trim();if(!customer){toast('กรอกชื่อลูกค้า');return;}
+  if(!srState.workStatus){toast('เลือกสถานะงาน');return;}
+  if(!sigHas&&!confirm('ยังไม่มีลายเซ็นลูกค้า — บันทึกต่อไหม?'))return;
+  const id=uid(),reportNo=srNextNo();
+  const sig=sigHas?$('sr-sig').toDataURL('image/png'):'';
+  const rep={id,reportNo,personName:name,jobRef:srSelectedJR(),customer,custEmail:$('sr-email').value.trim(),
+    date:$('sr-date').value||todayStr(),timeFrom:$('sr-from').value,timeTo:$('sr-to').value,
+    machineModel:$('sr-model').value.trim(),serial:$('sr-serial').value.trim(),controller:$('sr-ctrl').value.trim(),
+    problem:$('sr-problem').value.trim(),performed:$('sr-performed').value.trim(),parts:srParts(),
+    breakHrs:+$('sr-break').value||0,warranty:srState.warranty,servicePay:srState.servicePay,partPay:srState.partPay,
+    workStatus:srState.workStatus,reason:$('sr-reason').value.trim(),photos:srPhotos.slice(),signature:sig,
+    createdBy:name,createdTs:Date.now()};
+  try{
+    if(MODE==='firebase'&&db){await db.collection('rsc').doc('sr_'+id).set(rep);}
+    else{localStorage.setItem('sr_'+id,JSON.stringify(rep));}
+  }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||e));return;}
+  const idx=load(LS_SR);idx.unshift({id,reportNo,personName:name,jobRef:rep.jobRef,customer,date:rep.date,workStatus:rep.workStatus,createdTs:rep.createdTs});
+  save(LS_SR,idx);
+  srResetForm();toast('📄 บันทึกใบรายงาน '+reportNo+' ✅');renderSRList();
+}
+function renderSRList(){const el=$('sr-mylist');if(!el)return;
+  if($('sr-no'))$('sr-no').textContent=srNextNo();
+  const mine=load(LS_SR).filter(r=>r.personName===myName()).slice(0,8);
+  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีใบรายงาน</div>';return;}
+  el.innerHTML='<div class="title" style="margin:8px 2px;">🗂️ ใบรายงานล่าสุดของฉัน</div>'+mine.map(r=>'<div class="rec-wrap"><div class="rec"><div><div style="font-weight:600;">'+esc(r.reportNo)+' · '+esc(r.customer)+'</div><div class="t">'+esc(r.jobRef||'')+' · '+new Date(r.createdTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+'</div></div><div class="h" style="font-size:20px;">'+(r.workStatus==='completed'?'✅':'⏳')+'</div></div></div>').join('');
+}
+
 /* ===== OT request ===== */
 function submitOT(){
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
@@ -795,6 +967,7 @@ else{
   try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
   try{state[LS_TL]=JSON.parse(localStorage.getItem(LS_TL))||[];}catch(e){}
+  try{state[LS_SR]=JSON.parse(localStorage.getItem(LS_SR))||[];}catch(e){}
   try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
   fetchPlanner();
   $('login').classList.remove('show');
