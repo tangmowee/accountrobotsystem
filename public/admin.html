@@ -439,6 +439,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
             <button class="btn sm" onclick="exportEmp()">💾 สำรอง</button>
             <button class="btn sm" onclick="document.getElementById('em-import').click()">📥 นำเข้า JSON</button>
             <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
+            <button class="btn sm" onclick="bulkCreateLogins()">🔑 สร้างรหัสล็อกอินทั้งหมด</button>
           </div>
         </div>
         <div class="tw"><table>
@@ -877,6 +878,28 @@ function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();
   ['em-user','em-name','em-dept','em-pos'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-side').value='office';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
+/* สร้างบัญชีล็อกอิน (email/password) ให้พนักงานทั้งหมดในคราวเดียว — ทำจากเบราว์เซอร์ HR
+   ใช้ Firebase secondary app จึงไม่กระทบบัญชี HR ที่กำลังล็อกอินอยู่ · รหัสผ่านเริ่มต้น DEFAULT_PW */
+const DEFAULT_PW = window.DEFAULT_PASSWORD || 'Rsc@2569';
+async function bulkCreateLogins(){
+  if(!isHR()){alert('เฉพาะ HR เท่านั้น');return;}
+  if(MODE!=='firebase'||!CFG.apiKey){alert('ใช้ได้เฉพาะโหมด CLOUD (เชื่อม Firebase) เท่านั้น');return;}
+  const emps=load(LS_EMP).filter(e=>e.email&&e.active!==false);
+  if(!emps.length){alert('ยังไม่มีพนักงาน');return;}
+  if(!confirm('สร้างบัญชีล็อกอินให้พนักงาน '+emps.length+' คน?\n\nรหัสผ่านเริ่มต้น: '+DEFAULT_PW+'\n(คนที่มีบัญชีอยู่แล้วจะถูกข้าม)\n\nแนะนำให้พนักงานเปลี่ยนรหัสภายหลัง'))return;
+  let app2;
+  try{app2=firebase.app('signup');}catch(e){app2=firebase.initializeApp(CFG,'signup');}
+  const auth2=app2.auth();
+  let created=0,exist=0,fail=0;const errs=[];
+  for(const e of emps){
+    const email=(e.email.includes('@')?e.email:e.email+'@'+DOMAIN);
+    try{await auth2.createUserWithEmailAndPassword(email,DEFAULT_PW);created++;try{await auth2.signOut();}catch(_){}}
+    catch(x){if(x&&x.code==='auth/email-already-in-use'){exist++;}else{fail++;errs.push((e.email||'?')+': '+((x&&(x.code||x.message))||'error'));}}
+  }
+  try{await app2.delete();}catch(e){}
+  alert('เสร็จแล้ว ✅\n\nสร้างใหม่ '+created+' คน\nมีบัญชีอยู่แล้ว (ข้าม) '+exist+' คน\nพลาด '+fail+' คน'
+    +(errs.length?('\n\nรายการที่พลาด:\n'+errs.slice(0,8).join('\n')+(errs.length>8?'\n…':'')):''));
+}
 function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
   const subs=arr.filter(x=>x.supervisor===key);
   const newSup=e.supervisor||'';const newSupName=newSup?((empOf(newSup)||{}).name||newSup):'(ไม่มี — ต้องกำหนดหัวหน้าใหม่ให้ลูกน้องเอง)';
