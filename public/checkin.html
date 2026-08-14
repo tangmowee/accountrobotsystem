@@ -153,6 +153,7 @@
   </style>
   <div class="botnav" id="tabbar">
     <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i">🕐</span>ลงเวลา</button>
+    <button class="tab" data-sec="jobs" onclick="showTab('jobs')"><span class="i">📋</span>งาน</button>
     <button class="tab" data-sec="cal" onclick="showTab('cal')"><span class="i">📅</span>ปฏิทิน</button>
     <button class="tab" data-sec="timelog" onclick="showTab('timelog')"><span class="i">🧾</span>ลง JR</button>
     <button class="tab" data-sec="leave" onclick="showTab('leave')"><span class="i">🏖️</span>ลา</button>
@@ -186,6 +187,10 @@
   <div class="title" style="margin:4px 2px 10px;">🕓 เวลาเข้า–ออกงานวันนี้</div>
   <div id="today-sum"></div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-jobs">
+    <div id="myjobs"></div>
   </section>
 
   <section class="tab-sec" id="sec-cal">
@@ -326,14 +331,52 @@ function showTab(id){
   document.querySelectorAll('.tab-sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+id));
   document.querySelectorAll('#tabbar .tab').forEach(t=>t.classList.toggle('active',t.dataset.sec===id));
   if(id==='cal')renderCalendar();
+  if(id==='jobs')renderMyJobs();
   if(id==='checkin')renderTodaySummary();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
   if(!PLANNER_URL)return;
   fetch(PLANNER_URL).then(r=>r.json()).then(d=>{
-    if(d&&d.ok){PLANNER.people=d.people||[];PLANNER.jobs=d.jobs||[];renderJobs();}
+    if(d&&d.ok){PLANNER.people=d.people||[];PLANNER.jobs=d.jobs||[];renderJobs();renderMyJobs();}
   }).catch(e=>console.warn('planner fetch failed',e));
+}
+/* งานที่ได้รับมอบหมาย (วันนี้ + ที่ยังไม่จบ) */
+function plannerMyJobs(){
+  const pid=myPlannerId();if(!pid)return [];const t=todayStr();
+  return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)&&(j.progress||0)<100&&(!j.end||j.end>=t))
+    .sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+}
+function goLogJR(jr){
+  showTab('timelog');
+  const tj=$('tl-job');if(!tj)return;
+  const opt=Array.prototype.find.call(tj.options,o=>o.dataset.jr===jr);
+  if(opt){tj.value=opt.value;if(typeof tlJobChange==='function')tlJobChange();}
+}
+function renderMyJobs(){
+  const el=$('myjobs');if(!el)return;
+  if(!PLANNER_URL){el.innerHTML='<div class="card"><div class="muted">ยังไม่ได้เชื่อม RSC Planner — งานจะขึ้นเมื่อเชื่อมแล้ว</div></div>';return;}
+  const t=todayStr();const jobs=plannerMyJobs();
+  if(!jobs.length){el.innerHTML='<div class="card"><div class="muted">ยังไม่มีงานที่ได้รับมอบหมาย<br><span style="font-size:12px;">(หรือข้อมูลกำลังโหลด — ลองรีเฟรช)</span></div></div>';return;}
+  el.innerHTML='<div class="title" style="margin:4px 2px 12px;">📋 งานที่ได้รับมอบหมาย ('+jobs.length+')</div>'+
+    jobs.map(j=>{
+      const isToday=((j.start||t)<=t&&(j.end||t)>=t);
+      const d=new Date((j.start||t)+'T00:00').toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'});
+      const pr=Math.max(0,Math.min(100,j.progress||0));
+      const map=j.mapLink?' · <a href="'+esc(j.mapLink)+'" target="_blank" style="color:var(--orange-light);font-weight:600;">🗺️ เปิดแผนที่</a>':'';
+      const jrSafe=esc(j.ref||'').replace(/'/g,'');
+      return '<div class="card">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+          +'<div style="font-weight:700;font-size:16px;">'+esc(j.ref||'(ไม่มีเลข JR)')+(isToday?' <span style="color:var(--orange);font-size:12px;font-weight:700;">• วันนี้</span>':'')+'</div>'
+          +'<div class="muted" style="font-size:13px;white-space:nowrap;">'+d+'</div></div>'
+        +'<div style="margin-top:3px;font-size:15px;">'+esc(j.name||'')+'</div>'
+        +'<div class="muted" style="margin-top:8px;">📍 <b>'+esc(j.site||'-')+'</b>'+map+'</div>'
+        +'<div class="muted">⏰ '+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
+        +'<div style="margin-top:10px;height:8px;background:var(--dark2);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+pr+'%;background:var(--orange);"></div></div>'
+        +'<div class="muted" style="font-size:12px;margin-top:4px;">ความคืบหน้า '+pr+'%</div>'
+        +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\')">🧾 ลงเวลางานนี้</button>'
+        +'</div>';
+    }).join('');
 }
 
 /* ===== helpers ===== */
@@ -358,7 +401,7 @@ function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();refreshState();},e=>console.error(e));
 });
   // รายชื่อพนักงาน — ไว้จับคู่ "ชื่อจริง" กับ RSC Planner
-  db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();},e=>console.error(e));
+  db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();renderMyJobs();},e=>console.error(e));
 }
 
 /* ===== auth ===== */
