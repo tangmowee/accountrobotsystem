@@ -897,8 +897,8 @@ async function bulkCreateLogins(){
     i++;if(btn)btn.textContent='⏳ '+i+'/'+emps.length;
     const email=(e.email.includes('@')?e.email:e.email+'@'+DOMAIN);
     let ok=false,lastErr=null;
-    for(let attempt=0;attempt<3&&!ok;attempt++){
-      if(attempt)await sleep(700*attempt); // เว้นจังหวะก่อนลองซ้ำ
+    for(let attempt=0;attempt<4&&!ok;attempt++){
+      if(attempt)await sleep(1500*attempt); // เว้นจังหวะก่อนลองซ้ำ (นานขึ้น)
       try{await auth2.createUserWithEmailAndPassword(email,DEFAULT_PW);created++;ok=true;try{await auth2.signOut();}catch(_){}}
       catch(x){lastErr=x;
         if(x&&x.code==='auth/email-already-in-use'){exist++;ok=true;break;}
@@ -907,7 +907,7 @@ async function bulkCreateLogins(){
       }
     }
     if(!ok){fail++;errs.push((e.email||'?')+': '+((lastErr&&(lastErr.code||lastErr.message))||'error'));}
-    await sleep(250); // เว้นจังหวะระหว่างคน กันเน็ตล้น
+    await sleep(900); // เว้นจังหวะระหว่างคน กันเน็ตล้น/โดน throttle
   }
   try{await app2.delete();}catch(e){}
   if(btn)btn.textContent=oldTxt;
