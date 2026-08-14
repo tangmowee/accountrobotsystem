@@ -5,6 +5,11 @@
   publish = "public"
   command = "echo 'RSC Connect — static site, no build step required'"
 
+# Firebase web apiKey เป็นค่าสาธารณะโดยออกแบบ (อยู่ในเบราว์เซอร์ทุกคนเห็นได้)
+# ความปลอดภัยมาจาก Firestore Security Rules + Auth — ปิดตัวสแกน secret ของ Netlify
+[build.environment]
+  SECRETS_SCAN_ENABLED = "false"
+
 [[redirects]]
   from = "/admin"
   to = "/admin.html"
