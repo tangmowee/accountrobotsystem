@@ -115,6 +115,22 @@
 </div>
 
 <div class="wrap" id="app">
+  <style>
+    .tabbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch;}
+    .tabbar::-webkit-scrollbar{display:none;}
+    .tabbar .tab{flex:0 0 auto;white-space:nowrap;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:9px 16px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;}
+    .tabbar .tab.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+    .tab-sec{display:none;} .tab-sec.on{display:block;}
+  </style>
+  <div class="tabbar" id="tabbar">
+    <button class="tab active" data-sec="checkin" onclick="showTab('checkin')">🟢 เช็คอิน</button>
+    <button class="tab" data-sec="timelog" onclick="showTab('timelog')">🧾 ลงเวลา JR</button>
+    <button class="tab" data-sec="leave" onclick="showTab('leave')">🏖️ ลา</button>
+    <button class="tab" data-sec="ot" onclick="showTab('ot')">🌙 OT</button>
+    <button class="tab" data-sec="book" onclick="showTab('book')">🚗 จองรถ</button>
+  </div>
+
+  <section class="tab-sec on" id="sec-checkin">
   <!-- status -->
   <div class="card">
     <div class="clock" id="clock">--:--:--</div>
@@ -143,6 +159,9 @@
     <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
   </div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-timelog">
   <!-- time log (DL cost capture) -->
   <div class="card">
     <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR) <span id="tl-req" style="display:none;color:var(--orange-light);font-weight:700;">· จำเป็น</span></div>
@@ -174,6 +193,9 @@
     <div id="mytl" style="margin-top:14px;"></div>
   </div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-leave">
   <!-- leave request -->
   <div class="card">
     <div class="title">🏖️ ขอลางาน</div>
@@ -194,6 +216,9 @@
     <div id="myleave" style="margin-top:14px;"></div>
   </div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-ot">
   <!-- OT request -->
   <div class="card">
     <div class="title">🌙 ขอ OT ล่วงหน้า</div>
@@ -209,6 +234,9 @@
     <div id="myot" style="margin-top:14px;"></div>
   </div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-book">
   <!-- vehicle booking -->
   <div class="card">
     <div class="title">🚗 จองรถ</div>
@@ -226,6 +254,7 @@
     <button class="btn gps" onclick="submitBooking()">🚗 จองรถ</button>
     <div id="mybook" style="margin-top:14px;"></div>
   </div>
+  </section>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -263,6 +292,11 @@ function plannerJobsForMe(){
       &&(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
     .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',
       time:j.timeStart||'',date:t,assignees:[myName()],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
+}
+function showTab(id){
+  document.querySelectorAll('.tab-sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+id));
+  document.querySelectorAll('#tabbar .tab').forEach(t=>t.classList.toggle('active',t.dataset.sec===id));
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
   if(!PLANNER_URL)return;
