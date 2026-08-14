@@ -42,7 +42,9 @@ function readPlanner_() {
     for (var r = 0; r < values.length; r++) {
       var key = String(values[r][0] || '').trim();
       if ((key === 'people' || key === 'jobs') && !want[key]) {
-        var raw = values[r][1];
+        // JSON ถูกแบ่งเก็บหลายเซลล์ (คอลัมน์ B,C,D,E…) กันชนลิมิต 50,000/เซลล์ → ต่อกลับก่อน parse
+        var raw = '';
+        for (var col = 1; col < values[r].length; col++) raw += String(values[r][col] || '');
         try { want[key] = JSON.parse(raw); } catch (e2) {}
       }
     }
