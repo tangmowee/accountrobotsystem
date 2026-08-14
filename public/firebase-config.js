@@ -51,7 +51,7 @@ window.OFFICE_JR  = window.OFFICE_JRS[0]; // ค่าเริ่มต้น (
    วางลิงก์ Web app (…/exec) ที่ได้จากการ Deploy สคริปต์ RSC-Planner-AppsScript.gs
    ปล่อยว่าง = ปิดการเชื่อม (ใช้เฉพาะแผนงานที่กรอกในแอดมิน)
    จับคู่คนด้วย "ชื่อจริง" (fullName) ระหว่าง RSC Connect กับ RSC Planner */
-window.PLANNER_URL = '';
+window.PLANNER_URL = 'https://script.google.com/macros/s/AKfycbyP64LrWowUoTi1QXSmb5vpmFRl9bFkfUbLAM14wT3DCmapxQUPn6j_TlkVh3TLWvj2/exec';
 
 /* ===== เงินเดือน/ค่าแรง (เห็นเฉพาะ HR) — สำหรับสรุปชั่วโมง+เงินส่ง Business Plus ===== */
 /* ตัวหารหาค่าจ้างต่อชั่วโมง: เงินเดือน ÷ (30 วัน × 8 ชม.) = ÷240 (ปรับได้ตามระเบียบบริษัท) */
