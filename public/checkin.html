@@ -35,7 +35,7 @@
   .conn.cloud{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
   .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
 
-  .wrap{max-width:520px;margin:0 auto;padding:16px;}
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 96px;}
   .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
   .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
 
@@ -120,18 +120,43 @@
 
 <div class="wrap" id="app">
   <style>
-    .tabbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch;}
-    .tabbar::-webkit-scrollbar{display:none;}
-    .tabbar .tab{flex:0 0 auto;white-space:nowrap;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:9px 16px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;}
-    .tabbar .tab.active{background:var(--orange);color:#fff;border-color:var(--orange);}
     .tab-sec{display:none;} .tab-sec.on{display:block;}
+    /* แถบเมนูล่าง (แบบแอปมือถือ) */
+    .botnav{position:fixed;left:0;right:0;bottom:0;z-index:100;display:flex;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,0.07);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+    .botnav .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-family:inherit;font-size:11px;font-weight:600;padding:6px 2px;cursor:pointer;}
+    .botnav .tab .i{font-size:23px;line-height:1;}
+    .botnav .tab.active{color:var(--orange);}
+    /* การ์ดเวลาเข้า-ออก สองคอลัมน์ */
+    .io{display:flex;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.05);}
+    .io > div{flex:1;padding:16px;}
+    .io > div + div{border-left:1px solid var(--border);}
+    .io .co{font-size:14px;color:var(--muted);font-weight:600;}
+    .io .big{font-size:30px;font-weight:700;font-family:'Space Grotesk','Prompt',sans-serif;color:var(--green);line-height:1.1;margin-top:6px;}
+    .io .big.miss{color:var(--muted);}
+    .io .dt{font-size:14px;color:var(--muted);margin-top:2px;}
+    /* ปฏิทิน */
+    .cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .cal-h button{background:var(--dark2);border:1px solid var(--border);border-radius:10px;width:42px;height:42px;font-size:22px;color:var(--text);cursor:pointer;}
+    .cal-h .mo{font-size:21px;font-weight:700;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+    .cal-grid .dow{text-align:center;font-size:12px;color:var(--muted);font-weight:600;padding:4px 0;}
+    .cal-cell{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;position:relative;border:1.5px solid transparent;}
+    .cal-cell.pad{visibility:hidden;}
+    .cal-cell.sel{border-color:var(--orange);background:var(--orange-dim);}
+    .cal-cell.today{font-weight:800;background:rgba(249,115,22,0.08);}
+    .cal-cell.wknd{color:#dc2626;}
+    .cal-cell .dot{width:7px;height:7px;border-radius:50%;position:absolute;bottom:5px;left:50%;transform:translateX(-50%);}
+    .dot.present{background:#16a34a;} .dot.late{background:#eab308;} .dot.absent{background:#ef4444;} .dot.leave{background:#38bdf8;} .dot.holiday{background:#3b82f6;}
+    .legend{display:flex;flex-wrap:wrap;gap:9px 16px;margin-top:16px;font-size:14px;color:var(--muted);}
+    .legend span{display:flex;align-items:center;gap:6px;}
+    .legend i{width:11px;height:11px;border-radius:50%;display:inline-block;}
   </style>
-  <div class="tabbar" id="tabbar">
-    <button class="tab active" data-sec="checkin" onclick="showTab('checkin')">🟢 เช็คอิน</button>
-    <button class="tab" data-sec="timelog" onclick="showTab('timelog')">🧾 ลงเวลา JR</button>
-    <button class="tab" data-sec="leave" onclick="showTab('leave')">🏖️ ลา</button>
-    <button class="tab" data-sec="ot" onclick="showTab('ot')">🌙 OT</button>
-    <button class="tab" data-sec="book" onclick="showTab('book')">🚗 จองรถ</button>
+  <div class="botnav" id="tabbar">
+    <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i">🕐</span>ลงเวลา</button>
+    <button class="tab" data-sec="cal" onclick="showTab('cal')"><span class="i">📅</span>ปฏิทิน</button>
+    <button class="tab" data-sec="timelog" onclick="showTab('timelog')"><span class="i">🧾</span>ลง JR</button>
+    <button class="tab" data-sec="leave" onclick="showTab('leave')"><span class="i">🏖️</span>ลา</button>
+    <button class="tab" data-sec="more" onclick="showTab('more')"><span class="i">➕</span>เพิ่มเติม</button>
   </div>
 
   <section class="tab-sec on" id="sec-checkin">
@@ -157,12 +182,15 @@
     <button class="btn out" id="btn-out" onclick="checkout()" disabled>🔴 เช็คเอาท์</button>
   </div>
 
-  <!-- my history -->
-  <div class="card">
-    <div class="title">🕓 ประวัติล่าสุดของฉัน</div>
-    <div id="mylog"><div class="muted">ยังไม่มีข้อมูล</div></div>
-  </div>
+  <!-- today in/out summary -->
+  <div class="title" style="margin:4px 2px 10px;">🕓 เวลาเข้า–ออกงานวันนี้</div>
+  <div id="today-sum"></div>
 
+  </section>
+
+  <section class="tab-sec" id="sec-cal">
+    <div class="card"><div id="cal"></div></div>
+    <div id="cal-day"></div>
   </section>
 
   <section class="tab-sec" id="sec-timelog">
@@ -222,7 +250,7 @@
 
   </section>
 
-  <section class="tab-sec" id="sec-ot">
+  <section class="tab-sec" id="sec-more">
   <!-- OT request -->
   <div class="card">
     <div class="title">🌙 ขอ OT ล่วงหน้า</div>
@@ -238,9 +266,6 @@
     <div id="myot" style="margin-top:14px;"></div>
   </div>
 
-  </section>
-
-  <section class="tab-sec" id="sec-book">
   <!-- vehicle booking -->
   <div class="card">
     <div class="title">🚗 จองรถ</div>
@@ -300,6 +325,8 @@ function plannerJobsForMe(){
 function showTab(id){
   document.querySelectorAll('.tab-sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+id));
   document.querySelectorAll('#tabbar .tab').forEach(t=>t.classList.toggle('active',t.dataset.sec===id));
+  if(id==='cal')renderCalendar();
+  if(id==='checkin')renderTodaySummary();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
@@ -425,33 +452,75 @@ function renderJobs(){
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
 }
-function toggleRec(el){const d=el.parentNode.querySelector('.rec-detail');if(d)d.style.display=(d.style.display==='block')?'none':'block';}
-function renderMyLog(){
-  const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,12);
-  const el=$('mylog');
-  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีข้อมูล</div>';return;}
-  const tls=load(LS_TL).filter(x=>x.name===n);
-  el.innerHTML=mine.map(r=>{
-    const d=r.date||new Date(r.inTs).toISOString().slice(0,10);
-    const dayTL=tls.filter(x=>x.date===d);
-    const tlH=dayTL.reduce((s,x)=>s+(+x.hours||0),0);
-    const inMap=r.inGeo?` · <a href="https://www.google.com/maps?q=${r.inGeo}" target="_blank">📍 แผนที่</a>`:'';
-    const outMap=r.outGeo?` · <a href="https://www.google.com/maps?q=${r.outGeo}" target="_blank">📍 แผนที่</a>`:'';
-    const detail=`<div class="rec-detail">
-      <div>🟢 <b>เข้า</b> ${fmtT(r.inTs)}${inMap}</div>
-      <div>🔴 <b>ออก</b> ${r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์'}${outMap}</div>
-      ${r.jobTitle?`<div>🏗️ งาน: ${esc(r.jobTitle)}</div>`:''}
-      ${r.note?`<div>📝 ${esc(r.note)}</div>`:''}
-      <div style="margin-top:6px;">🧾 <b>เวลาตาม JR วันนี้: ${tlH.toFixed(1)} ชม.</b> (${dayTL.length} รายการ)</div>
-      ${dayTL.map(x=>`<div class="jr">• ${esc(x.jr||'')} · ${tlHM(x.timeStart)}-${tlHM(x.timeEnd)} · ${(+x.hours||0).toFixed(1)} ชม.${x.note?' · '+esc(x.note):''}</div>`).join('')}
-    </div>`;
-    return `<div class="rec-wrap">
-      <div class="rec" onclick="toggleRec(this)">
-        <div><div style="font-weight:600;">${new Date(r.inTs).toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''} <span style="color:var(--muted);font-size:13px;">▾</span></div>
-          <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${r.outTs?fmtT(r.outTs):'—'}</div></div>
-        <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div>
-      </div>${detail}</div>`;
-  }).join('');
+/* เรียกรวม: อัปเดตการ์ดเข้า-ออกวันนี้ + ปฏิทิน (ถ้าเปิดอยู่) */
+function renderMyLog(){renderTodaySummary();const c=$('sec-cal');if(c&&c.classList.contains('on'))renderCalendar();}
+
+const WORK_END = window.WORK_END || '17:30';
+function dayRecs(ds){const n=myName();return load(LS_LOG).filter(r=>r.name===n&&((r.date||new Date(r.inTs).toISOString().slice(0,10))===ds));}
+function renderTodaySummary(){
+  const el=$('today-sum');if(!el)return;
+  const t=todayStr();const recs=dayRecs(t);
+  const firstIn=recs.length?recs.reduce((a,b)=>a.inTs<b.inTs?a:b):null;
+  const lastOut=recs.filter(r=>r.outTs).sort((a,b)=>b.outTs-a.outTs)[0];
+  const bd=new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'short'});
+  el.innerHTML='<div class="io">'
+    +'<div><div class="co">เข้างาน ('+WORK_START+')</div><div class="big'+(firstIn?'':' miss')+'">'+(firstIn?fmtT(firstIn.inTs):'--:--')+'</div><div class="dt">'+(firstIn?bd:'ยังไม่เข้างาน')+'</div></div>'
+    +'<div><div class="co">ออกงาน ('+WORK_END+')</div><div class="big'+(lastOut?'':' miss')+'">'+(lastOut?fmtT(lastOut.outTs):'--:--')+'</div><div class="dt">'+(lastOut?bd:'ยังไม่ออกงาน')+'</div></div>'
+    +'</div>';
+}
+
+/* ===== ปฏิทิน ===== */
+let calY=null,calM=null,calSel=null;
+function pad2(n){return (n<10?'0':'')+n;}
+function ymd(y,m,d){return y+'-'+pad2(m+1)+'-'+pad2(d);}
+function isHol(ds){return (window.HOLIDAYS||[]).includes(ds);}
+function dayStatus(ds){
+  const n=myName();
+  const recs=dayRecs(ds);
+  if(recs.length){const late=recs.some(r=>{const c=new Date(r.inTs);return (c.getHours()*60+c.getMinutes())>parseHM(WORK_START)+GRACE;});return late?'late':'present';}
+  const onLeave=load(LS_LEAVE).some(l=>l.name===n&&l.status!=='rejected'&&(l.from||'')<=ds&&(l.to||l.from||'')>=ds);
+  if(onLeave)return 'leave';
+  if(isHol(ds))return 'holiday';
+  const dow=new Date(ds+'T00:00').getDay();
+  if(ds<todayStr()&&dow>=1&&dow<=5)return 'absent';
+  return '';
+}
+function renderCalendar(){
+  if(calY==null){const t=new Date();calY=t.getFullYear();calM=t.getMonth();}
+  if(!calSel)calSel=todayStr();
+  const startDow=new Date(calY,calM,1).getDay(),days=new Date(calY,calM+1,0).getDate();
+  const mo=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dows=['อา','จ','อ','พ','พฤ','ศ','ส'],today=todayStr();
+  let h='<div class="cal-h"><button onclick="calNav(-1)">‹</button><div class="mo">'+mo[calM]+' '+(calY+543)+'</div><button onclick="calNav(1)">›</button></div><div class="cal-grid">'+dows.map(d=>'<div class="dow">'+d+'</div>').join('');
+  for(let i=0;i<startDow;i++)h+='<div class="cal-cell pad"></div>';
+  for(let d=1;d<=days;d++){const ds=ymd(calY,calM,d),st=dayStatus(ds),dow=new Date(calY,calM,d).getDay();
+    const cls=['cal-cell'];if(dow===0||dow===6)cls.push('wknd');if(ds===today)cls.push('today');if(ds===calSel)cls.push('sel');
+    h+='<div class="'+cls.join(' ')+'" onclick="calPick(\''+ds+'\')">'+d+(st?'<span class="dot '+st+'"></span>':'')+'</div>';}
+  h+='</div><div class="legend"><span><i style="background:#16a34a"></i>ปกติ</span><span><i style="background:#eab308"></i>สาย</span><span><i style="background:#ef4444"></i>ขาดงาน</span><span><i style="background:#38bdf8"></i>ลา</span><span><i style="background:#3b82f6"></i>นักขัต</span></div>';
+  $('cal').innerHTML=h;renderDay(calSel);
+}
+function calNav(x){calM+=x;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendar();}
+function calPick(ds){calSel=ds;renderCalendar();}
+function renderDay(ds){
+  const el=$('cal-day');if(!el)return;
+  const n=myName(),recs=dayRecs(ds),tls=load(LS_TL).filter(x=>x.name===n&&x.date===ds);
+  const bd=new Date(ds+'T00:00').toLocaleDateString('th-TH',{weekday:'long',day:'2-digit',month:'long'});
+  let h='<div class="card"><div class="title" style="margin-bottom:12px;">📅 '+bd+'</div>';
+  if(!recs.length&&!tls.length){h+='<div class="muted">ไม่มีการลงเวลาในวันนี้</div>';}
+  recs.forEach(r=>{
+    const im=r.inGeo?' · <a href="https://www.google.com/maps?q='+r.inGeo+'" target="_blank">📍 แผนที่</a>':'';
+    const om=r.outGeo?' · <a href="https://www.google.com/maps?q='+r.outGeo+'" target="_blank">📍 แผนที่</a>':'';
+    h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;">'
+      +'<div>🟢 <b>เข้า</b> '+fmtT(r.inTs)+im+'</div>'
+      +'<div>🔴 <b>ออก</b> '+(r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์')+om+'</div>'
+      +(r.jobTitle?'<div>🏗️ '+esc(r.jobTitle)+'</div>':'')
+      +(r.note?'<div>📝 '+esc(r.note)+'</div>':'')
+      +'<div>⏱️ รวม '+hrs(r.inTs,r.outTs)+' ชม.</div></div>';
+  });
+  if(tls.length){const sum=tls.reduce((s,x)=>s+(+x.hours||0),0);
+    h+='<div class="rec-detail" style="display:block;padding-left:0;padding-right:0;"><div>🧾 <b>เวลาตาม JR รวม '+sum.toFixed(1)+' ชม.</b></div>'
+      +tls.map(x=>'<div class="jr">• '+esc(x.jr||'')+' · '+tlHM(x.timeStart)+'-'+tlHM(x.timeEnd)+' · '+(+x.hours||0).toFixed(1)+' ชม.'+(x.note?' · '+esc(x.note):'')+'</div>').join('')+'</div>';}
+  h+='</div>';el.innerHTML=h;
 }
 
 /* ===== time log (เก็บต้นทุนแรงงาน DL/OH ตาม JR) ===== */
