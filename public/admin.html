@@ -173,6 +173,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
     <a data-s="pay" id="nav-pay" onclick="showSec('pay')" style="display:none">💵 เงินเดือน (HR)</a>
     <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
+    <a data-s="jrall" onclick="showSec('jrall')">📋 งาน Planner</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -379,6 +380,32 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== งาน Planner (สด จาก RSC Planner — อ่านอย่างเดียว) ===== -->
+  <section class="sec" id="s-jrall">
+    <div class="h1">งาน Planner (สด)</div>
+    <div class="sub">ดึงงานทั้งหมดจาก RSC Planner แบบสด — อ่านอย่างเดียว ไม่กระทบข้อมูลเดิม · จับคู่ผู้รับผิดชอบด้วยชื่อจริง</div>
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">📋 ตารางงาน <span class="tag" id="jra-count">0 งาน</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="jra-range" onchange="renderJRAll()" style="width:auto">
+            <option value="today">วันนี้</option>
+            <option value="week">สัปดาห์นี้</option>
+            <option value="upcoming" selected>วันนี้เป็นต้นไป</option>
+            <option value="all">ทั้งหมด</option>
+          </select>
+          <input type="text" id="jra-search" oninput="renderJRAll()" placeholder="ค้นหา JR/งาน/ไซต์/คน" style="width:auto">
+          <button class="btn sm" onclick="fetchPlannerAdmin(true)">🔄 รีเฟรช</button>
+        </div>
+      </div>
+      <div id="jra-status" class="note" style="margin-bottom:10px"></div>
+      <div class="tw"><table>
+        <thead><tr><th>วันที่</th><th>JR</th><th>งาน</th><th>ไซต์งาน</th><th>ผู้รับผิดชอบ</th><th>เวลา</th><th>คืบหน้า</th></tr></thead>
+        <tbody id="jra-body"><tr class="empty"><td colspan="7">— กด รีเฟรช เพื่อดึงงาน —</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
   <!-- ===== FLEET / BOOKING ===== -->
   <section class="sec" id="s-fleet">
     <div class="h1">จองรถ</div>
@@ -518,9 +545,69 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
   if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
   if(id==='dl')renderDL();
+  if(id==='jrall')ensureJRAll();
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();}}
 function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
+
+/* ===== งาน Planner (สด — อ่านอย่างเดียว) ===== */
+const PLANNER_URL_A = window.PLANNER_URL || '';
+let PLANNER_A = {people:[], jobs:[]}, jraLoaded=false;
+function ensureJRAll(){ if(!jraLoaded) fetchPlannerAdmin(false); else renderJRAll(); }
+function fetchPlannerAdmin(force){
+  if(!PLANNER_URL_A){$('jra-status').textContent='⚠️ ยังไม่ได้ตั้งค่า PLANNER_URL (เชื่อม RSC Planner)';renderJRAll();return;}
+  $('jra-status').textContent='⏳ กำลังดึงข้อมูลจาก RSC Planner…';
+  fetch(PLANNER_URL_A).then(r=>r.json()).then(d=>{
+    if(d&&d.ok){PLANNER_A.people=d.people||[];PLANNER_A.jobs=d.jobs||[];jraLoaded=true;
+      $('jra-status').textContent='อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH')+' · '+PLANNER_A.jobs.length+' งาน · '+PLANNER_A.people.length+' คน';
+    }else{$('jra-status').textContent='❌ feed ตอบกลับผิดพลาด: '+((d&&d.error)||'ไม่ทราบสาเหตุ');}
+    renderJRAll();
+  }).catch(e=>{$('jra-status').textContent='❌ ดึงข้อมูลไม่ได้ (อาจถูกไฟร์วอลล์บล็อก script.google.com) — '+(e.message||e);renderJRAll();});
+}
+function jraPeopleNames(ids){
+  if(!Array.isArray(ids)||!ids.length)return '<span class="mut">— งานส่วนกลาง —</span>';
+  const map={};PLANNER_A.people.forEach(p=>map[p.id]=p);
+  return ids.map(id=>{const p=map[id];return p?esc((p.name||'')+(p.fullName?(' ('+p.fullName.replace(/^(นาย|นางสาว|นาง)\s*/,'')+')'):'')):esc(id);}).join(', ');
+}
+function renderJRAll(){
+  const body=$('jra-body');if(!body)return;
+  const range=($('jra-range')||{}).value||'upcoming';
+  const q=(($('jra-search')||{}).value||'').trim().toLowerCase();
+  const t=new Date().toISOString().slice(0,10);
+  const wkEnd=(()=>{const d=new Date();d.setDate(d.getDate()+(7-((d.getDay()+6)%7)));return d.toISOString().slice(0,10);})();
+  const nameMap={};PLANNER_A.people.forEach(p=>nameMap[p.id]=((p.name||'')+' '+(p.fullName||'')).toLowerCase());
+  let jobs=PLANNER_A.jobs.slice().filter(j=>{
+    const s=j.start||'',e=j.end||s;
+    if(range==='today')return s<=t&&e>=t;
+    if(range==='week')return s<=wkEnd&&e>=t;
+    if(range==='upcoming')return (e||t)>=t;
+    return true;
+  });
+  if(q)jobs=jobs.filter(j=>{
+    const ppl=(j.people||[]).map(id=>nameMap[id]||'').join(' ');
+    return ((j.ref||'')+' '+(j.name||'')+' '+(j.site||'')+' '+ppl).toLowerCase().includes(q);
+  });
+  jobs.sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+  $('jra-count').textContent=jobs.length+' งาน';
+  if(!jobs.length){body.innerHTML='<tr class="empty"><td colspan="7">ไม่พบงานตามเงื่อนไข</td></tr>';return;}
+  body.innerHTML=jobs.map(j=>{
+    const d=j.start?new Date(j.start+'T00:00').toLocaleDateString('th-TH',{day:'2-digit',month:'short'}):'-';
+    const de=(j.end&&j.end!==j.start)?(' – '+new Date(j.end+'T00:00').toLocaleDateString('th-TH',{day:'2-digit',month:'short'})):'';
+    const pr=Math.max(0,Math.min(100,j.progress||0));
+    const time=j.timeStart?(j.timeStart+'–'+j.timeEnd):(j.slot||'');
+    const map=j.mapLink?' <a href="'+esc(j.mapLink)+'" target="_blank">🗺️</a>':'';
+    const today=(j.start||t)<=t&&(j.end||t)>=t;
+    return '<tr>'
+      +'<td class="mono" style="white-space:nowrap">'+d+de+(today?' <span class="tag" style="padding:0 6px">วันนี้</span>':'')+'</td>'
+      +'<td class="mono">'+esc(j.ref||'-')+'</td>'
+      +'<td>'+esc(j.name||'')+'</td>'
+      +'<td>'+esc(j.site||'-')+map+'</td>'
+      +'<td>'+jraPeopleNames(j.people)+'</td>'
+      +'<td class="mono" style="white-space:nowrap">'+esc(time)+'</td>'
+      +'<td class="mono">'+pr+'%</td>'
+      +'</tr>';
+  }).join('');
+}
 
 /* ===== render all ===== */
 function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderDL();}
