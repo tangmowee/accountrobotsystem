@@ -19,13 +19,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --orange:#F97316; --orange-light:#FB923C; --orange-dim:rgba(249,115,22,0.12);
-    --dark:#0A0B0D; --dark2:#0E0F13; --card:rgba(255,255,255,0.035); --border:rgba(255,255,255,0.08);
-    --text:#EAEAF0; --muted:#7C808C; --green:#34D399; --red:#F87171; --yellow:#FBBF24; --cyan:#22D3EE;
+    --orange:#F97316; --orange-light:#D35400; --orange-dim:rgba(249,115,22,0.12);
+    --dark:#eef1f5; --dark2:#f4f6f9; --card:#ffffff; --border:rgba(0,0,0,0.12);
+    --text:#1b1e24; --muted:#586173; --green:#059669; --red:#dc2626; --yellow:#b45309; --cyan:#0891b2;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{color:var(--text);font-family:'Prompt',sans-serif;font-size:15px;line-height:1.5;padding-bottom:40px;font-variant-numeric:tabular-nums;
-    background:radial-gradient(700px 380px at 15% -6%,rgba(249,115,22,0.12),transparent 60%),radial-gradient(600px 360px at 100% 0,rgba(34,211,238,0.08),transparent 55%),linear-gradient(180deg,var(--dark),var(--dark2));background-attachment:fixed;}
+  body{color:var(--text);font-family:'Prompt',sans-serif;font-size:17px;line-height:1.55;padding-bottom:40px;font-variant-numeric:tabular-nums;
+    background:radial-gradient(700px 380px at 15% -6%,rgba(249,115,22,0.10),transparent 60%),linear-gradient(180deg,#f7f8fa,#eef1f5);background-attachment:fixed;}
 
   .topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
   .brand{display:flex;align-items:center;gap:10px;}
@@ -36,18 +36,18 @@
   .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
 
   .wrap{max-width:520px;margin:0 auto;padding:16px;}
-  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);}
+  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
   .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
 
   .clock{font-family:'Space Grotesk','Prompt',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--orange);line-height:1;text-align:center;}
   .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
   .statusline{text-align:center;margin-top:14px;}
-  .chip{display:inline-block;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
+  .chip{display:inline-block;font-size:15px;font-weight:600;padding:7px 16px;border-radius:20px;}
   .chip.in{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
   .chip.out{background:rgba(136,136,136,0.15);color:var(--muted);border:1px solid rgba(136,136,136,0.3);}
 
-  label{display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
-  select,input,textarea{width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Prompt',sans-serif;font-size:16px;padding:13px;outline:none;}
+  label{display:block;font-size:14px;font-weight:700;letter-spacing:0.3px;color:var(--muted);margin:16px 0 7px;}
+  select,input,textarea{width:100%;background:var(--dark2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Prompt',sans-serif;font-size:18px;padding:14px;outline:none;}
   select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
 
   .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
@@ -65,12 +65,16 @@
   .btn.out{border-color:rgba(231,76,60,0.5);color:var(--red);font-size:19px;}
   .btn.ghost{padding:11px;font-size:13px;font-weight:600;}
 
-  .rec{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;}
-  .rec:last-child{border-bottom:none;}
-  .rec .t{font-family:'IBM Plex Mono',monospace;color:var(--muted);}
-  .rec .h{color:var(--orange-light);font-family:'IBM Plex Mono',monospace;font-weight:600;}
-  .muted{color:var(--muted);font-size:12px;}
-  .title{font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+  .rec-wrap{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--card);}
+  .rec{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 14px;font-size:16px;cursor:pointer;}
+  .rec:active{background:rgba(0,0,0,0.03);}
+  .rec .t{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:14px;}
+  .rec .h{color:var(--orange-light);font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:16px;white-space:nowrap;}
+  .rec-detail{display:none;padding:12px 16px 16px;font-size:15px;line-height:1.8;border-top:1px dashed var(--border);background:rgba(0,0,0,0.02);}
+  .rec-detail a{color:var(--orange-light);font-weight:600;text-decoration:none;}
+  .rec-detail .jr{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);}
+  .muted{color:var(--muted);font-size:14px;}
+  .title{font-size:14px;font-weight:700;letter-spacing:0.3px;color:var(--muted);margin-bottom:12px;}
 
   /* login */
   .overlay{position:fixed;inset:0;background:rgba(5,5,5,0.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
@@ -421,14 +425,33 @@ function renderJobs(){
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
 }
+function toggleRec(el){const d=el.parentNode.querySelector('.rec-detail');if(d)d.style.display=(d.style.display==='block')?'none':'block';}
 function renderMyLog(){
-  const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,8);
+  const n=myName();const mine=load(LS_LOG).filter(r=>r.name===n).slice(0,12);
   const el=$('mylog');
   if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีข้อมูล</div>';return;}
-  el.innerHTML=mine.map(r=>`<div class="rec">
-    <div><div>${new Date(r.inTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''}</div>
-      <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${fmtT(r.outTs)}</div></div>
-    <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div></div>`).join('');
+  const tls=load(LS_TL).filter(x=>x.name===n);
+  el.innerHTML=mine.map(r=>{
+    const d=r.date||new Date(r.inTs).toISOString().slice(0,10);
+    const dayTL=tls.filter(x=>x.date===d);
+    const tlH=dayTL.reduce((s,x)=>s+(+x.hours||0),0);
+    const inMap=r.inGeo?` · <a href="https://www.google.com/maps?q=${r.inGeo}" target="_blank">📍 แผนที่</a>`:'';
+    const outMap=r.outGeo?` · <a href="https://www.google.com/maps?q=${r.outGeo}" target="_blank">📍 แผนที่</a>`:'';
+    const detail=`<div class="rec-detail">
+      <div>🟢 <b>เข้า</b> ${fmtT(r.inTs)}${inMap}</div>
+      <div>🔴 <b>ออก</b> ${r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์'}${outMap}</div>
+      ${r.jobTitle?`<div>🏗️ งาน: ${esc(r.jobTitle)}</div>`:''}
+      ${r.note?`<div>📝 ${esc(r.note)}</div>`:''}
+      <div style="margin-top:6px;">🧾 <b>เวลาตาม JR วันนี้: ${tlH.toFixed(1)} ชม.</b> (${dayTL.length} รายการ)</div>
+      ${dayTL.map(x=>`<div class="jr">• ${esc(x.jr||'')} · ${tlHM(x.timeStart)}-${tlHM(x.timeEnd)} · ${(+x.hours||0).toFixed(1)} ชม.${x.note?' · '+esc(x.note):''}</div>`).join('')}
+    </div>`;
+    return `<div class="rec-wrap">
+      <div class="rec" onclick="toggleRec(this)">
+        <div><div style="font-weight:600;">${new Date(r.inTs).toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'})} ${r.jobTitle?'· '+esc(r.jobTitle.split(' @ ')[0]):''} <span style="color:var(--muted);font-size:13px;">▾</span></div>
+          <div class="t">เข้า ${fmtT(r.inTs)} · ออก ${r.outTs?fmtT(r.outTs):'—'}</div></div>
+        <div class="h">${hrs(r.inTs,r.outTs)} ชม.</div>
+      </div>${detail}</div>`;
+  }).join('');
 }
 
 /* ===== time log (เก็บต้นทุนแรงงาน DL/OH ตาม JR) ===== */
