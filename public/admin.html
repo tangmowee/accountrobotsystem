@@ -890,14 +890,29 @@ async function bulkCreateLogins(){
   let app2;
   try{app2=firebase.app('signup');}catch(e){app2=firebase.initializeApp(CFG,'signup');}
   const auth2=app2.auth();
-  let created=0,exist=0,fail=0;const errs=[];
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const btn=document.querySelector('button[onclick="bulkCreateLogins()"]');const oldTxt=btn?btn.textContent:'';
+  let created=0,exist=0,fail=0;const errs=[];let i=0;
   for(const e of emps){
+    i++;if(btn)btn.textContent='⏳ '+i+'/'+emps.length;
     const email=(e.email.includes('@')?e.email:e.email+'@'+DOMAIN);
-    try{await auth2.createUserWithEmailAndPassword(email,DEFAULT_PW);created++;try{await auth2.signOut();}catch(_){}}
-    catch(x){if(x&&x.code==='auth/email-already-in-use'){exist++;}else{fail++;errs.push((e.email||'?')+': '+((x&&(x.code||x.message))||'error'));}}
+    let ok=false,lastErr=null;
+    for(let attempt=0;attempt<3&&!ok;attempt++){
+      if(attempt)await sleep(700*attempt); // เว้นจังหวะก่อนลองซ้ำ
+      try{await auth2.createUserWithEmailAndPassword(email,DEFAULT_PW);created++;ok=true;try{await auth2.signOut();}catch(_){}}
+      catch(x){lastErr=x;
+        if(x&&x.code==='auth/email-already-in-use'){exist++;ok=true;break;}
+        // ลองซ้ำเฉพาะ error เกี่ยวกับเน็ต/รับส่ง; error อื่นเลิกเลย
+        if(!(x&&(x.code==='auth/network-request-failed'||x.code==='auth/too-many-requests'||x.code==='auth/timeout')))break;
+      }
+    }
+    if(!ok){fail++;errs.push((e.email||'?')+': '+((lastErr&&(lastErr.code||lastErr.message))||'error'));}
+    await sleep(250); // เว้นจังหวะระหว่างคน กันเน็ตล้น
   }
   try{await app2.delete();}catch(e){}
+  if(btn)btn.textContent=oldTxt;
   alert('เสร็จแล้ว ✅\n\nสร้างใหม่ '+created+' คน\nมีบัญชีอยู่แล้ว (ข้าม) '+exist+' คน\nพลาด '+fail+' คน'
+    +(fail?'\n\n💡 ถ้ายังพลาด = เน็ตบล็อก googleapis — ลองเน็ตมือถือ 5G แล้วกดซ้ำ (ระบบจะข้ามคนที่มีแล้ว)':'')
     +(errs.length?('\n\nรายการที่พลาด:\n'+errs.slice(0,8).join('\n')+(errs.length>8?'\n…':'')):''));
 }
 function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
