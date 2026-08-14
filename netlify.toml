@@ -3,7 +3,7 @@
 
 [build]
   publish = "public"
-  command = ""
+  command = "echo 'RSC Connect — static site, no build step required'"
 
 [[redirects]]
   from = "/admin"
