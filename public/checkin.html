@@ -15,6 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="store.js"></script>
+<script src="srprint.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -370,6 +371,7 @@
     <button class="btn ghost" type="button" onclick="srClearSig()" style="margin-top:6px;">🧹 ล้างลายเซ็น</button>
 
     <button class="btn in" onclick="submitServiceReport()" style="margin-top:14px;">📄 บันทึกใบรายงาน</button>
+    <div id="sr-done" class="geo ok" style="display:none;margin-top:14px;"></div>
     <div id="sr-mylist" style="margin-top:16px;"></div>
   </div>
   </div>
@@ -1016,8 +1018,30 @@ async function submitServiceReport(){
   }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||e));return;}
   const idx=load(LS_SR);idx.unshift({id,reportNo,personName:name,jobRef:rep.jobRef,customer,contact:rep.contact,contactPhone:rep.contactPhone,date:rep.date,workStatus:rep.workStatus,createdTs:rep.createdTs});
   save(LS_SR,idx);
+  _srLast=rep;
   srResetForm();toast('📄 บันทึกใบรายงาน '+reportNo+' ✅');renderSRList();
+  srShowDone(rep);
 }
+const SALES_ADMIN=window.SALES_ADMIN_EMAIL||'';
+let _srLast=null;
+function srShowDone(rep){
+  const box=$('sr-done');if(!box)return;
+  box.style.display='block';
+  box.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:2px;">✅ บันทึกใบ '+esc(rep.reportNo)+' แล้ว</div>'
+    +'<div class="muted" style="font-size:13px;">ส่งให้ '+esc(SALES_ADMIN)+(rep.custEmail?(' และ '+esc(rep.custEmail)):' (ยังไม่ได้กรอกอีเมลลูกค้า)')+'</div>'
+    +'<button class="btn gps" style="margin-top:10px;" onclick="srOpenLast()">🖨️ เปิด / พิมพ์ / บันทึก PDF</button>'
+    +'<button class="btn gps" onclick="srDownloadLast()">⬇️ ดาวน์โหลดใบรายงาน</button>'
+    +'<button class="btn in" onclick="srMailLast()">📧 ส่งอีเมล</button>'
+    +'<button class="btn ghost" onclick="document.getElementById(\'sr-done\').style.display=\'none\'">ปิด</button>';
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function srDisplay(rep){const e=EMP.find(x=>x.email===rep.personName);
+  return Object.assign({},rep,{personDisplay:(e&&e.name)||rep.personName||''});}
+function srOpenLast(){if(_srLast)SRPrint.open(srDisplay(_srLast));}
+function srDownloadLast(){if(_srLast)SRPrint.download(srDisplay(_srLast));}
+function srMailLast(){if(!_srLast)return;
+  if(!_srLast.custEmail&&!confirm('ยังไม่ได้กรอกอีเมลลูกค้า — ส่งให้ '+SALES_ADMIN+' อย่างเดียวไหม?'))return;
+  window.location.href=SRPrint.mailtoLink(srDisplay(_srLast),SALES_ADMIN);}
 function renderSRList(){const el=$('sr-mylist');if(!el)return;
   if($('sr-no'))$('sr-no').textContent=srNextNo();
   const mine=load(LS_SR).filter(r=>r.personName===myName()).slice(0,8);

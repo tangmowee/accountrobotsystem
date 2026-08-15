@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="store.js"></script>
+<script src="srprint.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -178,6 +179,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="pay" id="nav-pay" onclick="showSec('pay')" style="display:none">💵 เงินเดือน (HR)</a>
     <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
     <a data-s="jrall" onclick="showSec('jrall')">📋 งาน Planner</a>
+    <a data-s="srv" onclick="showSec('srv')">📄 ใบรายงานบริการ</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -419,6 +421,40 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== SERVICE REPORTS ===== -->
+  <section class="sec" id="s-srv">
+    <div class="h1">ใบรายงานบริการ</div>
+    <div class="sub">ใบรายงานที่ช่างออกหน้างาน — ดูรายวัน/รายเดือน · เปิดดูและพิมพ์ · ส่งอีเมลถึง salesadmin และลูกค้า · ส่งออก Excel/CSV</div>
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">📄 รายการใบรายงาน <span class="tag" id="srv-count">0 ใบ</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="srv-mode" onchange="renderSrv()" style="width:auto">
+            <option value="day">รายวัน</option>
+            <option value="month" selected>รายเดือน</option>
+            <option value="all">ทั้งหมด</option>
+          </select>
+          <input type="date" id="srv-day" onchange="renderSrv()" style="width:auto;display:none">
+          <input type="month" id="srv-month" onchange="needMonthSrv();renderSrv()" style="width:auto">
+          <input type="text" id="srv-search" oninput="renderSrv()" placeholder="ค้นหา ลูกค้า/JR/เลขที่/ช่าง" style="width:auto">
+          <button class="btn sm p" onclick="exportSrvXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportSrvCsv()">CSV</button>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-bottom:16px">
+        <div class="stat"><div class="k">จำนวนใบ</div><div class="v mono" id="srv-n">0</div><div class="u">ใบ</div></div>
+        <div class="stat o"><div class="k">เสร็จสมบูรณ์</div><div class="v mono" id="srv-done">0</div><div class="u">ใบ</div></div>
+        <div class="stat r"><div class="k">ต้องตามต่อ</div><div class="v mono" id="srv-follow">0</div><div class="u">ใบ</div></div>
+        <div class="stat a"><div class="k">ลูกค้า</div><div class="v mono" id="srv-cust">0</div><div class="u">ราย</div></div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>วันที่</th><th>เลขที่</th><th>ลูกค้า</th><th>JR</th><th>ผู้ติดต่อ</th><th>ช่าง</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="srv-body"><tr class="empty"><td colspan="8">ยังไม่มีใบรายงาน</td></tr></tbody>
+      </table></div>
+      <div class="note">กด “เปิด” เพื่อดูใบเต็มและสั่งพิมพ์/บันทึก PDF · “เมล” เปิดโปรแกรมอีเมลพร้อมเนื้อหาถึง <b id="srv-admin">—</b> และอีเมลลูกค้า</div>
+    </div>
+  </section>
+
   <!-- ===== FLEET / BOOKING ===== -->
   <section class="sec" id="s-fleet">
     <div class="h1">จองรถ</div>
@@ -523,12 +559,12 @@ const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const HOLIDAYS=window.HOLIDAYS||[]; const isHoliday=ds=>HOLIDAYS.includes(ds);
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
 const LS_PAY='rsc_payroll'; // เงินเดือน เก็บแยก เห็นเฉพาะ HR (ไม่อยู่ใน listener รวม)
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_PAY]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PAY]:[]};
 const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 let _toastT=null;
@@ -574,7 +610,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
 function listen(){
-  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
   RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
 }
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
@@ -592,6 +628,7 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
   if(id==='dl')renderDL();
   if(id==='jrall')ensureJRAll();
+  if(id==='srv')renderSrv();
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
 function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
@@ -707,7 +744,7 @@ function renderJRAll(){
 }
 
 /* ===== render all ===== */
-function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -1196,6 +1233,76 @@ function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('b
       <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
       <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
       <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
+/* ===== ใบรายงานบริการ ===== */
+const SALES_ADMIN=window.SALES_ADMIN_EMAIL||'';
+function needMonthSrv(){}
+function srvFiltered(){
+  const mode=($('srv-mode')||{}).value||'month';
+  const q=(($('srv-search')||{}).value||'').trim().toLowerCase();
+  let list=load(LS_SR).slice();
+  if(mode==='day'){const d=($('srv-day')||{}).value||todayStr();list=list.filter(r=>(r.date||'')===d);}
+  else if(mode==='month'){const m=($('srv-month')||{}).value||todayStr().slice(0,7);list=list.filter(r=>(r.date||'').slice(0,7)===m);}
+  if(q)list=list.filter(r=>((r.reportNo||'')+' '+(r.customer||'')+' '+(r.jobRef||'')+' '+(r.contact||'')+' '+nameOf(r.personName)).toLowerCase().includes(q));
+  return list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdTs||0)-(a.createdTs||0));
+}
+function renderSrv(){
+  const body=$('srv-body');if(!body)return;
+  const mode=($('srv-mode')||{}).value||'month';
+  if($('srv-day'))$('srv-day').style.display=(mode==='day')?'':'none';
+  if($('srv-month'))$('srv-month').style.display=(mode==='month')?'':'none';
+  if($('srv-day')&&!$('srv-day').value)$('srv-day').value=todayStr();
+  if($('srv-month')&&!$('srv-month').value)$('srv-month').value=todayStr().slice(0,7);
+  if($('srv-admin'))$('srv-admin').textContent=SALES_ADMIN||'(ยังไม่ตั้งค่า)';
+  const list=srvFiltered();
+  $('srv-count').textContent=list.length+' ใบ';
+  $('srv-n').textContent=list.length;
+  $('srv-done').textContent=list.filter(r=>r.workStatus==='completed').length;
+  $('srv-follow').textContent=list.filter(r=>r.workStatus!=='completed').length;
+  $('srv-cust').textContent=new Set(list.map(r=>r.customer||'')).size;
+  if(!list.length){body.innerHTML='<tr class="empty"><td colspan="8">ไม่มีใบรายงานตามเงื่อนไข</td></tr>';return;}
+  body.innerHTML=list.map(r=>{
+    const ok=r.workStatus==='completed';
+    return '<tr>'
+      +'<td class="mono" style="white-space:nowrap">'+esc(SRPrint.thDate(r.date))+'</td>'
+      +'<td class="mono"><b>'+esc(r.reportNo||'')+'</b></td>'
+      +'<td>'+esc(r.customer||'-')+'</td>'
+      +'<td class="mono">'+esc(r.jobRef||'-')+'</td>'
+      +'<td>'+esc(r.contact||'-')+(r.contactPhone?('<div class="note"><a href="tel:'+esc(r.contactPhone)+'">📞 '+esc(r.contactPhone)+'</a></div>'):'')+'</td>'
+      +'<td>'+nameOf(r.personName)+'</td>'
+      +'<td><span class="'+(ok?'chip in':'chip out')+'">'+(ok?'เสร็จ':'ตามต่อ')+'</span></td>'
+      +'<td class="ctr" style="white-space:nowrap"><button class="btn sm" onclick="srvOpen(\''+r.id+'\')">เปิด</button> '
+      +'<button class="btn sm" onclick="srvMail(\''+r.id+'\')">เมล</button></td>'
+      +'</tr>';
+  }).join('');
+}
+/* โหลดใบเต็ม (เก็บแยกเอกสาร rsc/sr_<id>) แล้วทำงานต่อ */
+function srvLoadFull(id,cb){
+  if(MODE==='firebase'&&db){
+    db.collection('rsc').doc('sr_'+id).get().then(s=>{
+      if(!s.exists){toast('ไม่พบใบรายงาน (อาจถูกลบ)',true);return;}
+      const r=s.data();const e=empOf(r.personName);
+      cb(Object.assign({},r,{personDisplay:(e&&e.name)||r.personName||''}));
+    }).catch(e=>toast('โหลดใบรายงานไม่สำเร็จ: '+(e.message||e),true));
+  }else{
+    try{const r=JSON.parse(localStorage.getItem('sr_'+id));if(!r){toast('ไม่พบใบรายงาน',true);return;}
+      const e=empOf(r.personName);cb(Object.assign({},r,{personDisplay:(e&&e.name)||r.personName||''}));
+    }catch(x){toast('โหลดใบรายงานไม่สำเร็จ',true);}
+  }
+}
+function srvOpen(id){srvLoadFull(id,r=>SRPrint.open(r));}
+function srvMail(id){srvLoadFull(id,r=>{
+  if(!r.custEmail&&!confirm('ใบนี้ไม่มีอีเมลลูกค้า — ส่งให้ '+SALES_ADMIN+' อย่างเดียวไหม?'))return;
+  window.location.href=SRPrint.mailtoLink(r,SALES_ADMIN);});}
+const SRV_HEAD=['วันที่','เลขที่','JR','ลูกค้า','ผู้ติดต่อ','เบอร์','อีเมลลูกค้า','ช่าง','สถานะ'];
+function srvRows(){return srvFiltered().map(r=>[r.date||'',r.reportNo||'',r.jobRef||'',r.customer||'',r.contact||'',
+  r.contactPhone||'',r.custEmail||'',(empOf(r.personName)||{}).name||r.personName||'',
+  r.workStatus==='completed'?'เสร็จสมบูรณ์':'ต้องตามต่อ']);}
+function srvFileTag(){const m=($('srv-mode')||{}).value||'month';
+  return m==='day'?(($('srv-day')||{}).value||todayStr()):(m==='month'?(($('srv-month')||{}).value||todayStr().slice(0,7)):'all');}
+function exportSrvCsv(){const r=srvRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_service_reports_'+srvFileTag()+'.csv',SRV_HEAD,r);}
+function exportSrvXlsx(){const r=srvRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_service_reports_'+srvFileTag()+'.xlsx',[{name:'ใบรายงานบริการ',rows:[SRV_HEAD].concat(r)}]);}
 
 /* ===== ตารางว่างรถ (7 วัน) ===== */
 const WDAY=['อา','จ','อ','พ','พฤ','ศ','ส'];
