@@ -512,12 +512,12 @@ function renderMyJobs(){
       const map=j.mapLink?' · <a href="'+esc(j.mapLink)+'" target="_blank" style="color:var(--orange-light);font-weight:600;">🗺️ เปิดแผนที่</a>':'';
       const jrSafe=esc(j.ref||'').replace(/'/g,'');
       const siteSafe=esc(j.site||'').replace(/'/g,'');
-      const titleSafe=esc((j.name||'')+(j.site?(' @ '+j.site):'')).replace(/'/g,'');
+      const titleSafe=esc(jobName(j.name,j.ref)+(j.site?(' @ '+j.site):'')).replace(/'/g,'');
       return '<div class="card">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
           +'<div style="font-weight:700;font-size:16px;">'+esc(j.ref||'(ไม่มีเลข JR)')+(isToday?' <span style="color:var(--orange);font-size:12px;font-weight:700;">• วันนี้</span>':'')+'</div>'
           +'<div class="muted" style="font-size:13px;white-space:nowrap;">'+d+'</div></div>'
-        +'<div style="margin-top:3px;font-size:15px;">'+esc(j.name||'')+'</div>'
+        +'<div style="margin-top:3px;font-size:15px;">'+esc(jobName(j.name,j.ref))+'</div>'
         +'<div class="muted" style="margin-top:8px;">📍 <b>'+esc(j.site||'-')+'</b>'+map+'</div>'
         +'<div class="muted">⏰ '+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
         +'<div style="margin-top:10px;height:8px;background:var(--dark2);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+pr+'%;background:var(--orange);"></div></div>'
@@ -701,6 +701,11 @@ function dayStatus(ds){
   return '';
 }
 /* งานที่ได้รับมอบหมายในวันนั้น (ใช้ทั้งจุดบนปฏิทิน และรายละเอียดรายวัน) */
+/* ชื่องานจาก Planner มักขึ้นต้นด้วยเลข JR อยู่แล้ว → ตัดออกกันแสดงซ้ำ */
+function jobName(name,ref){let t=(name||'').trim();if(!ref)return t;
+  const r=ref.trim();
+  if(t.toUpperCase().startsWith(r.toUpperCase()))t=t.slice(r.length).replace(/^\s*[·:\-—|]\s*/,'').trim();
+  return t;}
 function jobsOnDate(ds){
   const all=plannerMyJobs().concat(internalMyJobs());
   return all.filter(j=>{const a=j.start||ds,b=j.end||a;return a<=ds&&b>=ds;});
@@ -729,7 +734,8 @@ function renderDay(ds){
   let h='<div class="card"><div class="title" style="margin-bottom:12px;">📅 '+bd+'</div>';
   const jobs=jobsOnDate(ds);
   if(jobs.length){h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;"><div><b>📋 งานที่ได้รับมอบหมาย ('+jobs.length+')</b></div>'
-    +jobs.map(j=>'<div class="jr">• '+esc(j.ref||'')+' · '+esc(j.name||'')+(j.site?(' 📍'+esc(j.site)):'')+(j.timeStart?(' ⏰'+tlHM(j.timeStart)+'–'+tlHM(j.timeEnd)):'')+'</div>').join('')+'</div>';}
+    +jobs.map(j=>{const nm=jobName(j.name,j.ref);
+      return '<div class="jr">• <b>'+esc(j.ref||'')+'</b>'+(nm?' · '+esc(nm):'')+'<br><span style="margin-left:12px">'+(j.site?('📍'+esc(j.site)):'')+(j.timeStart?(' ⏰'+tlHM(j.timeStart)+'–'+tlHM(j.timeEnd)):'')+'</span></div>';}).join('')+'</div>';}
   if(!recs.length&&!tls.length&&!jobs.length){h+='<div class="muted">ไม่มีงานและการลงเวลาในวันนี้</div>';}
   recs.forEach(r=>{
     const im=r.inGeo?' · <a href="https://www.google.com/maps?q='+r.inGeo+'" target="_blank">📍 แผนที่</a>':'';

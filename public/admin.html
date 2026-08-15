@@ -610,6 +610,9 @@ function fetchPlannerAdmin(force){
     renderJRAll();
   }).catch(e=>{$('jra-status').textContent='❌ ดึงข้อมูลไม่ได้ (อาจถูกไฟร์วอลล์บล็อก script.google.com) — '+(e.message||e);renderJRAll();});
 }
+function jobName(name,ref){let t=(name||'').trim();if(!ref)return t;const r=ref.trim();
+  if(t.toUpperCase().startsWith(r.toUpperCase()))t=t.slice(r.length).replace(/^\s*[·:\-—|]\s*/,'').trim();
+  return t;}
 function jraPeopleNames(ids){
   if(!Array.isArray(ids)||!ids.length)return '<span class="mut">— งานส่วนกลาง —</span>';
   const map={};PLANNER_A.people.forEach(p=>map[p.id]=p);
@@ -619,7 +622,7 @@ function jraPeopleNames(ids){
 function jraRows(){
   const nameMap={};PLANNER_A.people.forEach(p=>nameMap[p.id]=(p.name||p.fullName||p.id));
   return jraFiltered().map(j=>[
-    j.start||'', j.end||'', j.ref||'', j.name||'', j.site||'',
+    j.start||'', j.end||'', j.ref||'', jobName(j.name,j.ref), j.site||'',
     (j.people||[]).map(id=>nameMap[id]||id).join(', '),
     j.timeStart||'', j.timeEnd||'', (j.progress||0)+'%'
   ]);
@@ -643,7 +646,7 @@ function importPlannerJobs(){
   PLANNER_A.jobs.forEach(j=>{
     const assignees=(j.people||[]).map(id=>pmap[id]).filter(Boolean);
     if((j.people||[]).length&&!assignees.length)noMatch++;
-    const rec={title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',owner:'',
+    const rec={title:jobName(j.name,j.ref)||j.ref||'งาน',jr:j.ref||'',site:j.site||'',owner:'',
       date:j.start||todayStr(),time:j.timeStart||'09:00',geo:'',assignees,
       status:(j.progress||0)>=100?'done':'plan',srcId:j.id};
     const ex=seen.get(j.id);
@@ -694,7 +697,7 @@ function renderJRAll(){
     return '<tr>'
       +'<td class="mono" style="white-space:nowrap">'+d+de+(today?' <span class="tag" style="padding:0 6px">วันนี้</span>':'')+'</td>'
       +'<td class="mono">'+esc(j.ref||'-')+'</td>'
-      +'<td>'+esc(j.name||'')+'</td>'
+      +'<td>'+esc(jobName(j.name,j.ref))+'</td>'
       +'<td>'+esc(j.site||'-')+map+'</td>'
       +'<td>'+jraPeopleNames(j.people)+'</td>'
       +'<td class="mono" style="white-space:nowrap">'+esc(time)+'</td>'
