@@ -470,11 +470,13 @@ function internalMyJobs(){
   return load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=t)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
     .map(p=>({id:p.id,ref:p.jr||'',name:p.title||'',site:p.site||'',start:p.date||t,end:p.date||t,timeStart:p.time||'',timeEnd:'',progress:p.status==='done'?100:0,people:[],mapLink:'',_internal:true}));
 }
-function goLogJR(jr){
+let _tlManualTitle='';
+function goLogJR(jr,title){
   showTab('timelog');
   const tj=$('tl-job');if(!tj)return;
+  _tlManualTitle=title||'';
   const opt=Array.prototype.find.call(tj.options,o=>o.dataset.jr===jr);
-  if(opt){tj.value=opt.value;}
+  if(opt){tj.value=opt.value;_tlManualTitle='';}
   else{ // ไม่มีในรายการ → ใช้โหมดพิมพ์เอง แล้วเติมเลข JR ให้อัตโนมัติ
     tj.value='__manual__';
     const man=$('tl-jr-manual');if(man)man.value=jr;
@@ -510,6 +512,7 @@ function renderMyJobs(){
       const map=j.mapLink?' · <a href="'+esc(j.mapLink)+'" target="_blank" style="color:var(--orange-light);font-weight:600;">🗺️ เปิดแผนที่</a>':'';
       const jrSafe=esc(j.ref||'').replace(/'/g,'');
       const siteSafe=esc(j.site||'').replace(/'/g,'');
+      const titleSafe=esc((j.name||'')+(j.site?(' @ '+j.site):'')).replace(/'/g,'');
       return '<div class="card">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
           +'<div style="font-weight:700;font-size:16px;">'+esc(j.ref||'(ไม่มีเลข JR)')+(isToday?' <span style="color:var(--orange);font-size:12px;font-weight:700;">• วันนี้</span>':'')+'</div>'
@@ -519,7 +522,7 @@ function renderMyJobs(){
         +'<div class="muted">⏰ '+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
         +'<div style="margin-top:10px;height:8px;background:var(--dark2);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+pr+'%;background:var(--orange);"></div></div>'
         +'<div class="muted" style="font-size:12px;margin-top:4px;">ความคืบหน้า '+pr+'%</div>'
-        +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\')">🧾 ลงเวลางานนี้</button>'
+        +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\',\''+titleSafe+'\')">🧾 ลงเวลางานนี้</button>'
         +'<button class="btn ghost" style="margin-top:8px;" onclick="goServiceReport(\''+jrSafe+'\',\''+siteSafe+'\')">📄 ออกใบรายงาน + แนบรูป</button>'
         +'</div>';
     }).join('');
@@ -714,7 +717,7 @@ function renderCalendar(){
     const cls=['cal-cell'];if(dow===0||dow===6)cls.push('wknd');if(ds===today)cls.push('today');if(ds===calSel)cls.push('sel');
     const nj=jobsOnDate(ds).length;
     h+='<div class="'+cls.join(' ')+'" onclick="calPick(\''+ds+'\')">'+d+(nj?'<span class="jobmark"></span>':'')+(st?'<span class="dot '+st+'"></span>':'')+'</div>';}
-  h+='</div><div class="legend"><span><i style="background:#16a34a"></i>ปกติ</span><span><i style="background:#eab308"></i>สาย</span><span><i style="background:#ef4444"></i>ขาดงาน</span><span><i style="background:#38bdf8"></i>ลา</span><span><i style="background:#3b82f6"></i>นักขัต</span></div><span><i style="background:var(--orange);border-radius:2px"></i>มีงาน</span></div>';
+  h+='</div><div class="legend"><span><i style="background:#16a34a"></i>ปกติ</span><span><i style="background:#eab308"></i>สาย</span><span><i style="background:#ef4444"></i>ขาดงาน</span><span><i style="background:#38bdf8"></i>ลา</span><span><i style="background:#3b82f6"></i>นักขัต</span><span><i style="background:var(--orange);border-radius:2px"></i>มีงาน</span></div>';
   $('cal').innerHTML=h;renderDay(calSel);
 }
 function calNav(x){calM+=x;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendar();}
@@ -740,7 +743,8 @@ function renderDay(ds){
   });
   if(tls.length){const sum=tls.reduce((s,x)=>s+(+x.hours||0),0);
     h+='<div class="rec-detail" style="display:block;padding-left:0;padding-right:0;"><div>🧾 <b>เวลาตาม JR รวม '+sum.toFixed(1)+' ชม.</b></div>'
-      +tls.map(x=>'<div class="jr">• '+esc(x.jr||'')+' · '+tlHM(x.timeStart)+'-'+tlHM(x.timeEnd)+' · '+(+x.hours||0).toFixed(1)+' ชม.'+(x.note?' · '+esc(x.note):'')+'</div>').join('')+'</div>';}
+      +tls.map(x=>{const t=(x.jobTitle||'').split(' @ ')[0];
+      return '<div class="jr">• <b>'+esc(x.jr||'')+'</b>'+(t?' · '+esc(t):'')+'<br><span style="margin-left:12px">'+tlHM(x.timeStart)+'-'+tlHM(x.timeEnd)+' · '+(+x.hours||0).toFixed(1)+' ชม.'+(x.note?' · '+esc(x.note):'')+'</span></div>';}).join('')+'</div>';}
   h+='</div>';el.innerHTML=h;
 }
 
@@ -791,7 +795,7 @@ function submitTimelog(){
   if(window.RSCStore)RSCStore.ensureMonth(LS_TL,date.slice(0,7)); // ลงย้อนหลังข้ามเดือน → โหลดเดือนนั้นก่อน
   const o=tj.options[tj.selectedIndex];
   const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
-  const fields={jr,jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
+  const fields={jr,jobId,jobTitle:(o&&o.dataset.title)?o.dataset.title:(tj.value==='__manual__'?_tlManualTitle:''),
     slot:tlSlot,timeStart:s,timeEnd:e,hours:h,kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim()};
   const arr=load(LS_TL);
   if(_tlEdit){const r=arr.find(x=>x.id===_tlEdit&&x.name===name);
@@ -845,7 +849,7 @@ function renderMyTL(){
     (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
   const isOffice=r=>(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr));
   html+=recent.length?recent.map(r=>`<div class="rec">
-    <div><div>${isOffice(r)?'🏢':'🔧'} ${esc(r.jr)} <span class="muted">· ${slotLbl(r.slot)}</span></div>
+    <div><div>${isOffice(r)?'🏢':'🔧'} <b>${esc(r.jr)}</b>${r.jobTitle?' <span class="muted">· '+esc(r.jobTitle.split(' @ ')[0])+'</span>':''} <span class="muted">· ${slotLbl(r.slot)}</span></div>
       <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
     <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div>
       <a onclick="editTimelog('${r.id}')" style="color:var(--cyan);cursor:pointer;font-size:11px;">แก้ไข</a>
