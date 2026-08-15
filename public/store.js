@@ -22,6 +22,12 @@ window.RSCStore = (function () {
   var subs = {};                  // key -> { month: unsubscribe }
   var loaded = {};                // key -> { month: true }
 
+  /* บันทึกไม่สำเร็จ → แจ้งผู้ใช้ (ไม่ให้พลาดแบบเงียบ ๆ) */
+  function fail(e) {
+    console.error(e);
+    if (typeof window.toast === 'function') window.toast('❌ บันทึกไม่สำเร็จ: ' + (e && (e.message || e)), true);
+  }
+
   function ym(d) { return d.toISOString().slice(0, 10).slice(0, 7); }
   function todayYM() { return ym(new Date()); }
 
@@ -101,7 +107,7 @@ window.RSCStore = (function () {
   function save(key, arr) {
     state[key] = arr.slice();
     if (!SHARD[key]) {                                   // คอลเลกชันปกติ — เหมือนเดิม
-      if (mode === 'firebase' && db) db.collection('rsc').doc(key).set({ items: arr, updatedAt: Date.now() }).catch(function (e) { console.error(e); });
+      if (mode === 'firebase' && db) db.collection('rsc').doc(key).set({ items: arr, updatedAt: Date.now() }).catch(fail);
       else localStorage.setItem(key, JSON.stringify(arr));
       return;
     }
@@ -121,7 +127,7 @@ window.RSCStore = (function () {
       if (mode === 'firebase' && db) {
         var ref = db.collection('rsc').doc(key + '_' + m);
         if (isLoaded) {
-          ref.set({ items: items, updatedAt: Date.now() }).catch(function (e) { console.error(e); });
+          ref.set({ items: items, updatedAt: Date.now() }).catch(fail);
         } else {
           // ยังไม่ได้โหลดเดือนนี้ → อ่านของเดิมมารวมก่อน (กันข้อมูลเดือนเก่าหาย)
           ref.get().then(function (s) {
@@ -129,7 +135,7 @@ window.RSCStore = (function () {
             var byId = {}; items.forEach(function (x) { byId[x.id] = 1; });
             var merged = old.filter(function (x) { return !byId[x.id]; }).concat(items);
             return ref.set({ items: merged, updatedAt: Date.now() });
-          }).catch(function (e) { console.error(e); });
+          }).catch(fail);
         }
       } else {
         if (isLoaded) localStorage.setItem(key + '_' + m, JSON.stringify(items));
@@ -146,7 +152,7 @@ window.RSCStore = (function () {
     if ((legacy[key] || []).length !== stillLegacy.length) {
       var keepIds = {}; arr.forEach(function (x) { keepIds[x.id] = 1; });
       var newLegacy = (legacy[key] || []).filter(function (x) { return keepIds[x.id]; });
-      if (mode === 'firebase' && db) db.collection('rsc').doc(key).set({ items: newLegacy, updatedAt: Date.now() }).catch(function (e) { console.error(e); });
+      if (mode === 'firebase' && db) db.collection('rsc').doc(key).set({ items: newLegacy, updatedAt: Date.now() }).catch(fail);
       else localStorage.setItem(key, JSON.stringify(newLegacy));
     }
   }
