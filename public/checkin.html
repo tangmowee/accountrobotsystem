@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0A0B0D">
+<meta name="theme-color" content="#f7f8fa">
 <title>RSC Connect — พนักงาน</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -190,8 +190,11 @@
 
   <!-- form -->
   <div class="card">
-    <label>งานวันนี้ (จาก RSC Planner)</label>
-    <select id="job"><option value="">— เลือกงาน/ไซต์งาน —</option></select>
+    <div id="job-auto" style="display:none;"></div>
+    <div id="job-pick">
+      <label>งานวันนี้ <span class="muted" style="font-weight:400;text-transform:none;font-size:13px;">(ไม่ระบุก็ได้)</span></label>
+      <select id="job"><option value="">— ไม่ระบุ / งานออฟฟิศ —</option></select>
+    </div>
 
     <label>หมายเหตุ (ถ้ามี)</label>
     <input type="text" id="note" placeholder="เช่น ติดตั้งแขนกล / เข้าพบลูกค้า">
@@ -623,6 +626,7 @@ function checkout(){
 function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยังไม่ได้ระบุพิกัด';}
 
 /* ===== render ===== */
+function jobShowPicker(){$('job-auto').style.display='none';$('job-pick').style.display='block';}
 function renderJobs(){
   const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
   // งานสดจาก RSC Planner (เฉพาะที่มอบหมายให้เรา วันนี้) + แผนงานในแอดมิน
@@ -630,9 +634,19 @@ function renderJobs(){
   const internal=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
     &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
   const jobs=plannerJobsForMe().concat(internal);
-  sel.innerHTML='<option value="">— เลือกงาน/ไซต์งาน —</option>'+
+  sel.innerHTML='<option value="">— ไม่ระบุ / งานออฟฟิศ —</option>'+
     jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);return `<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`;}).join('');
   sel.value=cur;
+  // งานวันนี้มีงานเดียว → เลือกให้เลย แล้วโชว์เป็นบรรทัดเดียว (ไม่ต้องมี dropdown ให้รก)
+  const todayJobs=jobs.filter(p=>(p.date||today)===today);
+  const auto=$('job-auto'),pick=$('job-pick');
+  if(auto&&pick){
+    if(todayJobs.length===1&&!cur){
+      const j=todayJobs[0];sel.value=j.id;
+      auto.innerHTML='<label>งานวันนี้</label><div class="geo ok" style="margin-top:0;"><div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(j.title)+'</div><div class="lbl" style="margin-top:4px">📍 '+esc(j.site||'-')+'</div><div style="margin-top:8px"><a onclick="jobShowPicker()" style="color:var(--orange-light);font-weight:600;cursor:pointer;font-size:13px">เปลี่ยนงาน</a></div></div>';
+      auto.style.display='block';pick.style.display='none';
+    }else{auto.style.display='none';pick.style.display='block';}
+  }
   const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
     jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
   // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
