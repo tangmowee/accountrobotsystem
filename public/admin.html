@@ -214,7 +214,13 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <button class="btn p" style="width:100%" onclick="addPlan()">บันทึกแผนงาน</button>
       </div>
       <div class="card">
-        <div class="card-h"><div class="card-t">🗓️ แผนงานทั้งหมด</div><span class="tag" id="pl-count">0 งาน</span></div>
+        <div class="card-h"><div class="card-t">🗓️ แผนงานทั้งหมด</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="tag" id="pl-count">0 งาน</span>
+            <button class="btn sm p" onclick="exportPlanXlsx()">⬇️ Excel</button>
+            <button class="btn sm" onclick="exportPlanCsv()">CSV</button>
+          </div>
+        </div>
         <div class="tw"><table>
           <thead><tr><th>วัน/เวลา</th><th>งาน</th><th>JR</th><th>ไซต์</th><th>มอบหมาย</th><th>พิกัด</th><th>สถานะ</th><th></th></tr></thead>
           <tbody id="pl-body"><tr class="empty"><td colspan="8">ยังไม่มีแผนงาน</td></tr></tbody>
@@ -396,6 +402,9 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
           </select>
           <input type="text" id="jra-search" oninput="renderJRAll()" placeholder="ค้นหา JR/งาน/ไซต์/คน" style="width:auto">
           <button class="btn sm" onclick="fetchPlannerAdmin(true)">🔄 รีเฟรช</button>
+          <button class="btn sm p" onclick="exportJRAllXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportJRAllCsv()">CSV</button>
+          <button class="btn sm" onclick="importPlannerJobs()">📥 นำเข้างานเข้าระบบ</button>
         </div>
       </div>
       <div id="jra-status" class="note" style="margin-bottom:10px"></div>
@@ -572,8 +581,50 @@ function jraPeopleNames(ids){
   const map={};PLANNER_A.people.forEach(p=>map[p.id]=p);
   return ids.map(id=>{const p=map[id];return p?esc((p.name||'')+(p.fullName?(' ('+p.fullName.replace(/^(นาย|นางสาว|นาง)\s*/,'')+')'):'')):esc(id);}).join(', ');
 }
-function renderJRAll(){
-  const body=$('jra-body');if(!body)return;
+/* แถวข้อมูลที่ใช้ทั้ง export และตาราง */
+function jraRows(){
+  const nameMap={};PLANNER_A.people.forEach(p=>nameMap[p.id]=(p.name||p.fullName||p.id));
+  return jraFiltered().map(j=>[
+    j.start||'', j.end||'', j.ref||'', j.name||'', j.site||'',
+    (j.people||[]).map(id=>nameMap[id]||id).join(', '),
+    j.timeStart||'', j.timeEnd||'', (j.progress||0)+'%'
+  ]);
+}
+const JRA_HEAD=['วันเริ่ม','วันสิ้นสุด','JR','งาน','ไซต์งาน','ผู้รับผิดชอบ','เริ่ม','สิ้นสุด','คืบหน้า'];
+function exportJRAllCsv(){const rows=jraRows();if(!rows.length){alert('ไม่มีข้อมูล');return;}
+  csvDownload('RSC_planner_jobs.csv',JRA_HEAD,rows);}
+function exportJRAllXlsx(){const rows=jraRows();if(!rows.length){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_planner_jobs.xlsx',[{name:'งาน Planner',rows:[JRA_HEAD].concat(rows)}]);}
+
+/* นำเข้างานจาก Planner → เก็บในระบบ (rsc_planner/Firebase) เพื่อเลิกพึ่ง Planner */
+function importPlannerJobs(){
+  if(!PLANNER_A.jobs.length){alert('ยังไม่มีข้อมูล — กด 🔄 รีเฟรช ก่อน');return;}
+  const strip=s=>(s||'').replace(/^(นาย|นางสาว|นาง)\s*/,'').replace(/\s+/g,' ').trim();
+  // Planner personId → ชื่อผู้ใช้ในระบบ (จับคู่ด้วยชื่อจริง)
+  const emps=load(LS_EMP);const byName={};emps.forEach(e=>{byName[strip(e.name)]=e;});
+  const pmap={};PLANNER_A.people.forEach(p=>{const e=byName[strip(p.fullName)];if(e)pmap[p.id]=e.email||e.name;});
+  const arr=load(LS_PLAN);
+  const seen=new Map(arr.map(p=>[p.srcId||('' + p.jr + p.title + p.date),p]));
+  let add=0,upd=0,noMatch=0;
+  PLANNER_A.jobs.forEach(j=>{
+    const assignees=(j.people||[]).map(id=>pmap[id]).filter(Boolean);
+    if((j.people||[]).length&&!assignees.length)noMatch++;
+    const rec={title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',owner:'',
+      date:j.start||todayStr(),time:j.timeStart||'09:00',geo:'',assignees,
+      status:(j.progress||0)>=100?'done':'plan',srcId:j.id};
+    const ex=seen.get(j.id);
+    if(ex){Object.assign(ex,rec);upd++;}
+    else{const n=Object.assign({id:uid()},rec);arr.push(n);seen.set(j.id,n);add++;}
+  });
+  arr.sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
+  save(LS_PLAN,arr);renderPlans();
+  alert('นำเข้างานสำเร็จ ✅\n\nเพิ่มใหม่ '+add+' งาน · อัปเดต '+upd+' งาน'
+    +(noMatch?('\n\n⚠️ '+noMatch+' งาน จับคู่ผู้รับผิดชอบไม่ได้ (ชื่อไม่ตรงกับทะเบียนพนักงาน) — งานถูกนำเข้าเป็นงานส่วนกลาง'):'')
+    +'\n\nดู/แก้ได้ที่แท็บ 🗓️ Planner');
+}
+
+/* งานหลังกรองตามตัวเลือก (ใช้ร่วมกับ export) */
+function jraFiltered(){
   const range=($('jra-range')||{}).value||'upcoming';
   const q=(($('jra-search')||{}).value||'').trim().toLowerCase();
   const t=new Date().toISOString().slice(0,10);
@@ -590,7 +641,13 @@ function renderJRAll(){
     const ppl=(j.people||[]).map(id=>nameMap[id]||'').join(' ');
     return ((j.ref||'')+' '+(j.name||'')+' '+(j.site||'')+' '+ppl).toLowerCase().includes(q);
   });
-  jobs.sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+  return jobs.sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+}
+
+function renderJRAll(){
+  const body=$('jra-body');if(!body)return;
+  const t=new Date().toISOString().slice(0,10);
+  const jobs=jraFiltered();
   $('jra-count').textContent=jobs.length+' งาน';
   if(!jobs.length){body.innerHTML='<tr class="empty"><td colspan="7">ไม่พบงานตามเงื่อนไข</td></tr>';return;}
   body.innerHTML=jobs.map(j=>{
@@ -652,6 +709,15 @@ function addPlan(){const t=$('pl-title').value.trim();if(!t){alert('กรอก
   p.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));save(LS_PLAN,p);
   ['pl-title','pl-jr','pl-site','pl-owner','pl-geo','pl-time'].forEach(i=>$(i).value='');$('pl-assignees').selectedIndex=-1;renderPlans();}
 function delPlan(id){if(!confirm('ลบแผนงานนี้?'))return;save(LS_PLAN,load(LS_PLAN).filter(p=>p.id!==id));renderPlans();}
+/* export แผนงานในระบบ (ข้อมูลจริงของ RSC Connect) */
+const PLAN_HEAD=['วันที่','เวลา','JR','งาน','ไซต์งาน','ผู้รับผิดชอบ','ทีม/ผู้ดูแล','พิกัด','สถานะ'];
+function planRows(){const st={plan:'วางแผน',in:'กำลังทำ',done:'เสร็จ'};
+  return load(LS_PLAN).slice().sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')))
+    .map(p=>[p.date||'',p.time||'',p.jr||'',p.title||'',p.site||'',
+      (p.assignees||[]).map(k=>{const e=empOf(k);return e?(e.name||k):k;}).join(', '),
+      p.owner||'',p.geo||'',st[p.status]||p.status||'']);}
+function exportPlanCsv(){const r=planRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_แผนงาน.csv',PLAN_HEAD,r);}
+function exportPlanXlsx(){const r=planRows();if(!r.length){alert('ไม่มีข้อมูล');return;}saveXlsx('RSC_แผนงาน.xlsx',[{name:'แผนงาน',rows:[PLAN_HEAD].concat(r)}]);}
 function renderPlans(){fillAssignees();const p=load(LS_PLAN);$('pl-count').textContent=p.length+' งาน';const body=$('pl-body');
   if(!p.length){body.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีแผนงาน</td></tr>';return;}
   const cm={plan:'<span class="chip plan">วางแผน</span>',in:'<span class="chip in">กำลังทำ</span>',done:'<span class="chip out">เสร็จสิ้น</span>'};
