@@ -442,6 +442,24 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="note">“ย้ายรถ” = เลือกคันว่างอื่นเพื่อสลับให้ผู้จอง • คันที่ไม่ว่างช่วงเวลานั้นจะเลือกไม่ได้</div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">📆 ตารางว่างรถ (7 วัน)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn sm" onclick="availNav(-7)">‹ ก่อนหน้า</button>
+          <input type="date" id="av-start" onchange="renderAvail()" style="width:auto">
+          <button class="btn sm" onclick="availNav(7)">ถัดไป ›</button>
+          <button class="btn sm p" onclick="exportAvailXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportAvailCsv()">CSV</button>
+        </div>
+      </div>
+      <div class="tw"><table id="av-table">
+        <thead><tr id="av-head"></tr></thead>
+        <tbody id="av-body"><tr class="empty"><td>ยังไม่มีรถ</td></tr></tbody>
+      </table></div>
+      <div class="note">🟢 ว่างทั้งวัน • 🟡 ว่างบางช่วง (แสดงเวลาที่ถูกจอง) • 🔴 เต็มทั้งวัน — คลิกช่องเพื่อดูรายละเอียดการจองวันนั้น</div>
+    </div>
   </section>
 
   <!-- ===== PEOPLE ===== -->
@@ -559,7 +577,7 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='dl')renderDL();
   if(id==='jrall')ensureJRAll();
   if(id==='pay')loadPay(renderPay);
-  if(id==='fleet'){renderFleet();renderBookings();}}
+  if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
 function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
 
 /* ===== งาน Planner (สด — อ่านอย่างเดียว) ===== */
@@ -670,7 +688,7 @@ function renderJRAll(){
 }
 
 /* ===== render all ===== */
-function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderDL();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -1123,7 +1141,7 @@ function bookOverlap(vehId,date,from,to,exceptId){return load(LS_BOOK).some(b=>b
 function addVeh(){const p=$('veh-plate').value.trim();if(!p){alert('กรอกทะเบียนรถ');return;}
   const a=load(LS_VEH);a.push({id:uid(),plate:p,type:$('veh-type').value.trim(),seats:+$('veh-seats').value||null,active:true});save(LS_VEH,a);
   ['veh-plate','veh-type','veh-seats'].forEach(i=>$(i).value='');renderFleet();}
-function delVeh(id){if(!confirm('ลบรถคันนี้?'))return;save(LS_VEH,load(LS_VEH).filter(v=>v.id!==id));renderFleet();renderBookings();}
+function delVeh(id){if(!confirm('ลบรถคันนี้?'))return;save(LS_VEH,load(LS_VEH).filter(v=>v.id!==id));renderFleet();renderBookings();renderAvail();}
 function renderFleet(){const a=load(LS_VEH);const b=$('veh-body');if($('veh-count'))$('veh-count').textContent=a.length+' คัน';if(!b)return;
   const now=new Date(),today=todayStr(),hm=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   if(!a.length){b.innerHTML='<tr class="empty"><td colspan="5">ยังไม่มีรถ</td></tr>';return;}
@@ -1146,6 +1164,49 @@ function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('b
       <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
       <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
       <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
+/* ===== ตารางว่างรถ (7 วัน) ===== */
+const WDAY=['อา','จ','อ','พ','พฤ','ศ','ส'];
+function avStart(){const el=$('av-start');if(el&&!el.value)el.value=todayStr();return el?el.value:todayStr();}
+function availNav(n){const el=$('av-start');const d=new Date((el.value||todayStr())+'T00:00');d.setDate(d.getDate()+n);el.value=d.toISOString().slice(0,10);renderAvail();}
+function avDays(){const s=avStart();const out=[];for(let i=0;i<7;i++){const d=new Date(s+'T00:00');d.setDate(d.getDate()+i);out.push(d);}return out;}
+/* การจองของรถคันนั้นในวันนั้น (เรียงตามเวลา) */
+function avBookings(vehId,ds){return load(LS_BOOK).filter(b=>b.vehicleId===vehId&&b.date===ds&&b.status!=='cancelled').sort((a,b)=>(a.from||'').localeCompare(b.from||''));}
+function avCell(vehId,ds){
+  const bs=avBookings(vehId,ds);
+  if(!bs.length)return {cls:'free',txt:'ว่าง',mins:0,bs:bs};
+  const mins=bs.reduce((s,b)=>s+Math.max(0,parseHM(b.to)-parseHM(b.from)),0);
+  const full=mins>=(parseHM(WORK_END||'17:30')-parseHM(WORK_START||'08:30'))-30;
+  return {cls:full?'busy':'part',txt:bs.map(b=>b.from+'–'+b.to).join(', '),mins,bs};
+}
+function renderAvail(){
+  const head=$('av-head'),body=$('av-body');if(!head||!body)return;
+  const vehs=load(LS_VEH).filter(v=>v.active!==false);
+  const days=avDays(),today=todayStr();
+  head.innerHTML='<th style="min-width:120px">รถ</th>'+days.map(d=>{const ds=d.toISOString().slice(0,10);
+    return '<th style="text-align:center'+(ds===today?';color:var(--orange)':'')+'">'+WDAY[d.getDay()]+'<div class="note" style="margin:0">'+d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+'</div></th>';}).join('');
+  if(!vehs.length){body.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีรถ — เพิ่มรถที่การ์ด “＋ เพิ่มรถ”</td></tr>';return;}
+  body.innerHTML=vehs.map(v=>'<tr><td><b>'+esc(v.plate)+'</b><div class="note">'+esc(v.type||'')+(v.seats?(' · '+v.seats+' ที่นั่ง'):'')+'</div></td>'
+    +days.map(d=>{const ds=d.toISOString().slice(0,10);const c=avCell(v.id,ds);
+      const bg=c.cls==='free'?'rgba(46,204,113,.14)':(c.cls==='busy'?'rgba(231,76,60,.14)':'rgba(243,156,18,.16)');
+      const ic=c.cls==='free'?'🟢':(c.cls==='busy'?'🔴':'🟡');
+      return '<td style="text-align:center;background:'+bg+';cursor:pointer;font-size:12px" onclick="avShow(\''+v.id+'\',\''+ds+'\')">'+ic+'<div class="mono" style="font-size:11px">'+esc(c.txt)+'</div></td>';}).join('')
+    +'</tr>').join('');
+}
+function avShow(vehId,ds){
+  const bs=avBookings(vehId,ds),v=load(LS_VEH).find(x=>x.id===vehId);
+  const d=new Date(ds+'T00:00').toLocaleDateString('th-TH',{weekday:'long',day:'2-digit',month:'long'});
+  if(!bs.length){alert('🟢 '+(v?v.plate:'')+'\n'+d+'\n\nว่างทั้งวัน');return;}
+  alert('🚗 '+(v?v.plate:'')+'\n'+d+'\n\n'+bs.map(b=>'• '+b.from+'–'+b.to+' · '+nameOf(b.name)+(b.dest?(' → '+b.dest):'')).join('\n'));
+}
+const AV_HEAD=['ทะเบียน','ประเภท','วันที่','สถานะ','ช่วงที่ถูกจอง','ผู้จอง'];
+function avRows(){const vehs=load(LS_VEH).filter(v=>v.active!==false),out=[];
+  vehs.forEach(v=>avDays().forEach(d=>{const ds=d.toISOString().slice(0,10);const c=avCell(v.id,ds);
+    out.push([v.plate,v.type||'',ds,c.cls==='free'?'ว่าง':(c.cls==='busy'?'เต็ม':'ว่างบางช่วง'),
+      c.bs.map(b=>b.from+'-'+b.to).join(' | '),c.bs.map(b=>nameOf(b.name)).join(' | ')]);}));
+  return out;}
+function exportAvailCsv(){const r=avRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_ตารางว่างรถ.csv',AV_HEAD,r);}
+function exportAvailXlsx(){const r=avRows();if(!r.length){alert('ไม่มีข้อมูล');return;}saveXlsx('RSC_ตารางว่างรถ.xlsx',[{name:'ตารางว่างรถ',rows:[AV_HEAD].concat(r)}]);}
 
 /* ===== clock + init ===== */
 function clock(){const c=$('t-clock');if(c)c.textContent=new Date().toLocaleTimeString('th-TH',{hour12:false});}
