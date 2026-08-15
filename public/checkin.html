@@ -14,6 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
+<script src="store.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -507,7 +508,10 @@ function hrs(a,b){return b&&a?((b-a)/3600000).toFixed(1):'—';}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLon=r(d-b);const h=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
 const load=k=>(state[k]||[]).slice();
-function save(k,arr){state[k]=arr.slice();if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>toast('บันทึกไม่สำเร็จ'));}else{localStorage.setItem(k,JSON.stringify(arr));}}
+const SHARDED=[LS_LOG,LS_TL];
+function save(k,arr){
+  if(window.RSCStore&&RSCStore.isSharded(k)){RSCStore.save(k,arr);return;}
+  state[k]=arr.slice();if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>toast('บันทึกไม่สำเร็จ'));}else{localStorage.setItem(k,JSON.stringify(arr));}}
 
 /* ===== firebase ===== */
 function initFb(){
@@ -515,9 +519,12 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function listeners(){['rsc_checkin_log','rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_timelog','rsc_service'].forEach(k=>{
-  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();refreshState();},e=>console.error(e));
+function refreshAllViews(){renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();refreshState();}
+function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service'].forEach(k=>{
+  db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];refreshAllViews();},e=>console.error(e));
 });
+  // เช็คอิน + ลงเวลา JR → เก็บแยกรายเดือน (โหลด 3 เดือนล่าสุด)
+  RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>refreshAllViews()});
   // รายชื่อพนักงาน — ไว้จับคู่ "ชื่อจริง" กับ RSC Planner
   db.collection('rsc').doc('rsc_employees').onSnapshot(s=>{EMP=(s.exists&&s.data().items)||[];renderJobs();renderMyJobs();renderDirectory();},e=>console.error(e));
 }
@@ -734,6 +741,7 @@ function submitTimelog(){
   const h=calcHours(s,e);if(h<=0){toast('เวลาสิ้นสุดต้องหลังเวลาเริ่ม');return;}
   const date=$('tl-date').value||todayStr();
   if(date>todayStr()){toast('ลงเวลาล่วงหน้า (วันอนาคต) ไม่ได้');return;}
+  if(window.RSCStore)RSCStore.ensureMonth(LS_TL,date.slice(0,7)); // ลงย้อนหลังข้ามเดือน → โหลดเดือนนั้นก่อน
   const o=tj.options[tj.selectedIndex];
   const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
   const fields={jr,jobId,jobTitle:o&&o.dataset.title?o.dataset.title:'',
@@ -1024,13 +1032,12 @@ if(REQUIRE_JR){if($('tl-req'))$('tl-req').style.display='inline';
 if(MODE==='firebase'){listeners();auth.onAuthStateChanged(onAuth);}
 else{
   // LOCAL fallback (ทดลอง) — ให้พิมพ์ชื่อเองผ่าน prompt ครั้งแรก
-  try{state[LS_LOG]=JSON.parse(localStorage.getItem(LS_LOG))||[];}catch(e){}
+  RSCStore.init({db:null,mode:'local',state,sharded:SHARDED,monthsBack:3,onChange:()=>refreshAllViews()});
   try{state[LS_PLAN]=JSON.parse(localStorage.getItem(LS_PLAN))||[];}catch(e){}
   try{state[LS_LEAVE]=JSON.parse(localStorage.getItem(LS_LEAVE))||[];}catch(e){}
   try{state[LS_OT]=JSON.parse(localStorage.getItem(LS_OT))||[];}catch(e){}
   try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
-  try{state[LS_TL]=JSON.parse(localStorage.getItem(LS_TL))||[];}catch(e){}
   try{state[LS_SR]=JSON.parse(localStorage.getItem(LS_SR))||[];}catch(e){}
   try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
   fetchPlanner();

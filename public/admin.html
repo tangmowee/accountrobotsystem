@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
+<script src="store.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -284,7 +285,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       <div class="card-h">
         <div class="card-t">📊 สรุปประจำเดือน</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="month" id="rp-month" onchange="renderReport()" style="width:auto">
+          <input type="month" id="rp-month" onchange="needMonth(this.value);renderReport()" style="width:auto">
           <button class="btn sm p" onclick="exportReportXlsx()">⬇️ Excel</button>
           <button class="btn sm" onclick="exportCSV()">CSV รายคน</button>
         </div>
@@ -327,7 +328,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       <div class="card-h">
         <div class="card-t">🧾 สรุปชั่วโมงตาม JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="month" id="dl-month" onchange="renderDL()" style="width:auto">
+          <input type="month" id="dl-month" onchange="needMonth(this.value);renderDL()" style="width:auto">
           <button class="btn sm p" onclick="exportDLxlsx()">⬇️ Excel (3 ชีท)</button>
           <button class="btn sm" onclick="exportDLcsv()">CSV ตาม JR</button>
           <button class="btn sm" onclick="exportDLdetail()">CSV รายบันทึก</button>
@@ -364,7 +365,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
       <div class="card-h">
         <div class="card-t">💵 สรุปรายเดือน (รายบุคคล)</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="month" id="pay-month" onchange="renderPay()" style="width:auto">
+          <input type="month" id="pay-month" onchange="needMonth(this.value);renderPay()" style="width:auto">
           <button class="btn sm p" onclick="exportPayXlsx()">⬇️ Excel (3 ชีท)</button>
           <button class="btn sm" onclick="exportPayCsv('hours')">CSV ชั่วโมง</button>
           <button class="btn sm" onclick="exportPayCsv('money')">CSV เงิน</button>
@@ -497,6 +498,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
             <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
             <button class="btn sm" onclick="bulkCreateLogins()">🔑 สร้างรหัสล็อกอินทั้งหมด</button>
             <button class="btn sm" onclick="seedNicksFromPlanner()">🏷️ ดึงชื่อเล่นจาก Planner</button>
+            <button class="btn sm" onclick="migrateMonthly()">🗄️ ย้ายข้อมูลเป็นรายเดือน</button>
           </div>
         </div>
         <div class="tw"><table>
@@ -527,9 +529,15 @@ const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_V
 const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 const load=k=>(state[k]||[]).slice();
-function save(k,arr){state[k]=arr.slice();
+/* คอลเลกชันที่โตเรื่อย ๆ → เก็บแยกรายเดือน (กันชนเพดาน 1MB/เอกสาร) */
+const SHARDED=[LS_LOG,LS_TL];
+function save(k,arr){
+  if(window.RSCStore&&RSCStore.isSharded(k)){RSCStore.save(k,arr);return;}
+  state[k]=arr.slice();
   if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>console.error(e));}
   else{localStorage.setItem(k,JSON.stringify(arr));}}
+/* เลือกเดือนในรายงาน → โหลดข้อมูลเดือนนั้นเพิ่ม */
+function needMonth(ym){if(!ym||!window.RSCStore)return;SHARDED.forEach(k=>RSCStore.ensureMonth(k,ym));}
 
 /* ===== helpers ===== */
 function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
@@ -560,7 +568,10 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 /* ===== firebase ===== */
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
-function listen(){[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));}
+function listen(){
+  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
+}
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
   const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
   auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
@@ -1121,6 +1132,17 @@ function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm" onclick="editEmp('${e.id}')">แก้</button> ${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
+/* ย้ายข้อมูลเดิม (เอกสารก้อนเดียว) → แยกรายเดือน — กดครั้งเดียว ปลอดภัย กดซ้ำได้ */
+function migrateMonthly(){
+  if(!isHR()){alert('เฉพาะ HR เท่านั้น');return;}
+  if(!window.RSCStore){alert('ยังโหลดโมดูลไม่เสร็จ — รีเฟรชหน้าอีกครั้ง');return;}
+  if(!confirm('ย้ายข้อมูลเช็คอิน + ลงเวลา JR เป็นแบบรายเดือน?\n\n• ข้อมูลไม่หาย (ย้าย ไม่ใช่ลบ)\n• ทำครั้งเดียว กดซ้ำได้ไม่มีผลเสีย\n• หลังย้าย ระบบจะเร็วขึ้นและไม่ชนเพดาน 1MB'))return;
+  let done=0,report=[];
+  SHARDED.forEach(k=>RSCStore.migrate(k,(err,res)=>{
+    report.push((k===LS_LOG?'เช็คอิน-เอาท์':'ลงเวลา JR')+': '+(err?('❌ '+(err.message||err)):('ย้าย '+res.moved+' รายการ → '+res.months+' เดือน ✅')));
+    if(++done===SHARDED.length){alert('เสร็จแล้ว\n\n'+report.join('\n'));renderAll();}
+  }));
+}
 function editEmp(id){const e=load(LS_EMP).find(x=>x.id===id);if(!e)return;
   $('em-user').value=e.email||'';$('em-name').value=e.name||'';$('em-dept').value=e.dept||'';$('em-pos').value=e.pos||'';
   $('em-side').value=e.side||'office';$('em-role').value=e.role||'employee';$('em-sup').value=e.supervisor||'';
