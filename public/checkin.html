@@ -436,8 +436,13 @@ function fetchPlanner(){
 /* งานที่ได้รับมอบหมาย (วันนี้ + ที่ยังไม่จบ) */
 function plannerMyJobs(){
   const pid=myPlannerId();if(!pid)return [];const t=todayStr();
-  return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)&&(j.progress||0)<100&&(!j.end||j.end>=t))
-    .sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+  return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)&&(j.progress||0)<100&&(!j.end||j.end>=t));
+}
+/* งานที่สร้างในระบบเอง (แอดมิน → Planner, เก็บใน Firebase) — ทำงานได้แม้ไม่มี RSC Planner ภายนอก */
+function internalMyJobs(){
+  const me=myName(),t=todayStr();
+  return load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=t)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
+    .map(p=>({id:p.id,ref:p.jr||'',name:p.title||'',site:p.site||'',start:p.date||t,end:p.date||t,timeStart:p.time||'',timeEnd:'',progress:p.status==='done'?100:0,people:[],mapLink:'',_internal:true}));
 }
 function goLogJR(jr){
   showTab('timelog');
@@ -447,9 +452,9 @@ function goLogJR(jr){
 }
 function renderMyJobs(){
   const el=$('myjobs');if(!el)return;
-  if(!PLANNER_URL){el.innerHTML='<div class="card"><div class="muted">ยังไม่ได้เชื่อม RSC Planner — งานจะขึ้นเมื่อเชื่อมแล้ว</div></div>';return;}
-  const t=todayStr();const jobs=plannerMyJobs();
-  if(!jobs.length){el.innerHTML='<div class="card"><div class="muted">ยังไม่มีงานที่ได้รับมอบหมาย<br><span style="font-size:12px;">(หรือข้อมูลกำลังโหลด — ลองรีเฟรช)</span></div></div>';return;}
+  const t=todayStr();
+  const jobs=plannerMyJobs().concat(internalMyJobs()).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+  if(!jobs.length){el.innerHTML='<div class="card"><div class="muted">ยังไม่มีงานที่ได้รับมอบหมาย<br><span style="font-size:12px;">หัวหน้า/HR มอบหมายงานได้ที่หน้าแอดมิน → 🗓️ Planner</span></div></div>';return;}
   el.innerHTML='<div class="title" style="margin:4px 2px 12px;">📋 งานที่ได้รับมอบหมาย ('+jobs.length+')</div>'+
     jobs.map(j=>{
       const isToday=((j.start||t)<=t&&(j.end||t)>=t);
