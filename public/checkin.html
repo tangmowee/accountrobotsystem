@@ -307,6 +307,10 @@
 
     <label>ลูกค้า</label>
     <input type="text" id="sr-customer" placeholder="ชื่อลูกค้า / บริษัท">
+    <label>ผู้ติดต่อหน้างาน</label>
+    <input type="text" id="sr-contact" placeholder="ชื่อผู้ติดต่อ เช่น คุณสมชาย">
+    <label>เบอร์ติดต่อ</label>
+    <input type="tel" id="sr-phone" inputmode="tel" placeholder="08x-xxx-xxxx">
     <label>อีเมลลูกค้า (ถ้ามี)</label>
     <input type="email" id="sr-email" placeholder="name@company.com">
 
@@ -966,7 +970,7 @@ function srNextNo(){const be=(new Date().getFullYear()+543)%100;const prefix='RB
   const nums=load(LS_SR).map(r=>{const m=(r.reportNo||'').match(new RegExp('^'+prefix+'(\\d+)$'));return m?+m[1]:0;});
   const next=(nums.length?Math.max.apply(null,nums):0)+1;return prefix+String(next).padStart(3,'0');}
 function srResetForm(){
-  ['sr-customer','sr-email','sr-model','sr-serial','sr-ctrl','sr-problem','sr-performed','sr-reason','sr-break','sr-jr-manual'].forEach(i=>{if($(i))$(i).value='';});
+  ['sr-customer','sr-contact','sr-phone','sr-email','sr-model','sr-serial','sr-ctrl','sr-problem','sr-performed','sr-reason','sr-break','sr-jr-manual'].forEach(i=>{if($(i))$(i).value='';});
   if($('sr-job'))$('sr-job').value='';if($('sr-jr-manual'))$('sr-jr-manual').style.display='none';
   $('sr-parts').innerHTML='';srPhotos=[];srRenderThumbs();srClearSig();
   srState.warranty=srState.servicePay=srState.partPay=srState.workStatus='';
@@ -980,7 +984,7 @@ async function submitServiceReport(){
   if(!sigHas&&!confirm('ยังไม่มีลายเซ็นลูกค้า — บันทึกต่อไหม?'))return;
   const id=uid(),reportNo=srNextNo();
   const sig=sigHas?$('sr-sig').toDataURL('image/png'):'';
-  const rep={id,reportNo,personName:name,jobRef:srSelectedJR(),customer,custEmail:$('sr-email').value.trim(),
+  const rep={id,reportNo,personName:name,jobRef:srSelectedJR(),customer,contact:$('sr-contact').value.trim(),contactPhone:$('sr-phone').value.trim(),custEmail:$('sr-email').value.trim(),
     date:$('sr-date').value||todayStr(),timeFrom:$('sr-from').value,timeTo:$('sr-to').value,
     machineModel:$('sr-model').value.trim(),serial:$('sr-serial').value.trim(),controller:$('sr-ctrl').value.trim(),
     problem:$('sr-problem').value.trim(),performed:$('sr-performed').value.trim(),parts:srParts(),
@@ -991,7 +995,7 @@ async function submitServiceReport(){
     if(MODE==='firebase'&&db){await db.collection('rsc').doc('sr_'+id).set(rep);}
     else{localStorage.setItem('sr_'+id,JSON.stringify(rep));}
   }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||e));return;}
-  const idx=load(LS_SR);idx.unshift({id,reportNo,personName:name,jobRef:rep.jobRef,customer,date:rep.date,workStatus:rep.workStatus,createdTs:rep.createdTs});
+  const idx=load(LS_SR);idx.unshift({id,reportNo,personName:name,jobRef:rep.jobRef,customer,contact:rep.contact,contactPhone:rep.contactPhone,date:rep.date,workStatus:rep.workStatus,createdTs:rep.createdTs});
   save(LS_SR,idx);
   srResetForm();toast('📄 บันทึกใบรายงาน '+reportNo+' ✅');renderSRList();
 }
@@ -999,7 +1003,7 @@ function renderSRList(){const el=$('sr-mylist');if(!el)return;
   if($('sr-no'))$('sr-no').textContent=srNextNo();
   const mine=load(LS_SR).filter(r=>r.personName===myName()).slice(0,8);
   if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีใบรายงาน</div>';return;}
-  el.innerHTML='<div class="title" style="margin:8px 2px;">🗂️ ใบรายงานล่าสุดของฉัน</div>'+mine.map(r=>'<div class="rec-wrap"><div class="rec"><div><div style="font-weight:600;">'+esc(r.reportNo)+' · '+esc(r.customer)+'</div><div class="t">'+esc(r.jobRef||'')+' · '+new Date(r.createdTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+'</div></div><div class="h" style="font-size:20px;">'+(r.workStatus==='completed'?'✅':'⏳')+'</div></div></div>').join('');
+  el.innerHTML='<div class="title" style="margin:8px 2px;">🗂️ ใบรายงานล่าสุดของฉัน</div>'+mine.map(r=>'<div class="rec-wrap"><div class="rec"><div><div style="font-weight:600;">'+esc(r.reportNo)+' · '+esc(r.customer)+'</div><div class="t">'+esc(r.jobRef||'')+' · '+new Date(r.createdTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+(r.contactPhone?(' · <a href="tel:'+esc(r.contactPhone)+'" style="color:var(--orange-light);font-weight:600">📞 '+esc(r.contactPhone)+'</a>'):'')+'</div></div><div class="h" style="font-size:20px;">'+(r.workStatus==='completed'?'✅':'⏳')+'</div></div></div>').join('');
 }
 
 /* ===== OT request ===== */
