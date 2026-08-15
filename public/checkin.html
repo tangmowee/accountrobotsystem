@@ -162,6 +162,12 @@
     .sr-seg{display:flex;gap:6px;flex-wrap:wrap;}
     .sr-seg button{flex:1;min-width:64px;padding:11px 6px;border-radius:8px;border:1px solid var(--border);background:var(--dark2);color:var(--muted);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;}
     .sr-seg button.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+    /* เมนูย่อยในแท็บ "เพิ่มเติม" */
+    .subbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;}
+    .subbar::-webkit-scrollbar{display:none;}
+    .subbar .sub{flex:0 0 auto;white-space:nowrap;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:10px 16px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;}
+    .subbar .sub.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+    .sub-sec{display:none;} .sub-sec.on{display:block;}
   </style>
   <div class="botnav" id="tabbar">
     <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i">🕐</span>ลงเวลา</button>
@@ -268,14 +274,24 @@
   </section>
 
   <section class="tab-sec" id="sec-more">
+  <div class="subbar" id="subbar">
+    <button class="sub active" data-sub="dir" onclick="showSub('dir')">📇 รายชื่อ</button>
+    <button class="sub" data-sub="sr" onclick="showSub('sr')">📄 ใบรายงาน</button>
+    <button class="sub" data-sub="ot" onclick="showSub('ot')">🌙 OT</button>
+    <button class="sub" data-sub="book" onclick="showSub('book')">🚗 จองรถ</button>
+  </div>
+
   <!-- Directory / contacts -->
+  <div class="sub-sec on" id="sub-dir">
   <div class="card">
     <div class="title">📇 รายชื่อ/ติดต่อเพื่อนร่วมงาน</div>
     <input type="text" id="dir-search" oninput="renderDirectory()" placeholder="ค้นหา ชื่อ / ชื่อเล่น / แผนก / เบอร์">
     <div id="dir-list" style="margin-top:12px;"></div>
   </div>
+  </div>
 
   <!-- Service Report -->
+  <div class="sub-sec" id="sub-sr">
   <div class="card">
     <div class="title">📄 ใบรายงานบริการ (Service Report)</div>
     <div class="muted" style="margin:-6px 0 4px;">สำหรับงานนอก/เข้าลูกค้า — เลขที่: <b id="sr-no" style="color:var(--orange-light)">—</b></div>
@@ -346,8 +362,10 @@
     <button class="btn in" onclick="submitServiceReport()" style="margin-top:14px;">📄 บันทึกใบรายงาน</button>
     <div id="sr-mylist" style="margin-top:16px;"></div>
   </div>
+  </div>
 
   <!-- OT request -->
+  <div class="sub-sec" id="sub-ot">
   <div class="card">
     <div class="title">🌙 ขอ OT ล่วงหน้า</div>
     <label>งาน (จาก RSC Planner)</label>
@@ -361,8 +379,10 @@
     <button class="btn gps" onclick="submitOT()">📨 ส่งคำขอ OT</button>
     <div id="myot" style="margin-top:14px;"></div>
   </div>
+  </div>
 
   <!-- vehicle booking -->
+  <div class="sub-sec" id="sub-book">
   <div class="card">
     <div class="title">🚗 จองรถ</div>
     <div style="display:flex;gap:10px;">
@@ -378,6 +398,7 @@
     <input type="text" id="bk-dest" placeholder="เช่น โรงงานลูกค้า ศรีราชา">
     <button class="btn gps" onclick="submitBooking()">🚗 จองรถ</button>
     <div id="mybook" style="margin-top:14px;"></div>
+  </div>
   </div>
   </section>
 </div>
@@ -424,7 +445,7 @@ function showTab(id){
   if(id==='cal')renderCalendar();
   if(id==='jobs')renderMyJobs();
   if(id==='checkin')renderTodaySummary();
-  if(id==='more'){srInitSig();renderSRList();renderDirectory();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
+  if(id==='more'){renderDirectory();renderSRList();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function fetchPlanner(){
@@ -802,6 +823,15 @@ function renderMyLeave(){
   el.innerHTML='<div class="muted" style="margin-bottom:6px;">การลาของฉัน</div>'+mine.map(r=>`<div class="rec">
     <div><div>${LEAVE_TYPES[r.type]||esc(r.type)} · ${r.days} วัน</div><div class="t">${esc(r.from)}${r.to!==r.from?' – '+esc(r.to):''}</div></div>
     <div>${chip(r.status)}</div></div>`).join('');
+}
+
+/* เมนูย่อยในแท็บ "เพิ่มเติม" */
+function showSub(id){
+  document.querySelectorAll('.sub-sec').forEach(s=>s.classList.toggle('on',s.id==='sub-'+id));
+  document.querySelectorAll('#subbar .sub').forEach(b=>b.classList.toggle('active',b.dataset.sub===id));
+  if(id==='dir')renderDirectory();
+  if(id==='sr'){srInitSig();renderSRList();}
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 /* ===== ไดเรกทอรี / ติดต่อ ===== */
