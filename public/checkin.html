@@ -303,7 +303,7 @@
 
     <label>งาน / JR</label>
     <select id="sr-job" onchange="srJobChange()"><option value="">— เลือกงาน/JR —</option></select>
-    <input type="text" id="sr-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-26-01-003" style="display:none;margin-top:8px;">
+    <input type="text" id="sr-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-26-01-003" style="display:none;margin-top:8px;" onchange="srFillContact()">
 
     <label>ลูกค้า</label>
     <input type="text" id="sr-customer" placeholder="ชื่อลูกค้า / บริษัท">
@@ -313,6 +313,7 @@
     <input type="tel" id="sr-phone" inputmode="tel" placeholder="08x-xxx-xxxx">
     <label>อีเมลลูกค้า (ถ้ามี)</label>
     <input type="email" id="sr-email" placeholder="name@company.com">
+    <div class="muted" id="sr-contact-hint" style="display:none;margin-top:8px;font-size:13px;"></div>
 
     <div style="display:flex;gap:10px;">
       <div style="flex:1.2;"><label>วันที่</label><input type="date" id="sr-date"></div>
@@ -500,6 +501,7 @@ function goServiceReport(jr,site){
     srJobChange();
   }
   if(site&&$('sr-customer')&&!$('sr-customer').value)$('sr-customer').value=site;
+  srFillContact();
   if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();
   toast('ออกใบรายงานสำหรับ '+jr);
 }
@@ -965,7 +967,23 @@ function srSelectedJR(){const s=$('sr-job');if(!s)return '';const o=s.options[s.
 function srJobChange(){const s=$('sr-job'),man=$('sr-jr-manual');
   if(s.value==='__manual__'){man.style.display='block';}
   else{man.style.display='none';const o=s.options[s.selectedIndex];if(o&&o.dataset.site&&!$('sr-customer').value)$('sr-customer').value=o.dataset.site;}
+  srFillContact();
 }
+/* เติมลูกค้า/ผู้ติดต่อ/เบอร์ จากใบรายงานล่าสุดของ JR เดียวกัน — เติมเฉพาะช่องที่ยังว่าง แก้ทับได้เสมอ */
+function srFillContact(){
+  const jr=srSelectedJR();if(!jr)return;
+  const prev=load(LS_SR).filter(r=>r.jobRef===jr&&(r.contactPhone||r.contact||r.customer))
+    .sort((a,b)=>(b.createdTs||0)-(a.createdTs||0))[0];
+  if(!prev)return;
+  const put=(id,val)=>{const el=$(id);if(el&&!el.value&&val)el.value=val;};
+  put('sr-customer',prev.customer);put('sr-contact',prev.contact);put('sr-phone',prev.contactPhone);
+  const hint=$('sr-contact-hint');
+  if(hint){hint.style.display='block';
+    hint.innerHTML='ℹ️ เติมผู้ติดต่อจากใบ <b>'+esc(prev.reportNo||'')+'</b> ให้แล้ว — แก้ได้ตามต้องการ '
+      +'<a onclick="srClearContact()" style="color:var(--orange-light);font-weight:600;cursor:pointer;margin-left:6px">ล้าง</a>';}
+}
+function srClearContact(){['sr-customer','sr-contact','sr-phone','sr-email'].forEach(i=>{if($(i))$(i).value='';});
+  const h=$('sr-contact-hint');if(h)h.style.display='none';}
 function srNextNo(){const be=(new Date().getFullYear()+543)%100;const prefix='RBS'+be+'-';
   const nums=load(LS_SR).map(r=>{const m=(r.reportNo||'').match(new RegExp('^'+prefix+'(\\d+)$'));return m?+m[1]:0;});
   const next=(nums.length?Math.max.apply(null,nums):0)+1;return prefix+String(next).padStart(3,'0');}
@@ -976,6 +994,7 @@ function srResetForm(){
   srState.warranty=srState.servicePay=srState.partPay=srState.workStatus='';
   document.querySelectorAll('#sec-more .sr-seg button').forEach(b=>b.classList.remove('on'));
   $('sr-reason-wrap').style.display='none';
+  const h=$('sr-contact-hint');if(h)h.style.display='none';
 }
 async function submitServiceReport(){
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
