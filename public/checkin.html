@@ -1026,14 +1026,27 @@ const SALES_ADMIN=window.SALES_ADMIN_EMAIL||'';
 let _srLast=null;
 function srShowDone(rep){
   const box=$('sr-done');if(!box)return;
+  const auto=SRPrint.autoEnabled();
   box.style.display='block';
   box.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:2px;">✅ บันทึกใบ '+esc(rep.reportNo)+' แล้ว</div>'
-    +'<div class="muted" style="font-size:13px;">ส่งให้ '+esc(SALES_ADMIN)+(rep.custEmail?(' และ '+esc(rep.custEmail)):' (ยังไม่ได้กรอกอีเมลลูกค้า)')+'</div>'
+    +'<div class="muted" style="font-size:13px;" id="sr-mailstat">'+(auto?'📤 กำลังส่งอีเมล…':('ส่งให้ '+esc(SALES_ADMIN)+(rep.custEmail?(' และ '+esc(rep.custEmail)):' (ยังไม่ได้กรอกอีเมลลูกค้า)')))+'</div>'
     +'<button class="btn gps" style="margin-top:10px;" onclick="srOpenLast()">🖨️ เปิด / พิมพ์ / บันทึก PDF</button>'
     +'<button class="btn gps" onclick="srDownloadLast()">⬇️ ดาวน์โหลดใบรายงาน</button>'
-    +'<button class="btn in" onclick="srMailLast()">📧 ส่งอีเมล</button>'
+    +'<button class="btn in" onclick="srMailLast()">📧 '+(auto?'ส่งอีเมลอีกครั้ง':'ส่งอีเมล')+'</button>'
     +'<button class="btn ghost" onclick="document.getElementById(\'sr-done\').style.display=\'none\'">ปิด</button>';
   box.scrollIntoView({behavior:'smooth',block:'center'});
+  if(auto)srSendAuto(rep);
+}
+/* ส่งอัตโนมัติผ่าน Apps Script (แนบ PDF) */
+function srSendAuto(rep){
+  const st=$('sr-mailstat');
+  SRPrint.sendAuto(srDisplay(rep)).then(d=>{
+    if(st)st.innerHTML='✅ ส่งอีเมลแล้ว → '+esc((d.sentTo||[]).join(', '));
+    toast('📧 ส่งใบ '+rep.reportNo+' ทางอีเมลแล้ว');
+  }).catch(e=>{
+    if(st)st.innerHTML='⚠️ ส่งอัตโนมัติไม่สำเร็จ ('+esc(e.message||e)+') — กดปุ่ม 📧 เพื่อส่งเอง';
+    toast('ส่งอีเมลอัตโนมัติไม่สำเร็จ — ใช้ปุ่มส่งเองได้');
+  });
 }
 function srDisplay(rep){const e=EMP.find(x=>x.email===rep.personName);
   return Object.assign({},rep,{personDisplay:(e&&e.name)||rep.personName||''});}
@@ -1041,6 +1054,7 @@ function srOpenLast(){if(_srLast)SRPrint.open(srDisplay(_srLast));}
 function srDownloadLast(){if(_srLast)SRPrint.download(srDisplay(_srLast));}
 function srMailLast(){if(!_srLast)return;
   if(!_srLast.custEmail&&!confirm('ยังไม่ได้กรอกอีเมลลูกค้า — ส่งให้ '+SALES_ADMIN+' อย่างเดียวไหม?'))return;
+  if(SRPrint.autoEnabled()){srSendAuto(_srLast);return;}
   window.location.href=SRPrint.mailtoLink(srDisplay(_srLast),SALES_ADMIN);}
 function renderSRList(){const el=$('sr-mylist');if(!el)return;
   if($('sr-no'))$('sr-no').textContent=srNextNo();

@@ -82,3 +82,8 @@ window.HOLIDAYS = [
 /* ===== ใบรายงานบริการ (Service Report) =====
    อีเมลที่ต้องได้รับใบรายงานทุกใบ (นอกเหนือจากอีเมลลูกค้าที่ช่างกรอกหน้างาน) */
 window.SALES_ADMIN_EMAIL = 'salesadmin@robotsystem.co.th';
+
+/* ส่งใบรายงานอัตโนมัติ (แนบ PDF) — ได้จากการ Deploy RSC-Mailer-AppsScript.gs
+   ปล่อยว่าง = ปิดการส่งอัตโนมัติ (ระบบจะเปิดโปรแกรมอีเมลให้กดส่งเองแทน) */
+window.MAILER_URL    = '';
+window.MAILER_SECRET = 'rsc-connect-2569';   // ต้องตรงกับ SECRET ในสคริปต์

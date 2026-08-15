@@ -1293,6 +1293,12 @@ function srvLoadFull(id,cb){
 function srvOpen(id){srvLoadFull(id,r=>SRPrint.open(r));}
 function srvMail(id){srvLoadFull(id,r=>{
   if(!r.custEmail&&!confirm('ใบนี้ไม่มีอีเมลลูกค้า — ส่งให้ '+SALES_ADMIN+' อย่างเดียวไหม?'))return;
+  if(SRPrint.autoEnabled()){
+    toast('📤 กำลังส่ง '+(r.reportNo||'')+'…');
+    SRPrint.sendAuto(r).then(d=>toast('✅ ส่งแล้ว → '+(d.sentTo||[]).join(', ')))
+      .catch(e=>toast('ส่งไม่สำเร็จ: '+(e.message||e),true));
+    return;
+  }
   window.location.href=SRPrint.mailtoLink(r,SALES_ADMIN);});}
 const SRV_HEAD=['วันที่','เลขที่','JR','ลูกค้า','ผู้ติดต่อ','เบอร์','อีเมลลูกค้า','ช่าง','สถานะ'];
 function srvRows(){return srvFiltered().map(r=>[r.date||'',r.reportNo||'',r.jobRef||'',r.customer||'',r.contact||'',

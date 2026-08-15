@@ -214,5 +214,37 @@ window.SRPrint = (function () {
     return 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
   }
 
-  return { html: html, open: open_, download: download, mailtoLink: mailtoLink, thDate: thDate, hoursOf: hoursOf };
+  /* ข้อความล้วน (สำรองในเมล) */
+  function plain(r) {
+    var link = mailtoLink(r, '');
+    var q = link.indexOf('&body=');
+    return q < 0 ? '' : decodeURIComponent(link.slice(q + 6));
+  }
+
+  /* ส่งอีเมลอัตโนมัติผ่าน Apps Script (แนบ PDF) — คืน Promise */
+  function sendAuto(r, opts) {
+    opts = opts || {};
+    var url = opts.url || window.MAILER_URL || '';
+    if (!url) return Promise.reject(new Error('ยังไม่ได้ตั้งค่า MAILER_URL'));
+    var payload = {
+      secret: opts.secret || window.MAILER_SECRET || '',
+      reportNo: r.reportNo || '',
+      customerEmail: r.custEmail || '',
+      subject: 'ใบรายงานบริการ ' + (r.reportNo || '') + ' · ' + (r.customer || '') + (r.jobRef ? (' · ' + r.jobRef) : ''),
+      html: html(r),
+      text: plain(r)
+    };
+    // ไม่ตั้ง header เพื่อให้เป็น simple request (เลี่ยง CORS preflight ของ Apps Script)
+    return fetch(url, { method: 'POST', body: JSON.stringify(payload) })
+      .then(function (res) { return res.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || 'ส่งไม่สำเร็จ');
+        return d;
+      });
+  }
+
+  function autoEnabled() { return !!(window.MAILER_URL || '').trim(); }
+
+  return { html: html, open: open_, download: download, mailtoLink: mailtoLink,
+           sendAuto: sendAuto, autoEnabled: autoEnabled, thDate: thDate, hoursOf: hoursOf };
 })();
