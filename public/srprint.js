@@ -28,12 +28,6 @@ window.SRPrint = (function () {
     status: { completed: 'งานเสร็จสมบูรณ์', followup: 'ต้องตามต่อ' }
   };
 
-  function field(k, v, mono) {
-    return '<div class="f"><div class="k">' + esc(k) + '</div><div class="v' + (mono ? ' mono' : '') +
-           (v ? '' : ' empty') + '">' + (v ? esc(v) : '—') + '</div></div>';
-  }
-
-  /* สร้าง HTML ของใบรายงาน (หน้าเดียว พร้อมพิมพ์ A4) */
   /* โลโก้ RSC (ฝังตรง ๆ ไม่ต้องโหลดไฟล์ — ใช้ได้ทั้งตอนพิมพ์และในอีเมล) */
   var LOGO =
     '<svg class="logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">' +
