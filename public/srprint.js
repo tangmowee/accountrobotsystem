@@ -47,10 +47,14 @@ window.SRPrint = (function () {
       '<circle cx="225" cy="234" r="27" fill="#fff"/><circle cx="368" cy="128" r="27" fill="#fff"/>' +
     '</svg>';
 
-  /* ช่องข้อมูลแบบเส้นบาง (ไม่ใช้กล่องทึบ — ประหยัดพื้นที่ อ่านง่าย ดูเป็นทางการ) */
-  function d(k, v, cls) {
-    return '<div class="d' + (cls ? ' ' + cls : '') + '"><dt>' + esc(k) + '</dt><dd' +
-           (v ? '' : ' class="empty"') + '>' + (v ? esc(v) : '—') + '</dd></div>';
+  /* ช่องข้อมูลแบบเส้นบาง สองภาษา (ไทย + อังกฤษ) — แน่น อ่านง่าย ดูเป็นทางการ */
+  function d(th, en, v, cls) {
+    return '<div class="d' + (cls ? ' ' + cls : '') + '">' +
+           '<dt>' + esc(th) + (en ? '<em>' + esc(en) + '</em>' : '') + '</dt>' +
+           '<dd' + (v ? '' : ' class="empty"') + '>' + (v ? esc(v) : '—') + '</dd></div>';
+  }
+  function lbl(th, en) {
+    return '<div class="lbl"><b>' + esc(th) + '</b><span>' + esc(en) + '</span></div>';
   }
 
   /* สร้าง HTML ของใบรายงาน (A4 พร้อมพิมพ์) */
@@ -75,7 +79,7 @@ window.SRPrint = (function () {
 '--brand:#D9600A;--brand-soft:#FCF1E8;--ok:#04704F;--ok-soft:#E6F3EE;--paper:#fff;--ground:#E9EBEF}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{background:var(--ground);color:var(--ink);font-family:"Noto Sans Thai","Sarabun",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;' +
-'font-size:14.5px;line-height:1.55;padding:26px 14px 64px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}' +
+'font-size:13.5px;line-height:1.5;padding:22px 12px 56px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}' +
 '.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:.2px}' +
 
 '.bar{max-width:840px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end}' +
@@ -84,76 +88,79 @@ window.SRPrint = (function () {
 '.bar button.p{background:var(--brand);border-color:var(--brand);color:#fff}' +
 
 '.sheet{max-width:840px;margin:0 auto;background:var(--paper);' +
-'box-shadow:0 1px 2px rgba(15,19,23,.06),0 18px 44px -24px rgba(15,19,23,.45);padding:44px 46px 34px}' +
+'box-shadow:0 1px 2px rgba(15,19,23,.06),0 18px 44px -24px rgba(15,19,23,.45);padding:32px 34px 24px}' +
 
 /* letterhead */
 '.head{display:flex;justify-content:space-between;align-items:flex-start;gap:30px}' +
 '.org{display:flex;gap:14px;align-items:center}' +
-'.logo{width:44px;height:44px;flex:0 0 44px;display:block}' +
-'.org .name{font-size:17.5px;font-weight:700;letter-spacing:1.1px;line-height:1.15}' +
-'.org .th{font-size:12.5px;color:var(--ink2);margin-top:2px}' +
-'.org .meta{font-size:11.5px;color:var(--ink3);margin-top:3px;letter-spacing:.2px}' +
+'.logo{width:38px;height:38px;flex:0 0 38px;display:block}' +
+'.org .name{font-size:16px;font-weight:700;letter-spacing:1.1px;line-height:1.15}' +
+'.org .th{font-size:11.5px;color:var(--ink2);margin-top:1px}' +
+'.org .meta{font-size:10.5px;color:var(--ink3);margin-top:2px;letter-spacing:.2px}' +
 '.docid{text-align:right;flex:0 0 auto}' +
 '.docid .kind{font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--ink3);font-weight:600}' +
-'.docid .no{font-size:23px;font-weight:700;color:var(--brand);line-height:1.2;margin-top:1px}' +
+'.docid .no{font-size:21px;font-weight:700;color:var(--brand);line-height:1.2;margin-top:1px}' +
 '.docid .jr{font-size:12.5px;color:var(--ink2);margin-top:1px}' +
-'.rule{height:2px;background:var(--ink);margin:14px 0 0}' +
+'.rule{height:2px;background:var(--ink);margin:10px 0 0}' +
 '.rule i{display:block;height:2px;width:88px;background:var(--brand)}' +
 
-'.title{display:flex;justify-content:space-between;align-items:baseline;gap:18px;margin:16px 0 20px}' +
-'.title h2{font-size:16.5px;font-weight:700;letter-spacing:.2px}' +
-'.title .sub{font-size:13px;color:var(--ink2);text-align:right;flex:1}' +
+'.title{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin:12px 0 14px}' +
+'.title h2{font-size:15.5px;font-weight:700;letter-spacing:.2px}' +
+'.title h2 em{font-style:normal;font-weight:600;color:var(--ink3);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;margin-left:8px}' +
+'.title .sub{font-size:12px;color:var(--ink2);text-align:right;flex:1}' +
 
 /* sections */
-'section{margin-top:22px}' +
-'.lbl{font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink3);' +
-'display:flex;align-items:center;gap:10px;margin-bottom:12px}' +
+'section{margin-top:15px}' +
+'.lbl{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}' +
+'.lbl b{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--ink2)}' +
+'.lbl span{font-size:9.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink3)}' +
 '.lbl:after{content:"";flex:1;height:1px;background:var(--rule)}' +
 
 /* hairline data grid — เบา ไม่กินพื้นที่ */
-'.dl{display:grid;gap:12px 26px}' +
+'.dl{display:grid;gap:8px 20px}' +
 '.c4{grid-template-columns:repeat(4,1fr)}.c3{grid-template-columns:repeat(3,1fr)}' +
 '@media(max-width:640px){.c4,.c3{grid-template-columns:repeat(2,1fr)}}' +
-'.d{min-width:0;border-bottom:1px solid var(--hair);padding-bottom:7px}' +
-'.d dt{font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:var(--ink3);font-weight:600}' +
-'.d dd{font-size:14.5px;font-weight:600;margin-top:2px;overflow-wrap:anywhere}' +
+'.d{min-width:0;border-bottom:1px solid var(--hair);padding-bottom:4px}' +
+'.d dt{font-size:9.5px;letter-spacing:.5px;color:var(--ink3);font-weight:600;line-height:1.35}' +
+'.d dt em{font-style:normal;letter-spacing:1.1px;text-transform:uppercase;opacity:.8;margin-left:5px;font-size:9px}' +
+'.d dd{font-size:14px;font-weight:600;margin-top:1px;overflow-wrap:anywhere;line-height:1.4}' +
 '.d dd.empty{color:var(--ink3);font-weight:400}' +
 '.d.span2{grid-column:span 2}.d.full{grid-column:1/-1}' +
-'.d.full dd{font-weight:400;line-height:1.65}' +
+'.d.full dd{font-weight:400;line-height:1.55}' +
 
 /* parts */
 'table{width:100%;border-collapse:collapse;font-size:14px}' +
 'th{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);text-align:left;' +
-'font-weight:700;padding:0 10px 8px;border-bottom:1px solid var(--rule)}' +
-'td{padding:9px 10px;border-bottom:1px solid var(--hair)}' +
+'font-weight:700;padding:0 10px 6px;border-bottom:1px solid var(--rule)}' +
+'td{padding:6px 10px;border-bottom:1px solid var(--hair)}' +
 'td.num,th.num{text-align:right}td.idx{color:var(--ink3);width:38px}' +
 'tbody tr:last-child td{border-bottom:none}' +
-'.empty-row{color:var(--ink3);font-style:italic;text-align:center;padding:14px 0}' +
+'.empty-row{color:var(--ink3);font-style:italic;text-align:center;padding:10px 0}' +
 
 /* status */
-'.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}' +
-'.chip{font-size:12.5px;font-weight:600;padding:5px 13px;border-radius:3px;border:1px solid var(--rule);color:var(--ink2);letter-spacing:.2px}' +
+'.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}' +
+'.chip{font-size:12px;font-weight:600;padding:4px 11px;border-radius:3px;border:1px solid var(--rule);color:var(--ink2);letter-spacing:.2px}' +
 '.chip.on{background:var(--ok-soft);border-color:transparent;color:var(--ok)}' +
 '.chip.brand{background:var(--brand-soft);border-color:transparent;color:#A34A05}' +
 
 /* photos */
-'.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}' +
+'.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}' +
 '@media(max-width:640px){.photos{grid-template-columns:repeat(2,1fr)}}' +
 '.photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border:1px solid var(--rule)}' +
 
 /* signatures */
-'.sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px;padding-top:22px;border-top:1px solid var(--rule)}' +
+'.sign{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:22px;padding-top:16px;border-top:1px solid var(--rule)}' +
 '@media(max-width:640px){.sign{grid-template-columns:1fr;gap:26px}}' +
-'.sigpad{height:76px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-bottom:1px solid var(--ink)}' +
-'.sigpad img{max-height:72px;max-width:100%}' +
-'.sigrole{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);font-weight:600;margin-bottom:6px}' +
-'.signame{font-size:14px;font-weight:600;margin-top:8px}' +
-'.sigsub{font-size:12px;color:var(--ink3);margin-top:1px}' +
+'.sigpad{height:62px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;border-bottom:1px solid var(--ink)}' +
+'.sigpad img{max-height:58px;max-width:100%}' +
+'.sigrole{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);font-weight:600;margin-bottom:5px}' +
+'.signame{font-size:13.5px;font-weight:600;margin-top:6px}' +
+'.sigsub{font-size:11px;color:var(--ink3);margin-top:1px}' +
 
-'.foot{margin-top:30px;padding-top:12px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;' +
+'.foot{margin-top:20px;padding-top:10px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;' +
 'gap:14px;font-size:11px;color:var(--ink3);letter-spacing:.2px}' +
 
-'@media print{@page{size:A4;margin:14mm}body{background:#fff;padding:0}.bar{display:none}' +
+'@media print{@page{size:A4;margin:11mm}body{background:#fff;padding:0}.bar{display:none}' +
 '.sheet{box-shadow:none;max-width:none;padding:0}section,.sign{break-inside:avoid}}' +
 '</style></head><body>' +
 
@@ -175,63 +182,61 @@ window.SRPrint = (function () {
   '</div>' +
   '<div class="rule"><i></i></div>' +
 
-  '<div class="title"><h2>ใบรายงานบริการ</h2>' +
+  '<div class="title"><h2>ใบรายงานบริการ<em>Service Report</em></h2>' +
     '<div class="sub">' + esc(r.jobTitle || r.customer || '') + '</div></div>' +
 
-  '<section><div class="lbl">ลูกค้า</div><div class="dl c3">' +
-    d('ลูกค้า', r.customer) +
-    d('ผู้ติดต่อหน้างาน', r.contact) +
-    d('เบอร์ติดต่อ', r.contactPhone) +
-    d('อีเมล', r.custEmail, 'span2') +
-    d('เลขที่งาน (JR)', r.jobRef) +
+  '<section>' + lbl('ลูกค้าและการเข้าปฏิบัติงาน', 'Customer & Service Visit') + '<div class="dl c4">' +
+    d('ลูกค้า', 'Customer', r.customer, 'span2') +
+    d('ผู้ติดต่อหน้างาน', 'Contact', r.contact) +
+    d('เบอร์ติดต่อ', 'Phone', r.contactPhone) +
+    d('อีเมล', 'Email', r.custEmail, 'span2') +
+    d('เลขที่งาน', 'Job No.', r.jobRef) +
+    d('วันที่', 'Date', thDate(r.date)) +
+    d('เวลาเริ่ม – สิ้นสุด', 'Time in – out', (r.timeFrom && r.timeTo) ? (r.timeFrom + ' – ' + r.timeTo) : '') +
+    d('หักพัก', 'Break', (+r.breakHrs || 0).toFixed(1) + ' ชม.') +
+    d('รวมเวลาปฏิบัติงาน', 'Total hours', hrs ? (hrs + ' ชม.') : '') +
   '</div></section>' +
 
-  '<section><div class="lbl">การเข้าปฏิบัติงาน</div><div class="dl c4">' +
-    d('วันที่', thDate(r.date)) +
-    d('เวลาเริ่ม – สิ้นสุด', (r.timeFrom && r.timeTo) ? (r.timeFrom + ' – ' + r.timeTo) : '') +
-    d('หักพัก', (+r.breakHrs || 0).toFixed(1) + ' ชม.') +
-    d('รวมเวลาปฏิบัติงาน', hrs ? (hrs + ' ชม.') : '') +
+  '<section>' + lbl('ข้อมูลเครื่อง', 'Equipment') + '<div class="dl c3">' +
+    d('รุ่นเครื่อง', 'Model', r.machineModel) + d('หมายเลขเครื่อง', 'Serial', r.serial) +
+    d('ชุดควบคุม', 'Controller', r.controller) +
   '</div></section>' +
 
-  '<section><div class="lbl">ข้อมูลเครื่อง</div><div class="dl c3">' +
-    d('รุ่นเครื่อง', r.machineModel) + d('Serial', r.serial) + d('Controller', r.controller) +
+  '<section>' + lbl('ปัญหาและการแก้ไข', 'Problem & Action Taken') + '<div class="dl">' +
+    d('ปัญหาที่พบ', 'Problem found', r.problem, 'full') +
+    d('การแก้ไข / งานที่ทำ', 'Action taken', r.performed, 'full') +
   '</div></section>' +
 
-  '<section><div class="lbl">ปัญหาและการแก้ไข</div><div class="dl">' +
-    d('ปัญหาที่พบ', r.problem, 'full') +
-    d('การแก้ไข / งานที่ทำ', r.performed, 'full') +
-  '</div></section>' +
-
-  '<section><div class="lbl">อะไหล่ที่ใช้</div><table>' +
-    '<thead><tr><th class="idx">#</th><th>รายการ</th><th class="num" style="width:96px">จำนวน</th></tr></thead>' +
+  '<section>' + lbl('อะไหล่ที่ใช้', 'Parts Used') + '<table>' +
+    '<thead><tr><th class="idx">#</th><th>รายการ · Description</th><th class="num" style="width:96px">จำนวน · Qty</th></tr></thead>' +
     '<tbody>' + partRows + '</tbody></table></section>' +
 
-  '<section><div class="lbl">เงื่อนไขและสถานะงาน</div><div class="dl c3">' +
-    d('การรับประกัน', LBL.warranty[r.warranty] || '') +
-    d('ค่าบริการ', LBL.pay[r.servicePay] || '') +
-    d('ค่าอะไหล่', LBL.pay[r.partPay] || '') +
+  '<section>' + lbl('เงื่อนไขและสถานะงาน', 'Terms & Status') + '<div class="dl c3">' +
+    d('การรับประกัน', 'Warranty', LBL.warranty[r.warranty] || '') +
+    d('ค่าบริการ', 'Service charge', LBL.pay[r.servicePay] || '') +
+    d('ค่าอะไหล่', 'Parts charge', LBL.pay[r.partPay] || '') +
   '</div><div class="chips">' +
     '<span class="chip' + (done ? ' on' : '') + '">' + (done ? '✓ ' : '● ') + esc(LBL.status[r.workStatus] || '—') + '</span>' +
     (r.reason ? '<span class="chip">' + esc(r.reason) + '</span>' : '') +
-    '<span class="chip brand">ผู้ปฏิบัติงาน · ' + esc(r.personDisplay || r.personName || '') + '</span>' +
+    '<span class="chip brand">ผู้ปฏิบัติงาน · ' + esc(r.personDisplay || '') + '</span>' +
   '</div></section>' +
 
-  (photos.length ? ('<section><div class="lbl">รูปถ่ายหน้างาน</div><div class="photos">' +
+  (photos.length ? ('<section>' + lbl('รูปถ่ายหน้างาน', 'Site Photos') + '<div class="photos">' +
       photos.map(function (p) { return '<img src="' + p + '" alt="รูปหน้างาน">'; }).join('') +
     '</div></section>') : '') +
 
   '<div class="sign">' +
-    '<div><div class="sigrole">ลูกค้า / ผู้รับบริการ</div>' +
+    '<div><div class="sigrole">ลูกค้า / ผู้รับบริการ · Customer</div>' +
       '<div class="sigpad">' + (r.signature ? '<img src="' + r.signature + '" alt="ลายเซ็นลูกค้า">' : '') + '</div>' +
       '<div class="signame">' + (r.contact ? esc(r.contact) : '&nbsp;') + '</div>' +
       '<div class="sigsub">' + esc(r.customer || '') + ' · ' + thDate(r.date) + '</div></div>' +
-    '<div><div class="sigrole">ผู้ปฏิบัติงาน · Robot System</div>' +
+    '<div><div class="sigrole">ผู้ปฏิบัติงาน · Service Engineer</div>' +
       '<div class="sigpad"></div>' +
       '<div class="signame">' + esc(r.personDisplay || '&nbsp;') + '</div>' +
-      '<div class="sigsub">รหัสพนักงาน ' + esc(r.personName || '') + '</div></div>' +
+      '<div class="sigsub">Robot System Co., Ltd.</div></div>' +
   '</div>' +
 
-  '<div class="foot"><span>ออกโดยระบบ RSC Connect</span>' +
+  '<div class="foot"><span>ออกโดยระบบ RSC Connect · Generated by RSC Connect</span>' +
     '<span class="mono">' + esc(r.reportNo || '') + '</span></div>' +
 '</div></body></html>';
   }
