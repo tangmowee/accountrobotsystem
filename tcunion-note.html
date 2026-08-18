@@ -1,0 +1,264 @@
+<title>โน้ตฝากคุย ที.ซี.ยูเนี่ยน</title>
+<style>
+  :root {
+    --paper:   #F5F3EF;
+    --card:    #FFFFFF;
+    --ink:     #1A1815;
+    --muted:   #6B655C;
+    --line:    rgba(26,24,21,.13);
+    --hair:    rgba(26,24,21,.07);
+    --accent:  #A8541B;
+    --accent-soft: rgba(168,84,27,.10);
+    --deep:    #2E4739;
+    --deep-soft: rgba(46,71,57,.09);
+
+    --sans: "IBM Plex Sans Thai", "Noto Sans Thai", "Sarabun", "Leelawadee UI", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:  #14130F;
+      --card:   #1D1B17;
+      --ink:    #EDE9E2;
+      --muted:  #A29A8D;
+      --line:   rgba(237,233,226,.16);
+      --hair:   rgba(237,233,226,.08);
+      --accent: #E08A4E;
+      --accent-soft: rgba(224,138,78,.13);
+      --deep:   #8FC0A2;
+      --deep-soft: rgba(143,192,162,.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:  #14130F;
+    --card:   #1D1B17;
+    --ink:    #EDE9E2;
+    --muted:  #A29A8D;
+    --line:   rgba(237,233,226,.16);
+    --hair:   rgba(237,233,226,.08);
+    --accent: #E08A4E;
+    --accent-soft: rgba(224,138,78,.13);
+    --deep:   #8FC0A2;
+    --deep-soft: rgba(143,192,162,.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.78;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .note {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1.35rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  header { display: flex; flex-direction: column; gap: .75rem; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 1.2rem + 1.8vw, 2.15rem);
+    line-height: 1.28;
+    letter-spacing: -.015em;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+  .sub { margin: 0; color: var(--muted); }
+  .rule { height: 2px; background: var(--accent); width: 3.5rem; }
+
+  section { display: flex; flex-direction: column; gap: .7rem; }
+  h2 {
+    margin: 0;
+    font-size: .78rem;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--hair);
+  }
+  p { margin: 0; }
+  ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .45rem; }
+
+  .ask {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 1.15rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .ask p:first-child { font-size: 1.1rem; font-weight: 700; }
+
+  .facts {
+    background: var(--card);
+    border: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+  .fact { padding: 1rem 1.2rem; border-right: 1px solid var(--hair); }
+  .fact:last-child { border-right: 0; }
+  .fact dt {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .fact dd {
+    margin: .25rem 0 0;
+    font-size: 1.22rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  .fact dd span { display: block; font-size: .82rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+
+  .steps { display: flex; flex-direction: column; gap: 0; counter-reset: step; }
+  .step {
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0 .9rem;
+    padding: .8rem 0;
+    border-bottom: 1px solid var(--hair);
+    counter-increment: step;
+  }
+  .step:first-child { border-top: 1px solid var(--hair); }
+  .step::before {
+    content: counter(step);
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--accent);
+    padding-top: .3rem;
+  }
+
+  .qa { display: flex; flex-direction: column; gap: 1rem; }
+  .qa div { display: flex; flex-direction: column; gap: .2rem; }
+  .q { font-weight: 700; }
+  .q::before { content: "ถาม  "; font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; color: var(--muted); }
+  .a { color: var(--ink); }
+  .a::before { content: "ตอบ  "; font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; color: var(--deep); }
+
+  .script {
+    background: var(--deep-soft);
+    border-left: 3px solid var(--deep);
+    padding: 1.1rem 1.3rem;
+    font-size: 1.02rem;
+  }
+
+  .care { background: var(--card); border: 1px solid var(--line); padding: 1.05rem 1.25rem; }
+  .care ul { gap: .35rem; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 1.1rem;
+    color: var(--muted);
+    font-size: .88rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+
+  @media (max-width: 30rem) {
+    .fact { border-right: 0; border-bottom: 1px solid var(--hair); }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .note { max-width: none; padding: 0; gap: 1.4rem; }
+    .facts, .ask, .script, .care, .qa div, .step { break-inside: avoid; }
+    h2 { break-after: avoid; }
+  }
+</style>
+
+<div class="note">
+
+  <header>
+    <p class="kicker">สรุปย่อ · อ่าน 2 นาที</p>
+    <h1>ฝากช่วยคุยกับ ที.ซี.ยูเนี่ยน อโกรเทค</h1>
+    <div class="rule"></div>
+    <p class="sub">สำหรับผู้ที่ยังไม่เคยเกี่ยวข้องกับงานนี้ — ไม่ต้องรู้รายละเอียดทางเทคนิคก็คุยได้</p>
+  </header>
+
+  <dl class="facts">
+    <div class="fact"><dt>งานที่ทำให้</dt><dd>หุ่นยนต์ยกกระสอบ<span>+ ไลน์บรรจุอัตโนมัติ</span></dd></div>
+    <div class="fact"><dt>มูลค่างาน</dt><dd>9.63 ล้าน<span>บาท รวม VAT</span></dd></div>
+    <div class="fact"><dt>ยอดที่ค้าง</dt><dd>4.82 ล้าน<span>บาท · งวดที่ 2</span></dd></div>
+    <div class="fact"><dt>สถานะ</dt><dd>ติดตั้งแล้ว<span>ตั้งแต่ ก.ค. 2569</span></dd></div>
+  </dl>
+
+  <section>
+    <h2>เรื่องย่อ</h2>
+    <div class="steps">
+      <div class="step"><p>สัญญาแบ่งจ่าย 3 งวด — 40% ตอนสั่งซื้อ · 50% ตอนลูกค้าตรวจรับเครื่องที่โรงงานเราก่อนส่ง · 10% หลังติดตั้งเสร็จ</p></div>
+      <div class="step"><p>ลูกค้าเข้ามาดูเครื่องที่โรงงานเราครั้งหนึ่ง แล้วแจ้งเองว่า <strong>ไม่ต้องนัดตรวจรับแล้ว ให้ส่งของได้เลย</strong> เราจึงส่งและติดตั้งตามที่สั่ง</p></div>
+      <div class="step"><p>ถึงกำหนดจ่ายงวดที่ 2 ลูกค้าบอกว่าหุ่นยนต์ยังหยิบกระสอบไม่ได้ — เราแก้จนใช้งานได้แล้ว</p></div>
+      <div class="step"><p>จากนั้นเปลี่ยนเป็นว่า <strong>เครื่องอื่นในไลน์ยังทำงานไม่ครบ</strong> จึงยังไม่จ่าย ทั้งที่เรื่องนี้ตามสัญญาผูกกับงวดสุดท้าย 10% อยู่แล้ว ไม่ใช่งวดที่ 2</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>สิ่งที่อยากขอ</h2>
+    <div class="ask">
+      <p>ขอให้ปลดค่างวดที่ 2 ตามเงื่อนไขที่ตกลงกันไว้ แล้วมานั่งลิสต์รายการที่ยังค้างร่วมกัน โดยผูกไว้กับงวดสุดท้าย</p>
+      <p>เราไม่ได้ขอเงินก้อนสุดท้าย ไม่ได้ขอให้ปิดงานทั้งที่ยังไม่เรียบร้อย และไม่ได้จะเลิกดูแลหน้างาน — ของทั้งระบบเราจ่ายค่าอุปกรณ์ไปก่อนแล้ว ตอนนี้เริ่มโดนซัพพลายเออร์ทวงและคิดดอกเบี้ย</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>ถ้าเพื่อนถามแบบนี้ ตอบได้เลย</h2>
+    <div class="qa">
+      <div>
+        <p class="q">ของยังใช้ไม่ได้ใช่ไหม ถึงยังไม่จ่าย</p>
+        <p class="a">หยิบกระสอบได้แล้ว ที่เหลือคือการจูนให้ไลน์ทั้งเส้นเดินเข้ากัน เป็นขั้นตอนปกติของงานติดตั้ง และทีมเรายังเข้าไปทำอยู่ทุกสัปดาห์</p>
+      </div>
+      <div>
+        <p class="q">ทำไมไม่รอให้จบก่อนแล้วจ่ายทีเดียว</p>
+        <p class="a">เงื่อนไข 3 งวดตกลงกันตั้งแต่ต้น และงวดสุดท้ายก็กันไว้สำหรับตอนงานจบอยู่แล้ว</p>
+      </div>
+      <div>
+        <p class="q">แล้วอยากให้ช่วยอะไร</p>
+        <p class="a">ช่วยเปิดทางให้ผู้บริหารสองฝ่ายได้นั่งคุยกันสัก 30 นาที เท่านั้น เอกสารทีมงานเตรียมพร้อมแล้ว</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ประโยคเปิดเรื่อง</h2>
+    <p class="script">
+      “มีบริษัทที่ผมรู้จักทำระบบหุ่นยนต์ให้โรงงานคุณอยู่ ของส่งเข้าไปติดตั้งเรียบร้อยแล้ว
+      แต่ค่างวดกลางยังค้าง เขาไม่ได้อยากมีปัญหาอะไรเลย อยากขอเข้าไปคุยสักรอบ ช่วยนัดให้หน่อยได้ไหม”
+    </p>
+    <div class="care">
+      <ul>
+        <li>ยังไม่ต้องรับปากเรื่องส่วนลดหรือวันแล้วเสร็จใหม่ ให้ทีมงานเป็นผู้ตอบ</li>
+        <li>ถ้าเขาเล่าอาการของเครื่องไหนมา รบกวนจดชื่อเครื่องกับอาการกลับมาด้วย</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>ติดต่อทีมงาน:</strong> ชนาธิป อ่อนคำ (เจ้าของงาน) 063 535 6891 · วีรยา บรรลือทรัพย์ 097 996 4293</p>
+    <p>อ้างอิงใบเสนอราคา Q68-PT-392R1 (16 ธ.ค. 2568) โครงการ JR-25-12-140 · รายละเอียดเต็มขอได้จากทีมงาน</p>
+  </footer>
+
+</div>
