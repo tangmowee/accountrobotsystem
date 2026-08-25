@@ -1747,8 +1747,14 @@ initFb();
 $('conn').className='conn '+(MODE==='firebase'?'cloud':'local');$('conn').innerHTML='<span class="dot"></span>'+(MODE==='firebase'?'CLOUD':'LOCAL');
 setInterval(clock,1000);clock();
 if(MODE==='firebase'){listen();auth.onAuthStateChanged(onAuth);}
-else{[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
-  if(!state[LS_EMP].length){seedLocal();[LS_LOG,LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_TL].forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){}});}
+else{
+  /* คอลเลกชันขนาดคงที่ — อ่านตรงจาก localStorage */
+  const PLAIN=[LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD];
+  const loadPlain=()=>PLAIN.forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
+  loadPlain();
+  if(!state[LS_EMP].length){seedLocal();loadPlain();}
+  /* เช็คอิน + เวลาตาม JR เก็บแยกรายเดือน → ให้ตัวเก็บจัดการ */
+  RSCStore.init({db:null,mode:'local',state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
   $('login').classList.remove('on');$('user').textContent='ทดลอง (LOCAL)';renderAll();}
 </script>
 <div class="toast" id="toast"></div>
