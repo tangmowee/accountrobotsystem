@@ -381,7 +381,7 @@
   <div class="sub-sec" id="sub-pd">
   <div class="card">
     <div class="title">💵 เบิกเบี้ยเลี้ยง / ค่าที่พัก</div>
-    <div class="muted" style="margin:-6px 0 4px;">สำหรับงานต่างจังหวัด/ค้างคืน — ผูกกับเลข JR เพื่อให้เทียบกับงบของงานนั้นได้</div>
+    <div class="muted" style="margin:-6px 0 4px;">งานต่างจังหวัด/ค้างคืน — เหมาจ่าย <b>ไม่ต้องแนบใบเสร็จ</b> · ผูกกับเลข JR เพื่อเทียบกับงบของงานนั้น</div>
 
     <label>งาน / JR</label>
     <select id="pd-job" onchange="pdJobChange()"><option value="">— เลือกงาน/JR —</option></select>
@@ -401,10 +401,6 @@
 
     <label>สถานที่ / ปลายทาง</label>
     <input type="text" id="pd-place" placeholder="เช่น ระยอง — โรงงานลูกค้า">
-
-    <label>ค่าใช้จ่ายจริงเพิ่มเติม (ถ้ามี)</label>
-    <div id="pd-extra"></div>
-    <button class="btn ghost" type="button" onclick="pdAddExtra()" style="margin-top:8px;">＋ เพิ่มรายการ</button>
 
     <div class="geo ok" style="margin-top:14px;">
       <span class="lbl">รวมขอเบิก</span>
@@ -979,7 +975,7 @@ function renderDirectory(){
 }
 
 /* ===== เบิกเบี้ยเลี้ยง / ค่าที่พัก ===== */
-const PDTYPES=window.PERDIEM_TYPES||[], PDEXTRA=window.PERDIEM_EXTRA||[];
+const PDTYPES=window.PERDIEM_TYPES||[];
 let _pdInit=false;
 function pdInit(){
   if(_pdInit)return; _pdInit=true;
@@ -997,15 +993,6 @@ function pdJobChange(){const s=$('pd-job'),m=$('pd-jr-manual');if(!s||!m)return;
 function pdSelectedJR(){const s=$('pd-job');if(!s)return '';
   if(s.value==='__manual__')return (($('pd-jr-manual')||{}).value||'').trim();
   const o=s.options[s.selectedIndex];return o&&o.dataset.jr?o.dataset.jr:'';}
-function pdAddExtra(){
-  const w=$('pd-extra'),row=document.createElement('div');row.className='parts-row';
-  row.innerHTML='<select class="pn">'+PDEXTRA.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('')+'</select>'
-    +'<input class="pq" type="number" min="0" step="10" placeholder="บาท" oninput="pdCalc()">'
-    +'<button type="button" class="del" onclick="this.parentNode.remove();pdCalc()">🗑️</button>';
-  w.appendChild(row);
-}
-function pdExtras(){return Array.prototype.map.call(document.querySelectorAll('#pd-extra .parts-row'),
-  r=>({kind:r.querySelector('.pn').value,amount:+r.querySelector('.pq').value||0})).filter(x=>x.amount>0);}
 /* จำนวนคืน = ผลต่างวัน · จำนวนวัน = ผลต่าง+1 */
 function pdCalc(){
   const t=pdType();
@@ -1019,10 +1006,10 @@ function pdCalc(){
   const r=$('pd-rate');
   if(r&&!r.dataset.touched&&t.rate)r.value=t.rate;
   const units=+((u||{}).value)||0, rate=+((r||{}).value)||0;
-  const base=units*rate, ex=pdExtras().reduce((s,x)=>s+x.amount,0);
-  if($('pd-total'))$('pd-total').textContent=(base+ex).toLocaleString();
-  if($('pd-breakdown'))$('pd-breakdown').textContent=ex?('(เบี้ยเลี้ยง '+base.toLocaleString()+' + ค่าใช้จ่ายจริง '+ex.toLocaleString()+')'):'';
-  return {units,rate,base,ex,total:base+ex};
+  const total=units*rate;
+  if($('pd-total'))$('pd-total').textContent=total.toLocaleString();
+  if($('pd-breakdown'))$('pd-breakdown').textContent=(units&&rate)?('('+units+' × '+rate.toLocaleString()+')'):'';
+  return {units,rate,total};
 }
 ['pd-units','pd-rate'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',()=>{el.dataset.touched='1';pdCalc();});});
 
@@ -1037,11 +1024,11 @@ function submitPerdiem(){
   const t=pdType();
   const rec={id:uid(),name,jr,jobTitle:(($('pd-job').options[$('pd-job').selectedIndex]||{}).dataset||{}).title||'',
     type:t.id,typeLabel:t.label,from,to,units:c.units,unitKind:t.perNight?'night':'day',
-    rate:c.rate,base:c.base,extras:pdExtras(),extraTotal:c.ex,total:c.total,
+    rate:c.rate,total:c.total,
     place:$('pd-place').value.trim(),note:$('pd-note').value.trim(),
     status:'pending_l1',createdTs:Date.now()};
   const arr=load(LS_PD);arr.unshift(rec);save(LS_PD,arr);
-  $('pd-extra').innerHTML='';$('pd-note').value='';
+  $('pd-note').value='';
   ['pd-units','pd-rate'].forEach(i=>{const el=$(i);if(el)delete el.dataset.touched;});
   pdCalc();renderMyPD();
   toast('📨 ส่งคำขอเบิก '+c.total.toLocaleString()+' บาท แล้ว รออนุมัติ');

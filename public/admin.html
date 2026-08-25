@@ -503,10 +503,10 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         </div>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>JR</th><th class="num">งบเบี้ยเลี้ยง</th><th class="num">อนุมัติแล้ว</th><th class="num">รออนุมัติ</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th><th class="num">ค่าใช้จ่ายจริงแนบ</th></tr></thead>
-        <tbody id="pdm-body"><tr class="empty"><td colspan="7">ยังไม่มีข้อมูล</td></tr></tbody>
+        <thead><tr><th>JR</th><th class="num">งบเบี้ยเลี้ยง</th><th class="num">อนุมัติแล้ว</th><th class="num">รออนุมัติ</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th></tr></thead>
+        <tbody id="pdm-body"><tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr></tbody>
       </table></div>
-      <div class="note">งบมาจากบรรทัดอัตรา 200 บาท/วัน ในใบ EST · เบิกจริงมาจากคำขอที่พนักงานส่งผ่านแอป (นับเฉพาะที่อนุมัติแล้วเป็นตัวหลัก)</div>
+      <div class="note">เบี้ยเลี้ยงเป็นเหมาจ่าย ไม่ต้องแนบใบเสร็จ · งบมาจากบรรทัดอัตรา 200 บาท/วัน ในใบ EST · เบิกจริงนับเฉพาะคำขอที่อนุมัติแล้วเป็นตัวหลัก</div>
     </div>
 
     <div class="card">
@@ -1366,8 +1366,7 @@ function renderPerdiemApprovals(){
     +'<td class="mono">'+esc(r.jr||'-')+'</td>'
     +'<td>'+esc(r.typeLabel||r.type||'')+'</td>'
     +'<td class="num mono">'+r.units+(r.unitKind==='night'?' คืน':' วัน')+'</td>'
-    +'<td class="num mono"><b>'+(+r.total).toLocaleString()+'</b>'
-      +(r.extraTotal?('<div class="note">รวมค่าใช้จ่ายจริง '+(+r.extraTotal).toLocaleString()+'</div>'):'')+'</td>'
+    +'<td class="num mono"><b>'+(+r.total).toLocaleString()+'</b></td>'
     +'<td>'+esc(r.place||'-')+(r.note?('<div class="note">'+esc(r.note)+'</div>'):'')+'</td>'
     +'<td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approvePerdiem(\''+r.id+'\')">อนุมัติ</button> '
     +'<button class="btn sm no" onclick="rejectPerdiem(\''+r.id+'\')">ปฏิเสธ</button></td></tr>').join('');
@@ -1377,22 +1376,22 @@ function pdMatchRows(){
   const B=dlbBudgetByJR(), claims={};
   load(LS_PD).forEach(r=>{
     const jr=(r.jr||'').trim(); if(!jr)return;
-    const g=claims[jr]||(claims[jr]={approved:0,pending:0,extra:0});
+    const g=claims[jr]||(claims[jr]={approved:0,pending:0});
     const t=+r.total||0;
-    if(r.status==='approved'){g.approved+=t;g.extra+=(+r.extraTotal||0);}
+    if(r.status==='approved')g.approved+=t;
     else if((r.status||'').indexOf('pending')===0)g.pending+=t;
   });
   const keys=Array.from(new Set(Object.keys(B).concat(Object.keys(claims)))).sort();
   return keys.map(k=>{
-    const budget=(B[k]||{}).allowBaht||0, c=claims[k]||{approved:0,pending:0,extra:0};
+    const budget=(B[k]||{}).allowBaht||0, c=claims[k]||{approved:0,pending:0};
     const left=budget-c.approved, pct=budget?(c.approved/budget*100):0;
-    return {jr:k,budget,approved:c.approved,pending:c.pending,left,pct,extra:c.extra};
+    return {jr:k,budget,approved:c.approved,pending:c.pending,left,pct};
   }).filter(r=>r.budget||r.approved||r.pending);
 }
 function renderPerdiemMatch(){
   const body=$('pdm-body');if(!body)return;
   const rows=pdMatchRows();
-  if(!rows.length){body.innerHTML='<tr class="empty"><td colspan="7">ยังไม่มีข้อมูล</td></tr>';return;}
+  if(!rows.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr>';return;}
   body.innerHTML=rows.map(r=>{
     const cls=r.pct>100?'chip absent':(r.pct>85?'chip late':'chip in');
     return '<tr>'
@@ -1401,13 +1400,12 @@ function renderPerdiemMatch(){
       +'<td class="num mono">'+Math.round(r.approved).toLocaleString()+'</td>'
       +'<td class="num mono">'+(r.pending?('<span style="color:var(--orange2)">'+Math.round(r.pending).toLocaleString()+'</span>'):'—')+'</td>'
       +'<td class="num mono" style="color:'+(r.left<0?'var(--red)':'inherit')+'">'+(r.budget?Math.round(r.left).toLocaleString():'—')+'</td>'
-      +'<td class="num">'+(r.budget?('<span class="'+cls+'">'+r.pct.toFixed(0)+'%</span>'):'—')+'</td>'
-      +'<td class="num mono">'+(r.extra?Math.round(r.extra).toLocaleString():'—')+'</td></tr>';
+      +'<td class="num">'+(r.budget?('<span class="'+cls+'">'+r.pct.toFixed(0)+'%</span>'):'—')+'</td></tr>';
   }).join('');
 }
-const PD_HEAD=['JR','งบเบี้ยเลี้ยง','อนุมัติแล้ว','รออนุมัติ','คงเหลือ','ใช้ไป %','ค่าใช้จ่ายจริงแนบ'];
+const PD_HEAD=['JR','งบเบี้ยเลี้ยง','อนุมัติแล้ว','รออนุมัติ','คงเหลือ','ใช้ไป %'];
 function pdRows(){return pdMatchRows().map(r=>[r.jr,Math.round(r.budget),Math.round(r.approved),
-  Math.round(r.pending),Math.round(r.left),+r.pct.toFixed(0),Math.round(r.extra)]);}
+  Math.round(r.pending),Math.round(r.left),+r.pct.toFixed(0)]);}
 function exportPdCsv(){const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_perdiem_budget_vs_actual.csv',PD_HEAD,r);}
 function exportPdXlsx(){const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
   saveXlsx('RSC_perdiem_budget_vs_actual.xlsx',[{name:'เบี้ยเลี้ยง งบ vs เบิก',rows:[PD_HEAD].concat(r)}]);}
