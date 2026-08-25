@@ -87,3 +87,18 @@ window.SALES_ADMIN_EMAIL = 'salesadmin@robotsystem.co.th';
    ปล่อยว่าง = ปิดการส่งอัตโนมัติ (ระบบจะเปิดโปรแกรมอีเมลให้กดส่งเองแทน) */
 window.MAILER_URL    = '';
 window.MAILER_SECRET = 'rsc-connect-2569';   // ต้องตรงกับ SECRET ในสคริปต์
+
+/* ===== ข้อมูลบริษัท (ใช้บนหัวกระดาษใบรายงานบริการ) =====
+   แก้ที่นี่ที่เดียว — มีผลกับใบที่พิมพ์ ไฟล์ PDF และอีเมลที่ส่งลูกค้า
+   logo: วางเป็น data URI ("data:image/png;base64,....") หรือ URL รูปโลโก้จริง
+         ปล่อยว่าง = ใช้โลโก้สำรองที่ระบบวาดให้ */
+window.COMPANY = {
+  nameEn : 'ROBOT SYSTEM CO., LTD.',
+  nameTh : 'บริษัท โรบอท ซิสเต็ม จำกัด',
+  address: '',                                  // ที่อยู่บริษัท
+  phone  : '',                                  // เบอร์โทร  ← ยังไม่ได้กรอก
+  email  : 'service@robotsystem.co.th',
+  web    : 'www.robotsystem.co.th',
+  taxId  : '',                                  // เลขประจำตัวผู้เสียภาษี
+  logo   : ''                                   // โลโก้จริง (data URI / URL)
+};
