@@ -1,1 +1,6 @@
 RSC-Connect-public.zip
+
+# เครื่องมือ dev เท่านั้น (ใช้ถ่ายภาพหน้าจอ)
+node_modules/
+package.json
+package-lock.json
