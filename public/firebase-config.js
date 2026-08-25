@@ -96,7 +96,7 @@ window.COMPANY = {
   nameEn : 'ROBOT SYSTEM CO., LTD.',
   nameTh : 'บริษัท โรบอท ซิสเต็ม จำกัด',
   address: '',                                  // ที่อยู่บริษัท
-  phone  : '',                                  // เบอร์โทร  ← ยังไม่ได้กรอก
+  phone  : '02-174367-69',                      // เบอร์โทรบริษัท
   email  : 'service@robotsystem.co.th',
   web    : 'www.robotsystem.co.th',
   taxId  : '',                                  // เลขประจำตัวผู้เสียภาษี

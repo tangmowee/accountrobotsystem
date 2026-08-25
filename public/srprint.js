@@ -28,17 +28,25 @@ window.SRPrint = (function () {
     status: { completed: 'งานเสร็จสมบูรณ์', followup: 'ต้องตามต่อ' }
   };
 
-  /* โลโก้สำรอง (ใช้เมื่อยังไม่ได้ใส่โลโก้จริงใน COMPANY.logo) */
+  /* โลโก้ Robot System — วาดเป็นเวกเตอร์ (คมทุกขนาด ใช้ได้ทั้งพิมพ์/PDF/อีเมล)
+     ใช้ textLength ล็อกความกว้างตัวอักษร วงแหวนส้มจึงตรงตำแหน่งตัว O เสมอ
+     แม้เครื่องปลายทางจะมีฟอนต์ต่างกัน */
+  var ORANGE = '#E87B1E', DARKINK = '#1A1A18';
   var LOGO_FALLBACK =
-    '<svg class="logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">' +
-      '<defs><linearGradient id="rscg" x1="0" y1="0" x2="1" y2="1">' +
-        '<stop offset="0" stop-color="#FB923C"/><stop offset="1" stop-color="#EA580C"/>' +
-      '</linearGradient></defs>' +
-      '<rect width="512" height="512" rx="112" fill="url(#rscg)"/>' +
-      '<g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">' +
-        '<path d="M150 402 h150"/><path d="M225 402 V250"/><path d="M236 224 L356 138"/>' +
-        '<path d="M388 116 h46 M411 93 v46"/></g>' +
-      '<circle cx="225" cy="234" r="27" fill="#fff"/><circle cx="368" cy="128" r="27" fill="#fff"/>' +
+    '<svg class="logo" viewBox="0 0 1000 435" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Robot System">' +
+      '<g fill="none" stroke="' + ORANGE + '" stroke-linecap="round">' +
+        '<circle cx="250" cy="78" r="62" stroke-width="27"/>' +
+        '<path d="M332 92 L392 110" stroke-width="25"/>' +
+        '<path d="M215 140 L182 200" stroke-width="24"/>' +
+        '<path d="M192 296 L228 356" stroke-width="21"/>' +
+        '<circle cx="252" cy="396" r="33" stroke-width="17"/>' +
+      '</g>' +
+      '<g font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="152" fill="' + DARKINK + '">' +
+        '<text x="6" y="300" font-weight="700" textLength="104" lengthAdjust="spacingAndGlyphs">R</text>' +
+        '<text x="222" y="300" font-weight="700" textLength="300" lengthAdjust="spacingAndGlyphs">BOT</text>' +
+        '<text x="536" y="300" font-weight="300" textLength="452" lengthAdjust="spacingAndGlyphs">SYSTEM</text>' +
+      '</g>' +
+      '<circle cx="164" cy="246" r="46" fill="none" stroke="' + ORANGE + '" stroke-width="25"/>' +
     '</svg>';
 
   function CO() { return window.COMPANY || {}; }
@@ -108,7 +116,7 @@ window.SRPrint = (function () {
 /* letterhead */
 '.head{display:flex;justify-content:space-between;align-items:flex-start;gap:30px}' +
 '.org{display:flex;gap:14px;align-items:center}' +
-'.logo{width:auto;height:38px;max-width:170px;flex:0 0 auto;display:block;object-fit:contain}' +
+'.logo{width:auto;height:34px;max-width:190px;flex:0 0 auto;display:block;object-fit:contain}' +
 '.org .name{font-size:16px;font-weight:700;letter-spacing:1.1px;line-height:1.15}' +
 '.org .th{font-size:11.5px;color:var(--ink2);margin-top:1px}' +
 '.org .meta{font-size:10.5px;color:var(--ink3);margin-top:2px;letter-spacing:.2px}' +
@@ -185,7 +193,7 @@ window.SRPrint = (function () {
 
   '<div class="head">' +
     '<div class="org">' + logoTag() + '<div>' +
-      '<div class="name">' + esc(CO().nameEn || '') + '</div>' +
+      (CO().logo ? '<div class="name">' + esc(CO().nameEn || '') + '</div>' : '') +
       '<div class="th">' + coSub() + '</div>' +
       '<div class="meta">' + coMeta() + '</div>' +
     '</div></div>' +
