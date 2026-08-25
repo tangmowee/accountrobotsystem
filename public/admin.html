@@ -420,6 +420,14 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <tbody id="jra-body"><tr class="empty"><td colspan="7">— กด รีเฟรช เพื่อดึงงาน —</td></tr></tbody>
       </table></div>
     </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">💵 คำขอเบิกเบี้ยเลี้ยง</div><span class="tag" id="ap-pd-c">0</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>ช่วงวันที่</th><th>พนักงาน</th><th>JR</th><th>ประเภท</th><th class="num">หน่วย</th><th class="num">ยอดขอเบิก</th><th>สถานที่</th><th></th></tr></thead>
+        <tbody id="ap-pd"><tr class="empty"><td colspan="8">ไม่มีคำขอเบิกรอคุณอนุมัติ</td></tr></tbody>
+      </table></div>
+    </div>
   </section>
 
   <!-- ===== DL BUDGET vs ACTUAL ===== -->
@@ -485,6 +493,20 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <thead><tr><th>แผนก</th><th class="num">ต้นทุน/ชม.</th><th class="num">ชั่วโมงจริง</th><th class="num">คน-วัน</th><th class="num">ต้นทุนจริง (บาท)</th><th class="num">สัดส่วน</th></tr></thead>
         <tbody id="dlb-sec-body"><tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr></tbody>
       </table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">💵 เบี้ยเลี้ยง — งบ vs เบิกจริง</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn sm p" onclick="exportPdXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportPdCsv()">CSV</button>
+        </div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>JR</th><th class="num">งบเบี้ยเลี้ยง</th><th class="num">อนุมัติแล้ว</th><th class="num">รออนุมัติ</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th><th class="num">ค่าใช้จ่ายจริงแนบ</th></tr></thead>
+        <tbody id="pdm-body"><tr class="empty"><td colspan="7">ยังไม่มีข้อมูล</td></tr></tbody>
+      </table></div>
+      <div class="note">งบมาจากบรรทัดอัตรา 200 บาท/วัน ในใบ EST · เบิกจริงมาจากคำขอที่พนักงานส่งผ่านแอป (นับเฉพาะที่อนุมัติแล้วเป็นตัวหลัก)</div>
     </div>
 
     <div class="card">
@@ -635,12 +657,12 @@ const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const HOLIDAYS=window.HOLIDAYS||[]; const isHoliday=ds=>HOLIDAYS.includes(ds);
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service',LS_DLB='rsc_dlbudget';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service',LS_DLB='rsc_dlbudget',LS_PD='rsc_perdiem';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
 const LS_PAY='rsc_payroll'; // เงินเดือน เก็บแยก เห็นเฉพาะ HR (ไม่อยู่ใน listener รวม)
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_DLB]:[],[LS_PAY]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_DLB]:[],[LS_PD]:[],[LS_PAY]:[]};
 const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 let _toastT=null;
@@ -686,7 +708,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
 function listen(){
-  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
   RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
 }
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
@@ -705,7 +727,7 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='dl')renderDL();
   if(id==='jrall')ensureJRAll();
   if(id==='srv')renderSrv();
-  if(id==='dlb'){dlbInit();renderDlb();}
+  if(id==='dlb'){dlbInit();renderDlb();renderPerdiemMatch();}
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
 function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
@@ -821,7 +843,7 @@ function renderJRAll(){
 }
 
 /* ===== render all ===== */
-function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();renderPerdiemApprovals();renderPerdiemMatch();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -914,7 +936,7 @@ function renderApprovals(){
   const ot=load(LS_OT).filter(r=>{const s=r.status==='pending'?'pending_l1':r.status;return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
   const claimed=new Set(load(LS_OT).map(o=>o.logId).filter(Boolean));
   const sugg=load(LS_LOG).filter(r=>otOf(r)>0.01&&r.outTs&&!claimed.has(r.id)&&canSee(r.name)&&canL1(r.name));
-  $('ap-badge').textContent=lv.length+ot.length+sugg.length;$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
+  $('ap-badge').textContent=lv.length+ot.length+sugg.length+pdPending().length;renderPerdiemApprovals();$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
   $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}</td>
     <td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td><td>${esc(r.reason)||'—'}</td><td>${levelChip(s)}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveLeave('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectLeave('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
@@ -1314,6 +1336,81 @@ function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('b
       <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
       <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
       <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
+/* ===== เบี้ยเลี้ยง: อนุมัติ + แมตช์กับงบ ===== */
+function pdPending(){
+  return load(LS_PD).filter(r=>{
+    const st=r.status==='pending'?'pending_l1':r.status;
+    return (st==='pending_l1'&&canL1(r.name))||(st==='pending_l2'&&canL2());
+  });
+}
+function approvePerdiem(id){
+  const arr=load(LS_PD),r=arr.find(x=>x.id===id);if(!r)return;
+  if(!(canL1(r.name)||canL2()||isHR())){toast('ไม่มีสิทธิ์อนุมัติ',true);return;}
+  r.status='approved';r.approvedBy=myName();r.approvedTs=Date.now();
+  save(LS_PD,arr);renderAll();toast('✅ อนุมัติเบิก '+(+r.total).toLocaleString()+' บาท');
+}
+function rejectPerdiem(id){
+  const arr=load(LS_PD),r=arr.find(x=>x.id===id);if(!r)return;
+  if(!(canL1(r.name)||canL2()||isHR())){toast('ไม่มีสิทธิ์',true);return;}
+  r.status='rejected';r.rejBy=myName();save(LS_PD,arr);renderAll();toast('ปฏิเสธคำขอแล้ว');
+}
+function renderPerdiemApprovals(){
+  const box=$('ap-pd');if(!box)return;
+  const list=pdPending().sort((a,b)=>(b.createdTs||0)-(a.createdTs||0));
+  if($('ap-pd-c'))$('ap-pd-c').textContent=list.length;
+  if(!list.length){box.innerHTML='<tr class="empty"><td colspan="8">ไม่มีคำขอเบิกรอคุณอนุมัติ</td></tr>';return;}
+  box.innerHTML=list.map(r=>'<tr>'
+    +'<td class="mono" style="white-space:nowrap">'+esc(r.from)+(r.to&&r.to!==r.from?('<div class="note">ถึง '+esc(r.to)+'</div>'):'')+'</td>'
+    +'<td><b>'+nameOf(r.name)+'</b></td>'
+    +'<td class="mono">'+esc(r.jr||'-')+'</td>'
+    +'<td>'+esc(r.typeLabel||r.type||'')+'</td>'
+    +'<td class="num mono">'+r.units+(r.unitKind==='night'?' คืน':' วัน')+'</td>'
+    +'<td class="num mono"><b>'+(+r.total).toLocaleString()+'</b>'
+      +(r.extraTotal?('<div class="note">รวมค่าใช้จ่ายจริง '+(+r.extraTotal).toLocaleString()+'</div>'):'')+'</td>'
+    +'<td>'+esc(r.place||'-')+(r.note?('<div class="note">'+esc(r.note)+'</div>'):'')+'</td>'
+    +'<td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approvePerdiem(\''+r.id+'\')">อนุมัติ</button> '
+    +'<button class="btn sm no" onclick="rejectPerdiem(\''+r.id+'\')">ปฏิเสธ</button></td></tr>').join('');
+}
+/* แมตช์กับงบ: งบเบี้ยเลี้ยง (อัตรา 200) เทียบกับที่เบิกจริง */
+function pdMatchRows(){
+  const B=dlbBudgetByJR(), claims={};
+  load(LS_PD).forEach(r=>{
+    const jr=(r.jr||'').trim(); if(!jr)return;
+    const g=claims[jr]||(claims[jr]={approved:0,pending:0,extra:0});
+    const t=+r.total||0;
+    if(r.status==='approved'){g.approved+=t;g.extra+=(+r.extraTotal||0);}
+    else if((r.status||'').indexOf('pending')===0)g.pending+=t;
+  });
+  const keys=Array.from(new Set(Object.keys(B).concat(Object.keys(claims)))).sort();
+  return keys.map(k=>{
+    const budget=(B[k]||{}).allowBaht||0, c=claims[k]||{approved:0,pending:0,extra:0};
+    const left=budget-c.approved, pct=budget?(c.approved/budget*100):0;
+    return {jr:k,budget,approved:c.approved,pending:c.pending,left,pct,extra:c.extra};
+  }).filter(r=>r.budget||r.approved||r.pending);
+}
+function renderPerdiemMatch(){
+  const body=$('pdm-body');if(!body)return;
+  const rows=pdMatchRows();
+  if(!rows.length){body.innerHTML='<tr class="empty"><td colspan="7">ยังไม่มีข้อมูล</td></tr>';return;}
+  body.innerHTML=rows.map(r=>{
+    const cls=r.pct>100?'chip absent':(r.pct>85?'chip late':'chip in');
+    return '<tr>'
+      +'<td class="mono"><b>'+esc(r.jr)+'</b></td>'
+      +'<td class="num mono">'+(r.budget?r.budget.toLocaleString():'<span style="color:var(--muted)">ไม่ได้ตั้งงบ</span>')+'</td>'
+      +'<td class="num mono">'+Math.round(r.approved).toLocaleString()+'</td>'
+      +'<td class="num mono">'+(r.pending?('<span style="color:var(--orange2)">'+Math.round(r.pending).toLocaleString()+'</span>'):'—')+'</td>'
+      +'<td class="num mono" style="color:'+(r.left<0?'var(--red)':'inherit')+'">'+(r.budget?Math.round(r.left).toLocaleString():'—')+'</td>'
+      +'<td class="num">'+(r.budget?('<span class="'+cls+'">'+r.pct.toFixed(0)+'%</span>'):'—')+'</td>'
+      +'<td class="num mono">'+(r.extra?Math.round(r.extra).toLocaleString():'—')+'</td></tr>';
+  }).join('');
+}
+const PD_HEAD=['JR','งบเบี้ยเลี้ยง','อนุมัติแล้ว','รออนุมัติ','คงเหลือ','ใช้ไป %','ค่าใช้จ่ายจริงแนบ'];
+function pdRows(){return pdMatchRows().map(r=>[r.jr,Math.round(r.budget),Math.round(r.approved),
+  Math.round(r.pending),Math.round(r.left),+r.pct.toFixed(0),Math.round(r.extra)]);}
+function exportPdCsv(){const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_perdiem_budget_vs_actual.csv',PD_HEAD,r);}
+function exportPdXlsx(){const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_perdiem_budget_vs_actual.xlsx',[{name:'เบี้ยเลี้ยง งบ vs เบิก',rows:[PD_HEAD].concat(r)}]);}
 
 /* ===== DL: งบ vs จริง ===== */
 const SECT=window.COST_SECTIONS||{}, QRATES=window.QUOTE_RATES||[], ALLOW=window.ALLOWANCE_RATES||[200];

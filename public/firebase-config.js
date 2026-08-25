@@ -136,3 +136,19 @@ window.COST_SECTION_RULES = [
   { match:/project manager|robot engineer|programmer|simulation engineer|key account manager/i, section:'project' },
   { match:/technician|production supervisor|assembly|installation|after-sales/i, section:'production' }
 ];
+
+/* ============================================================
+   เบี้ยเลี้ยง / ค่าที่พัก (Per-diem) — เบิกผูกกับเลข JR
+   นำไปแมตช์กับบรรทัด "Allowance" ในงบ DL ของ JR เดียวกัน
+   ============================================================ */
+window.PERDIEM_TYPES = [
+  { id:'overnight', label:'ค้างคืน ต่างจังหวัด', rate:200, perNight:true  },
+  { id:'daytrip',   label:'ไป-กลับ ต่างจังหวัด', rate:200, perNight:false },
+  { id:'oversea',   label:'ต่างประเทศ',          rate:0,   perNight:true  }
+];
+/* ค่าที่พัก/ค่าเดินทางจริง แนบใบเสร็จได้ (นอกเหนือจากเบี้ยเลี้ยงเหมาจ่าย) */
+window.PERDIEM_EXTRA = [
+  { id:'hotel',     label:'ค่าที่พัก' },
+  { id:'travel',    label:'ค่าเดินทาง' },
+  { id:'other',     label:'อื่น ๆ' }
+];

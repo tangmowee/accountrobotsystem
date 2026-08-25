@@ -284,6 +284,7 @@
     <button class="sub active" data-sub="dir" onclick="showSub('dir')">📇 รายชื่อ</button>
     <button class="sub" data-sub="sr" onclick="showSub('sr')">📄 ใบรายงาน</button>
     <button class="sub" data-sub="ot" onclick="showSub('ot')">🌙 OT</button>
+    <button class="sub" data-sub="pd" onclick="showSub('pd')">💵 เบี้ยเลี้ยง</button>
     <button class="sub" data-sub="book" onclick="showSub('book')">🚗 จองรถ</button>
   </div>
 
@@ -376,6 +377,48 @@
   </div>
   </div>
 
+  <!-- Per-diem claim -->
+  <div class="sub-sec" id="sub-pd">
+  <div class="card">
+    <div class="title">💵 เบิกเบี้ยเลี้ยง / ค่าที่พัก</div>
+    <div class="muted" style="margin:-6px 0 4px;">สำหรับงานต่างจังหวัด/ค้างคืน — ผูกกับเลข JR เพื่อให้เทียบกับงบของงานนั้นได้</div>
+
+    <label>งาน / JR</label>
+    <select id="pd-job" onchange="pdJobChange()"><option value="">— เลือกงาน/JR —</option></select>
+    <input type="text" id="pd-jr-manual" placeholder="พิมพ์เลข JR เอง" style="display:none;margin-top:8px;">
+
+    <label>ประเภท</label>
+    <select id="pd-type" onchange="pdCalc()"></select>
+
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>ตั้งแต่</label><input type="date" id="pd-from" onchange="pdCalc()"></div>
+      <div style="flex:1;"><label>ถึง</label><input type="date" id="pd-to" onchange="pdCalc()"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label id="pd-unit-lbl">จำนวนคืน</label><input type="number" id="pd-units" min="0" step="1" onchange="pdCalc()"></div>
+      <div style="flex:1;"><label>อัตรา/หน่วย (บาท)</label><input type="number" id="pd-rate" min="0" step="10" onchange="pdCalc()"></div>
+    </div>
+
+    <label>สถานที่ / ปลายทาง</label>
+    <input type="text" id="pd-place" placeholder="เช่น ระยอง — โรงงานลูกค้า">
+
+    <label>ค่าใช้จ่ายจริงเพิ่มเติม (ถ้ามี)</label>
+    <div id="pd-extra"></div>
+    <button class="btn ghost" type="button" onclick="pdAddExtra()" style="margin-top:8px;">＋ เพิ่มรายการ</button>
+
+    <div class="geo ok" style="margin-top:14px;">
+      <span class="lbl">รวมขอเบิก</span>
+      <span class="coord" id="pd-total">0</span> <span class="lbl">บาท</span>
+      <span class="lbl" id="pd-breakdown"></span>
+    </div>
+
+    <label>หมายเหตุ</label>
+    <input type="text" id="pd-note" placeholder="เช่น ค้างคืน 3 คืน ติดตั้งหน้างาน">
+    <button class="btn in" onclick="submitPerdiem()" style="margin-top:14px;">📨 ส่งคำขอเบิก</button>
+    <div id="mypd" style="margin-top:16px;"></div>
+  </div>
+  </div>
+
   <!-- OT request -->
   <div class="sub-sec" id="sub-ot">
   <div class="card">
@@ -420,8 +463,8 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service', LS_PD='rsc_perdiem';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PD]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
@@ -557,8 +600,8 @@ function initFb(){
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}
   catch(e){console.error(e);return false;}
 }
-function refreshAllViews(){renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();refreshState();}
-function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service'].forEach(k=>{
+function refreshAllViews(){renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();renderMyPD();refreshState();}
+function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service','rsc_perdiem'].forEach(k=>{
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];refreshAllViews();},e=>console.error(e));
 });
   // เช็คอิน + ลงเวลา JR → เก็บแยกรายเดือน (โหลด 3 เดือนล่าสุด)
@@ -669,6 +712,11 @@ function renderJobs(){
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
   // service report: เลือกงาน/JR
+  const pj=$('pd-job');if(pj){const c5=pj.value;const jrJobs2=jobs.filter(p=>p.jr);
+    pj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
+      jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
+    pj.value=c5;}
   const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=jobs.filter(p=>p.jr);
     sj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
       jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
@@ -904,6 +952,7 @@ function showSub(id){
   document.querySelectorAll('#subbar .sub').forEach(b=>b.classList.toggle('active',b.dataset.sub===id));
   if(id==='dir')renderDirectory();
   if(id==='sr'){srInitSig();renderSRList();}
+  if(id==='pd'){pdInit();renderMyPD();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -927,6 +976,102 @@ function renderDirectory(){
       +(c.length?'<div style="margin-top:7px;display:flex;flex-direction:column;gap:4px;font-size:14px;">'+c.join('')+'</div>':'<div class="muted" style="font-size:13px;margin-top:5px;">— ยังไม่มีข้อมูลติดต่อ —</div>')
       +'</div></div>';
   }).join('');
+}
+
+/* ===== เบิกเบี้ยเลี้ยง / ค่าที่พัก ===== */
+const PDTYPES=window.PERDIEM_TYPES||[], PDEXTRA=window.PERDIEM_EXTRA||[];
+let _pdInit=false;
+function pdInit(){
+  if(_pdInit)return; _pdInit=true;
+  const t=$('pd-type');
+  if(t)t.innerHTML=PDTYPES.map(x=>`<option value="${x.id}">${esc(x.label)}${x.rate?(' · '+x.rate+' บ.'):''}</option>`).join('');
+  if($('pd-from')&&!$('pd-from').value)$('pd-from').value=todayStr();
+  if($('pd-to')&&!$('pd-to').value)$('pd-to').value=todayStr();
+  pdCalc();
+}
+function pdType(){return PDTYPES.find(x=>x.id===($('pd-type')||{}).value)||PDTYPES[0]||{rate:0,perNight:true};}
+function pdJobChange(){const s=$('pd-job'),m=$('pd-jr-manual');if(!s||!m)return;
+  m.style.display=s.value==='__manual__'?'block':'none';
+  const o=s.options[s.selectedIndex];
+  if(o&&o.dataset.site&&$('pd-place')&&!$('pd-place').value)$('pd-place').value=o.dataset.site;}
+function pdSelectedJR(){const s=$('pd-job');if(!s)return '';
+  if(s.value==='__manual__')return (($('pd-jr-manual')||{}).value||'').trim();
+  const o=s.options[s.selectedIndex];return o&&o.dataset.jr?o.dataset.jr:'';}
+function pdAddExtra(){
+  const w=$('pd-extra'),row=document.createElement('div');row.className='parts-row';
+  row.innerHTML='<select class="pn">'+PDEXTRA.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('')+'</select>'
+    +'<input class="pq" type="number" min="0" step="10" placeholder="บาท" oninput="pdCalc()">'
+    +'<button type="button" class="del" onclick="this.parentNode.remove();pdCalc()">🗑️</button>';
+  w.appendChild(row);
+}
+function pdExtras(){return Array.prototype.map.call(document.querySelectorAll('#pd-extra .parts-row'),
+  r=>({kind:r.querySelector('.pn').value,amount:+r.querySelector('.pq').value||0})).filter(x=>x.amount>0);}
+/* จำนวนคืน = ผลต่างวัน · จำนวนวัน = ผลต่าง+1 */
+function pdCalc(){
+  const t=pdType();
+  const lbl=$('pd-unit-lbl'); if(lbl)lbl.textContent=t.perNight?'จำนวนคืน':'จำนวนวัน';
+  const f=($('pd-from')||{}).value,to=($('pd-to')||{}).value;
+  const u=$('pd-units');
+  if(f&&to&&u&&!u.dataset.touched){
+    const diff=Math.round((new Date(to)-new Date(f))/86400000);
+    if(isFinite(diff)&&diff>=0)u.value=t.perNight?diff:(diff+1);
+  }
+  const r=$('pd-rate');
+  if(r&&!r.dataset.touched&&t.rate)r.value=t.rate;
+  const units=+((u||{}).value)||0, rate=+((r||{}).value)||0;
+  const base=units*rate, ex=pdExtras().reduce((s,x)=>s+x.amount,0);
+  if($('pd-total'))$('pd-total').textContent=(base+ex).toLocaleString();
+  if($('pd-breakdown'))$('pd-breakdown').textContent=ex?('(เบี้ยเลี้ยง '+base.toLocaleString()+' + ค่าใช้จ่ายจริง '+ex.toLocaleString()+')'):'';
+  return {units,rate,base,ex,total:base+ex};
+}
+['pd-units','pd-rate'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',()=>{el.dataset.touched='1';pdCalc();});});
+
+function submitPerdiem(){
+  const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
+  const jr=pdSelectedJR();
+  if(!jr){toast('เลือกงาน/JR ก่อน — เบี้ยเลี้ยงต้องผูกกับงาน');return;}
+  const c=pdCalc();
+  if(!c.total){toast('กรอกจำนวนและอัตรา');return;}
+  const from=($('pd-from').value||todayStr()), to=($('pd-to').value||from);
+  if(to<from){toast('วันที่สิ้นสุดต้องไม่ก่อนวันเริ่ม');return;}
+  const t=pdType();
+  const rec={id:uid(),name,jr,jobTitle:(($('pd-job').options[$('pd-job').selectedIndex]||{}).dataset||{}).title||'',
+    type:t.id,typeLabel:t.label,from,to,units:c.units,unitKind:t.perNight?'night':'day',
+    rate:c.rate,base:c.base,extras:pdExtras(),extraTotal:c.ex,total:c.total,
+    place:$('pd-place').value.trim(),note:$('pd-note').value.trim(),
+    status:'pending_l1',createdTs:Date.now()};
+  const arr=load(LS_PD);arr.unshift(rec);save(LS_PD,arr);
+  $('pd-extra').innerHTML='';$('pd-note').value='';
+  ['pd-units','pd-rate'].forEach(i=>{const el=$(i);if(el)delete el.dataset.touched;});
+  pdCalc();renderMyPD();
+  toast('📨 ส่งคำขอเบิก '+c.total.toLocaleString()+' บาท แล้ว รออนุมัติ');
+}
+function delPerdiem(id){
+  const r=load(LS_PD).find(x=>x.id===id&&x.name===myName());
+  if(!r)return;
+  if((r.status||'').indexOf('pending')!==0){toast('อนุมัติแล้ว ลบไม่ได้ — แจ้ง HR');return;}
+  if(!confirm('ยกเลิกคำขอเบิกนี้?'))return;
+  save(LS_PD,load(LS_PD).filter(x=>x.id!==id));renderMyPD();toast('ยกเลิกแล้ว');
+}
+function pdStatusChip(st){
+  if(st==='approved')return '<span class="chip in">อนุมัติแล้ว</span>';
+  if(st==='rejected')return '<span class="chip out">ไม่อนุมัติ</span>';
+  return '<span class="chip out">รออนุมัติ</span>';
+}
+function renderMyPD(){
+  const el=$('mypd');if(!el)return;
+  const mine=load(LS_PD).filter(r=>r.name===myName()).slice(0,10);
+  if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีคำขอเบิก</div>';return;}
+  const sum=mine.filter(r=>r.status==='approved').reduce((s,r)=>s+(+r.total||0),0);
+  el.innerHTML='<div class="title" style="margin:8px 2px;">🧾 คำขอเบิกล่าสุด'+(sum?(' · อนุมัติแล้วรวม '+sum.toLocaleString()+' บาท'):'')+'</div>'
+    +mine.map(r=>'<div class="rec-wrap"><div class="rec">'
+      +'<div><div style="font-weight:600;"><b>'+esc(r.jr)+'</b> · '+esc(r.typeLabel||'')+'</div>'
+      +'<div class="t">'+esc(r.from)+(r.to&&r.to!==r.from?(' – '+esc(r.to)):'')+' · '+r.units+(r.unitKind==='night'?' คืน':' วัน')
+      +(r.place?(' · '+esc(r.place)):'')+'</div></div>'
+      +'<div style="text-align:right;"><div class="h">'+(+r.total).toLocaleString()+'</div>'
+      +pdStatusChip(r.status)
+      +((r.status||'').indexOf('pending')===0?('<div><a onclick="delPerdiem(\''+r.id+'\')" style="color:var(--red);cursor:pointer;font-size:12px;">ยกเลิก</a></div>'):'')
+      +'</div></div></div>').join('');
 }
 
 /* ===== Service Report (ใบรายงานบริการ) ===== */
@@ -1157,6 +1302,7 @@ else{
   try{state[LS_VEH]=JSON.parse(localStorage.getItem(LS_VEH))||[];}catch(e){}
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
   try{state[LS_SR]=JSON.parse(localStorage.getItem(LS_SR))||[];}catch(e){}
+  try{state[LS_PD]=JSON.parse(localStorage.getItem(LS_PD))||[];}catch(e){}
   try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
   fetchPlanner();
   $('login').classList.remove('show');
