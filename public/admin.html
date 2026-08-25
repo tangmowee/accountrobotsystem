@@ -180,6 +180,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
     <a data-s="jrall" onclick="showSec('jrall')">📋 งาน Planner</a>
     <a data-s="srv" onclick="showSec('srv')">📄 ใบรายงานบริการ</a>
+    <a data-s="dlb" onclick="showSec('dlb')">💰 DL งบ vs จริง</a>
     <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
     <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
   </div>
@@ -421,6 +422,80 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </section>
 
+  <!-- ===== DL BUDGET vs ACTUAL ===== -->
+  <section class="sec" id="s-dlb">
+    <div class="h1">DL — งบที่ตั้งไว้ เทียบ ที่ทำจริง</div>
+    <div class="sub">งบมาจากใบ EST (คอลัมน์ DL) · ที่ทำจริงมาจากชั่วโมงที่พนักงานลงตาม JR × ต้นทุนต่อชั่วโมงของแผนก · เบี้ยเลี้ยงแยกออกจากค่าแรง</div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">＋ ใส่งบ DL ของ JR</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn sm" onclick="dlbTogglePaste()">📋 วางจาก Excel</button>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div class="f"><label>เลขที่งาน JR</label><input id="dlb-jr" placeholder="JR-25-10-111"></div>
+        <div class="f"><label>ชื่องาน / ลูกค้า</label><input id="dlb-name" placeholder="YAMAZEN — Machine Tending"></div>
+      </div>
+      <div class="grid g4">
+        <div class="f"><label>หมวดงาน</label><input id="dlb-cat" placeholder="5.1 Mechanical Design"></div>
+        <div class="f"><label>อัตรา (บาท/คน/วัน)</label><select id="dlb-rate"></select></div>
+        <div class="f"><label>จำนวนคน</label><input type="number" id="dlb-p" min="0" step="1" placeholder="2" oninput="dlbCalc()"></div>
+        <div class="f"><label>จำนวนวัน</label><input type="number" id="dlb-d" min="0" step="0.5" placeholder="15" oninput="dlbCalc()"></div>
+      </div>
+      <div class="note" style="margin-bottom:10px">รวม <b id="dlb-preview" class="mono">0</b> บาท (<span id="dlb-md" class="mono">0</span> คน-วัน)</div>
+      <button class="btn p" onclick="dlbAdd()">เพิ่มบรรทัดงบ</button>
+
+      <div id="dlb-paste-box" style="display:none;margin-top:16px">
+        <label>วางข้อมูลจาก Excel (คัดลอกทั้งบล็อก DL แล้ววางที่นี่)</label>
+        <textarea id="dlb-paste" rows="7" placeholder="วางได้เลย — ระบบจะหาคอลัมน์ หมวด / อัตรา / คน / วัน ให้เอง&#10;รองรับทั้งแบบมีหัวตารางและไม่มี"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn sm p" onclick="dlbParsePaste()">ตรวจข้อมูลที่วาง</button>
+          <button class="btn sm" onclick="dlbTogglePaste()">ปิด</button>
+        </div>
+        <div id="dlb-paste-result" class="note"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">📊 สรุปเทียบรายจ๊อบ <span class="tag" id="dlb-count">0 JR</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn sm p" onclick="exportDlbXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="exportDlbCsv()">CSV</button>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-bottom:16px">
+        <div class="stat"><div class="k">งบ DL รวม</div><div class="v mono" id="dlb-tb">0</div><div class="u">บาท (ราคาขาย)</div></div>
+        <div class="stat o"><div class="k">ต้นทุนจริงถึงวันนี้</div><div class="v mono" id="dlb-ta">0</div><div class="u">บาท</div></div>
+        <div class="stat a"><div class="k">คน-วัน งบ</div><div class="v mono" id="dlb-tmd">0</div><div class="u">คน-วัน</div></div>
+        <div class="stat r"><div class="k">คน-วัน ที่ทำไป</div><div class="v mono" id="dlb-tamd">0</div><div class="u">คน-วัน</div></div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>JR</th><th>งาน</th><th class="num">คน-วัน งบ</th><th class="num">ทำไป</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th><th class="num">งบ (บาท)</th><th class="num">ต้นทุนจริง</th><th></th></tr></thead>
+        <tbody id="dlb-body"><tr class="empty"><td colspan="9">ยังไม่มีงบ DL — ใส่ที่การ์ดด้านบน</td></tr></tbody>
+      </table></div>
+      <div class="note">“ใช้ไป” เทียบเป็น <b>คน-วัน</b> (ชั่วโมงจริง ÷ 8) · “งบ (บาท)” = อัตราที่เสนอราคา · “ต้นทุนจริง” = ชั่วโมง × ต้นทุนต่อชั่วโมงของแผนก</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">🏭 แยกตามแผนก</div>
+        <select id="dlb-pick" onchange="renderDlb()" style="width:auto"><option value="">— ทุก JR —</option></select>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>แผนก</th><th class="num">ต้นทุน/ชม.</th><th class="num">ชั่วโมงจริง</th><th class="num">คน-วัน</th><th class="num">ต้นทุนจริง (บาท)</th><th class="num">สัดส่วน</th></tr></thead>
+        <tbody id="dlb-sec-body"><tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="card-t">🧾 บรรทัดงบทั้งหมด <span class="tag" id="dlb-lines">0 บรรทัด</span></div></div>
+      <div class="tw"><table>
+        <thead><tr><th>JR</th><th>หมวดงาน</th><th class="num">อัตรา</th><th class="num">คน</th><th class="num">วัน</th><th class="num">คน-วัน</th><th class="num">บาท</th><th></th></tr></thead>
+        <tbody id="dlb-line-body"><tr class="empty"><td colspan="8">ยังไม่มีบรรทัดงบ</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
   <!-- ===== SERVICE REPORTS ===== -->
   <section class="sec" id="s-srv">
     <div class="h1">ใบรายงานบริการ</div>
@@ -513,6 +588,7 @@ tbody tr:hover td{background:rgba(255,255,255,.02)}
         <div class="f"><label>ชื่อ–สกุล</label><input id="em-name" placeholder="สมชาย ใจดี"></div>
         <div class="grid g2"><div class="f"><label>แผนก</label><input id="em-dept" placeholder="วิศวกรรม"></div><div class="f"><label>ตำแหน่ง</label><input id="em-pos" placeholder="วิศวกร"></div></div>
         <div class="f"><label>ฝั่ง (ให้บัญชีแยกค่าแรงทางตรง)</label><select id="em-side"><option value="office">สำนักงาน</option><option value="factory">โรงงาน</option></select></div>
+        <div class="f"><label>แผนกต้นทุน DL (ใช้คิดค่าแรงทางตรง)</label><select id="em-cost"></select><div class="note">ว่าง = ระบบเดาจากตำแหน่งให้เอง · เลือก “ไม่คิดเป็น DL” สำหรับงานสำนักงาน</div></div>
         <div class="grid g2"><div class="f"><label>ชื่อเล่น</label><input id="em-nick" placeholder="เช่น โจ"></div><div class="f"><label>เบอร์ติดต่อ</label><input id="em-phone" placeholder="08x-xxx-xxxx"></div></div>
         <div class="grid g2"><div class="f"><label>อีเมลติดต่อ</label><input id="em-cemail" placeholder="name@robotsystem.co.th"></div><div class="f"><label>LINE ID</label><input id="em-line" placeholder="@lineid"></div></div>
         <div class="grid g2">
@@ -559,12 +635,12 @@ const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const HOLIDAYS=window.HOLIDAYS||[]; const isHoliday=ds=>HOLIDAYS.includes(ds);
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service',LS_DLB='rsc_dlbudget';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
 const LS_PAY='rsc_payroll'; // เงินเดือน เก็บแยก เห็นเฉพาะ HR (ไม่อยู่ใน listener รวม)
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PAY]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_DLB]:[],[LS_PAY]:[]};
 const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 let _toastT=null;
@@ -610,7 +686,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
 function listen(){
-  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
   RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
 }
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
@@ -629,6 +705,7 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='dl')renderDL();
   if(id==='jrall')ensureJRAll();
   if(id==='srv')renderSrv();
+  if(id==='dlb'){dlbInit();renderDlb();}
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
 function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
@@ -744,7 +821,7 @@ function renderJRAll(){
 }
 
 /* ===== render all ===== */
-function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -1105,10 +1182,10 @@ function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.val
 function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
   const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;
   const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),side:$('em-side').value||'office',role:$('em-role').value,supervisor:$('em-sup').value,
-    nick:$('em-nick').value.trim(),phone:$('em-phone').value.trim(),cemail:$('em-cemail').value.trim(),line:$('em-line').value.trim(),active:(ex?ex.active!==false:true)};
+    nick:$('em-nick').value.trim(),phone:$('em-phone').value.trim(),cemail:$('em-cemail').value.trim(),line:$('em-line').value.trim(),costSection:$('em-cost').value,active:(ex?ex.active!==false:true)};
   if(ex)Object.assign(ex,rec);else arr.push(rec);save(LS_EMP,arr);
   toast(ex?('✅ แก้ไข '+(n||u)+' สำเร็จ'):('✅ บันทึกพนักงาน '+(n||u)+' สำเร็จ'));
-  ['em-user','em-name','em-dept','em-pos','em-nick','em-phone','em-cemail','em-line'].forEach(i=>$(i).value='');$('em-role').value='employee';$('em-side').value='office';$('em-sup').value='';
+  ['em-user','em-name','em-dept','em-pos','em-nick','em-phone','em-cemail','em-line'].forEach(i=>$(i).value='');$('em-cost').value='';$('em-role').value='employee';$('em-side').value='office';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
 function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
 /* สร้างบัญชีล็อกอิน (email/password) ให้พนักงานทั้งหมดในคราวเดียว — ทำจากเบราว์เซอร์ HR
@@ -1164,18 +1241,22 @@ function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;c
     const arr=load(LS_EMP);const byKey=new Map(arr.map(x=>[x.email||x.name,x]));let add=0,upd=0;
     list.forEach(x=>{if(!x)return;const key=x.email||x.name;if(!key)return;const ex=byKey.get(key);
       const rec={id:(ex&&ex.id)||x.id||uid(),email:x.email||'',name:x.name||'',dept:x.dept||'',pos:x.pos||x.position||'',side:x.side||(ex&&ex.side)||'office',role:x.role||'employee',supervisor:x.supervisor||'',
-        nick:x.nick||(ex&&ex.nick)||'',phone:x.phone||(ex&&ex.phone)||'',cemail:x.cemail||(ex&&ex.cemail)||'',line:x.line||(ex&&ex.line)||''};
+        nick:x.nick||(ex&&ex.nick)||'',costSection:x.costSection||(ex&&ex.costSection)||'',phone:x.phone||(ex&&ex.phone)||'',cemail:x.cemail||(ex&&ex.cemail)||'',line:x.line||(ex&&ex.line)||''};
       if(ex){Object.assign(ex,rec);upd++;}else{arr.push(rec);byKey.set(key,rec);add++;}});
     save(LS_EMP,arr);renderEmps();renderBalance();renderReport();fillAssignees();
     alert(`นำเข้าพนักงานสำเร็จ ✅\nเพิ่มใหม่ ${add} คน · อัปเดต ${upd} คน`);
   }catch(err){alert('ไฟล์ไม่ถูกต้อง: '+err.message);}input.value='';};
   r.readAsText(f);}
-function renderEmps(){const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
+function fillCostOptions(){const sel=$('em-cost');if(!sel)return;
+  sel.innerHTML='<option value="">— เดาจากตำแหน่งอัตโนมัติ —</option>'
+    +Object.entries(window.COST_SECTIONS||{}).map(([k,v])=>`<option value="${k}">${esc(v.label)} · ${v.perHour} บ./ชม.</option>`).join('')
+    +'<option value="none">ไม่คิดเป็น DL (งานสำนักงาน)</option>';}
+function renderEmps(){fillCostOptions();const arr=load(LS_EMP);const body=$('em-body');$('em-count').textContent=arr.length+' คน';fillSupOptions();
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr>';fillAssignees();return;}
   const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
   body.innerHTML=arr.slice().sort((a,b)=>(a.active===false)-(b.active===false)||(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;const off=e.active===false;
     return `<tr${off?' style="opacity:.5"':''}><td><b>${esc(e.name||e.email)}</b>${off?' <span class="chip absent" style="font-size:10px">ลาออก</span>':''}</td>
-    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}</div></td>
+    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}${(()=>{const k=empSection(e);const m=(window.COST_SECTIONS||{})[k];return m?(' · '+esc(m.label)+(e.costSection?'':' (auto)')):'';})()}</div></td>
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm" onclick="editEmp('${e.id}')">แก้</button> ${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
@@ -1193,7 +1274,7 @@ function migrateMonthly(){
 function editEmp(id){const e=load(LS_EMP).find(x=>x.id===id);if(!e)return;
   $('em-user').value=e.email||'';$('em-name').value=e.name||'';$('em-dept').value=e.dept||'';$('em-pos').value=e.pos||'';
   $('em-side').value=e.side||'office';$('em-role').value=e.role||'employee';$('em-sup').value=e.supervisor||'';
-  $('em-nick').value=e.nick||'';$('em-phone').value=e.phone||'';$('em-cemail').value=e.cemail||'';$('em-line').value=e.line||'';
+  fillCostOptions();$('em-cost').value=e.costSection||'';$('em-nick').value=e.nick||'';$('em-phone').value=e.phone||'';$('em-cemail').value=e.cemail||'';$('em-line').value=e.line||'';
   document.getElementById('s-people').scrollIntoView({behavior:'smooth',block:'start'});}
 /* seed ชื่อเล่นจาก Planner ครั้งเดียว (จับคู่ชื่อจริง) — ช่วงเปลี่ยนผ่าน */
 function seedNicksFromPlanner(){
@@ -1233,6 +1314,203 @@ function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('b
       <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
       <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
       <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
+/* ===== DL: งบ vs จริง ===== */
+const SECT=window.COST_SECTIONS||{}, QRATES=window.QUOTE_RATES||[], ALLOW=window.ALLOWANCE_RATES||[200];
+const SRULES=window.COST_SECTION_RULES||[];
+const isAllowance=r=>ALLOW.indexOf(+r)>=0;
+
+/* แผนกต้นทุนของพนักงาน — ใช้ค่าที่ HR ตั้งไว้ก่อน ไม่มีค่อยเดาจากตำแหน่ง */
+function empSection(e){
+  if(!e)return '';
+  if(e.costSection)return e.costSection==='none'?'':e.costSection;   // 'none' = HR สั่งไม่คิดเป็น DL
+  const t=((e.pos||'')+' '+(e.dept||''));
+  for(const r of SRULES){ if(r.match.test(t))return r.section; }
+  return '';
+}
+function sectionOfName(key){return empSection(empOf(key));}
+
+let _dlbInit=false;
+function dlbInit(){
+  if(_dlbInit)return; _dlbInit=true;
+  const sel=$('dlb-rate');
+  if(sel)sel.innerHTML=QRATES.map(q=>`<option value="${q.rate}">${q.rate.toLocaleString()} — ${esc(q.label)}</option>`).join('');
+  dlbCalc();
+}
+function dlbCalc(){
+  const rate=+($('dlb-rate')||{}).value||0, p=+($('dlb-p')||{}).value||0, d=+($('dlb-d')||{}).value||0;
+  const md=p*d;
+  if($('dlb-preview'))$('dlb-preview').textContent=(md*rate).toLocaleString();
+  if($('dlb-md'))$('dlb-md').textContent=md.toLocaleString();
+}
+function dlbTogglePaste(){const b=$('dlb-paste-box');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+
+function dlbAdd(){
+  const jr=($('dlb-jr').value||'').trim();
+  if(!jr){toast('กรอกเลขที่งาน JR',true);return;}
+  const rate=+$('dlb-rate').value||0, p=+$('dlb-p').value||0, d=+$('dlb-d').value||0;
+  if(!p||!d){toast('กรอกจำนวนคนและจำนวนวัน',true);return;}
+  const arr=load(LS_DLB);
+  arr.push({id:uid(),jr,name:($('dlb-name').value||'').trim(),cat:($('dlb-cat').value||'').trim(),
+            rate,persons:p,days:d,cost:p*d*rate,ts:Date.now()});
+  save(LS_DLB,arr);
+  ['dlb-cat','dlb-p','dlb-d'].forEach(i=>$(i).value='');
+  dlbCalc();renderDlb();toast('✅ เพิ่มบรรทัดงบ '+jr+' แล้ว');
+}
+function dlbDel(id){if(!confirm('ลบบรรทัดงบนี้?'))return;save(LS_DLB,load(LS_DLB).filter(x=>x.id!==id));renderDlb();toast('ลบแล้ว');}
+
+/* วางจาก Excel — หาคอลัมน์เอง ไม่ยึดตำแหน่งตายตัว (โครงไฟล์ EST ยังไม่เหมือนกันทุกใบ) */
+function dlbParsePaste(){
+  const jr=($('dlb-jr').value||'').trim();
+  const out=$('dlb-paste-result');
+  if(!jr){out.innerHTML='<b style="color:var(--red)">กรอกเลขที่งาน JR ก่อน</b>';return;}
+  const raw=($('dlb-paste').value||'').trim();
+  if(!raw){out.innerHTML='ยังไม่ได้วางข้อมูล';return;}
+  const rows=raw.split(/\r?\n/).map(l=>l.split('\t')).filter(r=>r.length>1);
+  if(!rows.length){out.innerHTML='<b style="color:var(--red)">อ่านไม่ได้ — ต้องคัดลอกจาก Excel (คั่นด้วย Tab)</b>';return;}
+  const num=v=>{const n=parseFloat(String(v==null?'':v).replace(/[, ]/g,''));return isFinite(n)?n:null;};
+  const found=[];
+  rows.forEach(cells=>{
+    const nums=[],texts=[];
+    cells.forEach((c,i)=>{const n=num(c);if(n!==null&&String(c).trim()!=='')nums.push({i,n});
+      else if(String(c).trim())texts.push(String(c).trim());});
+    // ต้องมีอัตราที่รู้จัก + อีกอย่างน้อย 2 ตัวเลข (คน, วัน)
+    const rIdx=nums.findIndex(x=>QRATES.some(q=>q.rate===x.n));
+    if(rIdx<0)return;
+    const rate=nums[rIdx].n, rest=nums.slice(rIdx+1).filter(x=>x.n>0);
+    if(rest.length<2)return;
+    const persons=rest[0].n, days=rest[1].n;
+    if(persons>50||days>500)return;                  // กันอ่านคอลัมน์เงินมาเป็นคน/วัน
+    const cat=texts.filter(t=>!/^\d+([.,]\d+)*$/.test(t)).pop()||'';
+    found.push({rate,persons,days,cat});
+  });
+  if(!found.length){out.innerHTML='<b style="color:var(--red)">ไม่พบบรรทัดที่มีอัตรา '+QRATES.map(q=>q.rate).join('/')+'</b> — ตรวจว่าคัดลอกคอลัมน์ LC/D · P/D · D มาด้วย';return;}
+  const totMd=found.reduce((t,x)=>t+x.persons*x.days,0), totB=found.reduce((t,x)=>t+x.persons*x.days*x.rate,0);
+  out.innerHTML='พบ <b>'+found.length+'</b> บรรทัด · รวม <b>'+totMd.toLocaleString()+'</b> คน-วัน · <b>'+totB.toLocaleString()+'</b> บาท<br>'
+    +found.slice(0,6).map(x=>'• '+esc(x.cat||'(ไม่มีชื่อหมวด)')+' — '+x.rate.toLocaleString()+' × '+x.persons+' คน × '+x.days+' วัน').join('<br>')
+    +(found.length>6?'<br>…':'')
+    +'<div style="margin-top:10px"><button class="btn sm p" onclick="dlbCommitPaste()">✅ นำเข้าทั้งหมด</button></div>';
+  window._dlbPending={jr,name:($('dlb-name').value||'').trim(),rows:found};
+}
+function dlbCommitPaste(){
+  const p=window._dlbPending; if(!p){toast('ไม่มีข้อมูลรอ',true);return;}
+  const arr=load(LS_DLB);
+  p.rows.forEach(x=>arr.push({id:uid(),jr:p.jr,name:p.name,cat:x.cat,rate:x.rate,
+    persons:x.persons,days:x.days,cost:x.persons*x.days*x.rate,ts:Date.now()}));
+  save(LS_DLB,arr);window._dlbPending=null;
+  $('dlb-paste').value='';$('dlb-paste-result').innerHTML='';
+  renderDlb();toast('✅ นำเข้างบ '+p.rows.length+' บรรทัด');
+}
+
+/* ---- คำนวณ ---- */
+function dlbBudgetByJR(){
+  const m={};
+  load(LS_DLB).forEach(x=>{
+    const k=x.jr||'-';
+    const g=m[k]||(m[k]={jr:k,name:'',md:0,baht:0,allowMd:0,allowBaht:0,lines:0});
+    if(x.name&&!g.name)g.name=x.name;
+    const md=(+x.persons||0)*(+x.days||0), b=+x.cost||md*(+x.rate||0);
+    if(isAllowance(x.rate)){g.allowMd+=md;g.allowBaht+=b;} else {g.md+=md;g.baht+=b;}
+    g.lines++;
+  });
+  return m;
+}
+function dlbActualByJR(){
+  const m={};
+  load(LS_TL).forEach(r=>{
+    const jr=(r.jr||'').trim(); if(!jr||isCentralJR(jr))return;
+    const h=+r.hours||0; if(!h)return;
+    const sec=sectionOfName(r.name), rate=(SECT[sec]||{}).perHour||0;
+    const g=m[jr]||(m[jr]={jr,hours:0,baht:0,bySec:{}});
+    g.hours+=h; g.baht+=h*rate;
+    const k=sec||'_none';
+    const gs=g.bySec[k]||(g.bySec[k]={hours:0,baht:0});
+    gs.hours+=h; gs.baht+=h*rate;
+  });
+  return m;
+}
+function renderDlb(){
+  const body=$('dlb-body'); if(!body)return;
+  const B=dlbBudgetByJR(), A=dlbActualByJR();
+  const keys=Object.keys(B).sort();
+  // ตัวเลือกกรอง JR
+  const pick=$('dlb-pick');
+  if(pick){const cur=pick.value;
+    pick.innerHTML='<option value="">— ทุก JR —</option>'+keys.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('');
+    pick.value=cur;}
+  $('dlb-count').textContent=keys.length+' JR';
+  let tb=0,ta=0,tmd=0,tamd=0;
+  if(!keys.length){body.innerHTML='<tr class="empty"><td colspan="9">ยังไม่มีงบ DL — ใส่ที่การ์ดด้านบน</td></tr>';}
+  else body.innerHTML=keys.map(k=>{
+    const b=B[k], a=A[k]||{hours:0,baht:0};
+    const amd=a.hours/8, left=b.md-amd, pct=b.md?(amd/b.md*100):0;
+    tb+=b.baht; ta+=a.baht; tmd+=b.md; tamd+=amd;
+    const cls=pct>100?'chip absent':(pct>85?'chip late':'chip in');
+    return '<tr>'
+      +'<td class="mono"><b>'+esc(k)+'</b></td>'
+      +'<td>'+esc(b.name||'-')+(b.allowMd?'<div class="note">+ เบี้ยเลี้ยง '+b.allowBaht.toLocaleString()+' บาท</div>':'')+'</td>'
+      +'<td class="num mono">'+b.md.toLocaleString()+'</td>'
+      +'<td class="num mono">'+amd.toFixed(1)+'</td>'
+      +'<td class="num mono" style="color:'+(left<0?'var(--red)':'inherit')+'">'+left.toFixed(1)+'</td>'
+      +'<td class="num"><span class="'+cls+'">'+pct.toFixed(0)+'%</span></td>'
+      +'<td class="num mono">'+b.baht.toLocaleString()+'</td>'
+      +'<td class="num mono">'+Math.round(a.baht).toLocaleString()+'</td>'
+      +'<td class="ctr"><button class="btn sm" onclick="document.getElementById(\'dlb-pick\').value=\''+esc(k)+'\';renderDlb()">ดูแผนก</button></td>'
+      +'</tr>';
+  }).join('');
+  $('dlb-tb').textContent=Math.round(tb).toLocaleString();
+  $('dlb-ta').textContent=Math.round(ta).toLocaleString();
+  $('dlb-tmd').textContent=Math.round(tmd).toLocaleString();
+  $('dlb-tamd').textContent=tamd.toFixed(1);
+
+  // แยกตามแผนก
+  const only=(pick&&pick.value)||'';
+  const acc={};
+  Object.keys(A).forEach(jr=>{ if(only&&jr!==only)return;
+    Object.entries(A[jr].bySec).forEach(([k,v])=>{
+      const g=acc[k]||(acc[k]={hours:0,baht:0}); g.hours+=v.hours; g.baht+=v.baht; });});
+  const sb=$('dlb-sec-body'), totB=Object.values(acc).reduce((t,v)=>t+v.baht,0);
+  const secKeys=Object.keys(acc).sort((x,y)=>acc[y].baht-acc[x].baht);
+  if(!secKeys.length){sb.innerHTML='<tr class="empty"><td colspan="6">ยังไม่มีชั่วโมงที่ลงตาม JR</td></tr>';}
+  else sb.innerHTML=secKeys.map(k=>{
+    const v=acc[k], meta=SECT[k];
+    return '<tr>'
+      +'<td>'+(meta?esc(meta.label)+'<div class="note">'+esc(meta.en)+'</div>':'<span style="color:var(--muted)">ไม่ได้กำหนดแผนกต้นทุน</span>')+'</td>'
+      +'<td class="num mono">'+(meta?meta.perHour.toLocaleString():'—')+'</td>'
+      +'<td class="num mono">'+v.hours.toFixed(1)+'</td>'
+      +'<td class="num mono">'+(v.hours/8).toFixed(1)+'</td>'
+      +'<td class="num mono">'+Math.round(v.baht).toLocaleString()+'</td>'
+      +'<td class="num mono">'+(totB?(v.baht/totB*100).toFixed(0):'0')+'%</td>'
+      +'</tr>';}).join('');
+
+  // บรรทัดงบ
+  const lines=load(LS_DLB).filter(x=>!only||x.jr===only).sort((a,b)=>(a.jr||'').localeCompare(b.jr||'')||(a.cat||'').localeCompare(b.cat||''));
+  $('dlb-lines').textContent=lines.length+' บรรทัด';
+  const lb=$('dlb-line-body');
+  if(!lines.length){lb.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีบรรทัดงบ</td></tr>';}
+  else lb.innerHTML=lines.map(x=>{
+    const md=(+x.persons||0)*(+x.days||0);
+    return '<tr'+(isAllowance(x.rate)?' style="opacity:.65"':'')+'>'
+      +'<td class="mono">'+esc(x.jr)+'</td>'
+      +'<td>'+esc(x.cat||'-')+(isAllowance(x.rate)?' <span class="chip out">เบี้ยเลี้ยง</span>':'')+'</td>'
+      +'<td class="num mono">'+(+x.rate).toLocaleString()+'</td>'
+      +'<td class="num mono">'+x.persons+'</td>'
+      +'<td class="num mono">'+x.days+'</td>'
+      +'<td class="num mono">'+md.toLocaleString()+'</td>'
+      +'<td class="num mono">'+(+x.cost).toLocaleString()+'</td>'
+      +'<td class="ctr"><button class="btn sm no" onclick="dlbDel(\''+x.id+'\')">ลบ</button></td></tr>';}).join('');
+}
+const DLB_HEAD=['JR','งาน','คน-วัน งบ','คน-วัน ที่ทำ','คงเหลือ','ใช้ไป %','งบ (บาท)','ต้นทุนจริง (บาท)','เบี้ยเลี้ยง (บาท)'];
+function dlbRows(){
+  const B=dlbBudgetByJR(),A=dlbActualByJR();
+  return Object.keys(B).sort().map(k=>{
+    const b=B[k],a=A[k]||{hours:0,baht:0},amd=a.hours/8;
+    return [k,b.name||'',b.md,+amd.toFixed(1),+(b.md-amd).toFixed(1),
+            b.md?+(amd/b.md*100).toFixed(0):0,Math.round(b.baht),Math.round(a.baht),Math.round(b.allowBaht)];});
+}
+function exportDlbCsv(){const r=dlbRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_DL_budget_vs_actual.csv',DLB_HEAD,r);}
+function exportDlbXlsx(){const r=dlbRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
+  saveXlsx('RSC_DL_budget_vs_actual.xlsx',[{name:'งบ vs จริง',rows:[DLB_HEAD].concat(r)}]);}
 
 /* ===== ใบรายงานบริการ ===== */
 const SALES_ADMIN=window.SALES_ADMIN_EMAIL||'';

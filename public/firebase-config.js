@@ -102,3 +102,37 @@ window.COMPANY = {
   taxId  : '',                                  // เลขประจำตัวผู้เสียภาษี
   logo   : ''                                   // โลโก้จริง (data URI / URL)
 };
+
+/* ============================================================
+   ต้นทุนค่าแรงทางตรง (DL) — ใช้เทียบ "งบที่ตั้งไว้" กับ "ที่ทำจริง"
+   ตัวเลขมาจากชีต Data ของไฟล์ EST (ต้นทุนจริงเฉลี่ยต่อแผนก)
+   perHour ใช้คูณกับชั่วโมงที่พนักงานลงตาม JR
+   ============================================================ */
+window.COST_SECTIONS = {
+  design_mech : { label:'ออกแบบเครื่องกล',        en:'Design Mechanic',        perDay:1289, perHour:162 },
+  design_elec : { label:'ออกแบบไฟฟ้า/โปรแกรม',     en:'Design Elec & Program',  perDay:1068, perHour:134 },
+  project     : { label:'โปรเจกต์/โปรแกรมโรบอท',   en:'Project/Program',        perDay:985,  perHour:124 },
+  production  : { label:'ผลิต/ติดตั้ง/บริการ',      en:'Production/Install',     perDay:523,  perHour:66  },
+  tech_elec   : { label:'ช่างไฟฟ้า',               en:'Technical Elec',         perDay:463,  perHour:58  }
+};
+
+/* อัตราที่ใช้ "ตั้งงบ/เสนอราคา" (บาท/คน/วัน) — จากคอลัมน์ LC/D ในไฟล์ EST */
+window.QUOTE_RATES = [
+  { rate:1800, label:'ออกแบบ / โปรแกรม' },
+  { rate:1500, label:'โปรแกรมโรบอท' },
+  { rate:1200, label:'เอกสาร / คู่มือ' },
+  { rate:800,  label:'ช่าง / ผลิต / ติดตั้ง' },
+  { rate:200,  label:'เบี้ยเลี้ยง (ไม่ใช่ค่าแรง)' }
+];
+/* อัตราที่ถือเป็น "เบี้ยเลี้ยง" ไม่ใช่ชั่วโมงแรงงาน — แยกออกตอนเทียบกับเวลาเช็คอิน */
+window.ALLOWANCE_RATES = [200];
+
+/* จับคู่ตำแหน่ง/แผนกของพนักงาน → แผนกต้นทุนข้างบน (อัตโนมัติ)
+   HR แก้รายคนทับได้ที่หน้าทะเบียนพนักงาน  ·  ไม่เข้าเกณฑ์ = ไม่คิดเป็น DL (นับเป็น OH) */
+window.COST_SECTION_RULES = [
+  { match:/design engineer|mechatronics manager|mechanical design/i, section:'design_mech' },
+  { match:/electrical (engineering manager|engineer)|senior electrical/i, section:'design_elec' },
+  { match:/electrical technician/i,                                   section:'tech_elec' },
+  { match:/project manager|robot engineer|programmer|simulation engineer|key account manager/i, section:'project' },
+  { match:/technician|production supervisor|assembly|installation|after-sales/i, section:'production' }
+];
