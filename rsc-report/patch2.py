@@ -31,6 +31,29 @@ WUXI = next(x for x in P['topSup'] if 'Wuxi' in x['s'])
 PEND_TOT = pend['Jun']['missValue'] + pend['Jul']['missValue']
 OTHER_PEND = PEND_TOT - WUXI['v']    # ค้างส่งที่ไม่ใช่โครงการแบ่งงวด
 
+# ---------------------------------------------------------------- แผนการชำระเงินโครงการ Donaldson
+# ที่มา: Payment_Schedule_Donaldson_PO69732_733.docx (ฝ่ายจัดซื้อ 23/06/2026)
+PS_RATE = 33.50                                  # อัตราที่ใช้ประมาณการในเอกสาร
+PS = [  # (งวด, milestone, กำหนด, เดือนกระแสเงิน, %, USD 732, THB 732, USD 733, THB 733)
+    ('1', 'Advance Payment — หลังได้รับ PO', 'ABA & ECM: ประมาณต้นเดือน ก.ค. 2026', 'ก.ค. 26', 50,
+     204982.50, 6866913.75, 260072.00, 8712412.00),
+    ('2', 'หลัง Wuxi FAT (Factory Acceptance Test)', 'ABA: 10 ก.ย. 2026 · ECM: 11 ต.ค. 2026', 'ก.ย.–ต.ค. 26', 20,
+     81993.00, 2746765.50, 104028.80, 3484964.80),
+    ('3', 'หลัง DTL SAT (Site Acceptance Test)', 'ABA: 26 ต.ค. 2026 · ECM: 26 พ.ย. 2026', 'ต.ค.–พ.ย. 26', 20,
+     81993.00, 2746765.50, 104028.80, 3484964.80),
+    ('4', 'หลัง OEE Acceptance (ภายใน 3 เดือน)', 'ABA: ม.ค.–ก.พ. 2027 · ECM: ก.พ.–มี.ค. 2027', 'Q1 2027', 10,
+     40996.50, 1373382.75, 52014.40, 1742482.40),
+]
+PS_USD = sum(r[5] + r[7] for r in PS)            # 930,109.00
+PS_THB = sum(r[6] + r[8] for r in PS)            # 31,158,651.50
+PS_BOOK_RATE = WUXI['v'] / PS_USD                # อัตราที่ใช้บันทึก PO
+PS_FX_GAP = PS_THB - WUXI['v']                   # ส่วนต่างถ้าเรตขยับไป 33.50
+PS_FLOW = [('ก.ค. 26', 15579325.75), ('ก.ย. 26', 2746765.50), ('ต.ค. 26', 6231730.30),
+           ('พ.ย. 26', 3484964.80), ('Q1 2027', 3115865.15)]
+PS_PAID = PS_FLOW[0][1]                          # ครบกำหนดถึง 31 ก.ค. 2026
+PS_LEFT = PS_THB - PS_PAID
+PS_USD_LEFT = PS_USD - (PS[0][5] + PS[0][7])     # USD ที่ยังมี FX exposure
+
 # ================================================================ SECTION 7-9
 def bucket_rows(m):
     b = P['buckets'][m]
@@ -131,7 +154,7 @@ sections = f'''
     <div class="kpi"><div class="lbl">ยังไม่รับของ มิ.ย.–ก.ค. (รวม)</div><div class="val">฿{PEND_TOT/1e6:.2f}M</div>
       <div class="chg dim">{pend['Jun']['missCount']+pend['Jul']['missCount']} ใบ PO จากทั้งหมด {pend['Jun']['poCount']+pend['Jul']['poCount']} ใบ</div></div>
     <div class="kpi green"><div class="lbl">โครงการแบ่งงวด (ตามแผน)</div><div class="val">฿{WUXI['v']/1e6:.2f}M</div>
-      <div class="chg pos">✔ Wuxi Yashitle · จ่ายตามงวด Back-to-Back</div></div>
+      <div class="chg pos">✔ Donaldson · กำหนดรับของ ก.ย.–ต.ค. 2026</div></div>
     <div class="kpi" style="border-left-color:var(--yellow);"><div class="lbl">ค้างส่งที่ต้องติดตาม</div><div class="val">฿{OTHER_PEND/1e6:.2f}M</div>
       <div class="chg dim">{pend['Jun']['missCount']+pend['Jul']['missCount']-2} ใบ PO (ไม่รวมโครงการแบ่งงวด)</div></div>
     <div class="kpi"><div class="lbl">% ยังไม่รับของ (ไม่รวมโครงการ)</div><div class="val">{OTHER_PEND/(pend['Jun']['poValue']+pend['Jul']['poValue']-WUXI['v'])*100:.1f}%</div>
@@ -141,28 +164,104 @@ sections = f'''
   <div class="dnote" style="border-left-color:var(--green);">
     <h4 style="color:var(--green-soft);">✔ โครงการ ฿{WUXI['v']/1e6:.2f}M — โครงสร้างการจ่ายเงินบริหารความเสี่ยงไว้แล้ว</h4>
     <ul>
-      <li><b>เป็นงานแบ่งจ่ายหลายงวด ไม่ใช่จ่ายก้อนเดียวใน 15 วัน</b> — ปัจจุบัน<b>จ่ายเพียงเงินมัดจำ</b>
-          ส่วนที่เหลือทยอยจ่ายตามงวดงาน</li>
+      <li><b>เป็นงานแบ่งจ่าย 4 งวดตาม Milestone (50 / 20 / 20 / 10%) ไม่ใช่จ่ายก้อนเดียวใน 15 วัน</b> —
+          ทยอยจ่ายตั้งแต่ ก.ค. 2026 ถึง Q1 2027 ตามตารางด้านล่าง</li>
       <li><b>เงื่อนไขเป็นแบบ Back-to-Back</b> — บริษัทจ่ายผู้ขายก็ต่อเมื่อ<b>ได้รับเงินจากลูกค้าแล้ว</b>
           จึงไม่เกิดภาระกระแสเงินสดจากโครงการนี้</li>
       <li>เครดิต 15 วันในระบบ <b>นับจากวันที่ Invoice</b> และ Invoice จะออกตามงวด —
           ไม่ใช่ทั้ง ฿{WUXI['v']/1e6:.1f}M ครบกำหนดพร้อมกัน</li>
-      <li>ดังนั้นการที่ยังไม่ปรากฏรายการรับของในเดือน มิ.ย.–ก.ค. <b>เป็นไปตามแผนของงานแบ่งงวด ไม่ใช่ผู้ขายส่งล่าช้า</b>
-          — รายการนี้จึงไม่ถูกนับรวมในสถิติ On-time Delivery ข้อ 7</li>
+      <li><b>กำหนดรับของตามเอกสารคือ 10 ก.ย. 2026 (ABA) และ 11 ต.ค. 2026 (ECM)</b> —
+          การที่ยังไม่มีรายการรับของในเดือน มิ.ย.–ก.ค. จึง<b>เป็นไปตามแผน ไม่ใช่ผู้ขายส่งล่าช้า</b>
+          และไม่ถูกนับรวมในสถิติ On-time Delivery ข้อ 7</li>
     </ul>
     <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);color:var(--text-dim);">
       <b style="color:var(--orange);">สิ่งที่ยังต้องระวัง (คนละเรื่องกับกระแสเงินสด):</b><br>
-      1. <b>ยอดซื้อ ฿{nf(WUXI['v'])} ถูกบันทึกเต็มจำนวนในเดือน มิ.ย.</b> ทั้งที่จ่ายจริงแค่มัดจำและของยังไม่เข้า —
+      1. <b>ยอดซื้อ ฿{nf(WUXI['v'])} ถูกบันทึกเต็มจำนวนในเดือน มิ.ย.</b> ทั้งที่เงินทยอยจ่าย 4 งวดถึง Q1 2027 และของยังไม่เข้า —
          เป็นเหตุผลที่ยอดรวมโต +180.8% และเป็นเหตุผลที่ต้องดูตัวเลข "ตัดโครงการออก" คู่กันเสมอ<br>
       2. <b>ความเสี่ยงย้ายไปอยู่ฝั่งลูกค้า</b> — ถ้าลูกค้าจ่ายช้า เราจะจ่ายผู้ขายช้าตาม อาจกระทบกำหนดส่งมอบและความสัมพันธ์กับผู้ขาย
          ควรมีตารางเทียบ <b>งวดรับเงินลูกค้า vs งวดจ่ายผู้ขาย</b> ประกอบ<br>
       3. <b>ข้อมูลในระบบระบุเครดิตเป็น "15 วัน" ซึ่งไม่สะท้อนเงื่อนไขจริง</b> (แบ่งงวด + Back-to-Back)
          ทำให้การคำนวณเครดิตเฉลี่ยถ่วงน้ำหนักในข้อ 2 ต่ำกว่าความเป็นจริง — ดูหมายเหตุในข้อ 2<br>
-      <span class="todo">⚠ ตัวเลขที่ยังต้องเติม:</span> จำนวนเงินมัดจำที่จ่ายไปแล้ว · จำนวนงวด · กำหนดแต่ละงวด
+      4. <b>ความเสี่ยงอัตราแลกเปลี่ยน</b> — โครงการเป็นสกุล USD ยังเหลือ USD {PS_USD_LEFT:,.0f} ที่ยังไม่ชำระ (ดูตารางงวดด้านล่าง)
     </div>
     <div style="margin-top:10px;color:var(--text-dim);font-size:12.5px;">
       หมายเหตุวิธีคำนวณ: เทียบเลขที่ PO ที่ออกเดือน มิ.ย.–ก.ค. กับรายการรับของเดือน มิ.ย.–ก.ค.
       ยังไม่มีข้อมูลรับของเดือน ส.ค. จึงอาจมีบางรายการรับเข้าแล้วในเดือน ส.ค. — ควรยืนยันกับคลัง
+    </div>
+  </div>
+
+  <!-- แผนการชำระเงินโครงการ Donaldson -->
+  <div class="card" style="margin-top:16px;">
+    <h3>แผนการชำระเงิน — โครงการ Donaldson (FEAST ABA &amp; ECM)
+      <small>· Supplier: Wuxi Yashitle Machinery Co., Ltd. · เอกสารฝ่ายจัดซื้อ 23/06/2026</small></h3>
+
+    <div class="kpis" style="margin-bottom:16px;">
+      <div class="kpi"><div class="lbl">มูลค่าโครงการรวม</div><div class="val">USD {PS_USD:,.0f}</div>
+        <div class="chg dim">≈ ฿{PS_THB/1e6:.2f}M ที่อัตรา {PS_RATE:.2f} THB/USD</div></div>
+      <div class="kpi"><div class="lbl">ครบกำหนดชำระถึง 31 ก.ค. 2026</div><div class="val">฿{PS_PAID/1e6:.2f}M</div>
+        <div class="chg dim">งวด 1 Advance {PS[0][4]}% · <span class="todo">⚠ ต้องยืนยันว่าจ่ายแล้วหรือยัง</span></div></div>
+      <div class="kpi"><div class="lbl">คงเหลือหลัง ก.ค. 2026</div><div class="val">฿{PS_LEFT/1e6:.2f}M</div>
+        <div class="chg dim">USD {PS_USD_LEFT:,.0f} · ทยอยจ่าย ก.ย. 26 – Q1 2027</div></div>
+      <div class="kpi" style="border-left-color:var(--yellow);"><div class="lbl">ความเสี่ยงอัตราแลกเปลี่ยน</div><div class="val">฿{PS_FX_GAP/1e6:.2f}M</div>
+        <div class="chg dim">PO บันทึกที่ {PS_BOOK_RATE:.2f} · เอกสารประมาณที่ {PS_RATE:.2f} ({PS_FX_GAP/WUXI['v']*100:.2f}%)</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card" style="background:var(--bg-card2);">
+        <h3>กระแสเงินจ่ายตามงวด <small>(ประมาณการที่ {PS_RATE:.2f} THB/USD)</small></h3>
+        <div class="chart-box"><canvas id="chPaySched"></canvas></div>
+        <div class="note">แท่ง = จ่ายในงวดนั้น | เส้น = ยอดสะสม — <b>โครงการทยอยจ่ายข้ามปีถึง Q1 2027 ไม่ได้จ่ายก้อนเดียวในเดือน มิ.ย.</b></div>
+      </div>
+      <div class="card" style="background:var(--bg-card2);">
+        <h3>ตารางงวดการชำระเงิน <small>(รวม 2 PO)</small></h3>
+        <table>
+          <thead><tr><th>งวด</th><th style="text-align:left;">Milestone</th><th>%</th><th>USD</th><th>ประมาณการ (฿)</th></tr></thead>
+          <tbody>
+          {''.join(f'<tr><td>{r[0]}</td><td style="text-align:left;">{r[1]}<br><span style="color:var(--text-dim);font-size:11px;">{r[2]}</span></td><td>{r[4]}%</td><td>{r[5]+r[7]:,.2f}</td><td>{nf(r[6]+r[8])}</td></tr>' for r in PS)}
+          <tr class="total"><td>รวม</td><td style="text-align:left;">ABA + ECM</td><td>100%</td><td>{PS_USD:,.2f}</td><td>{nf(PS_THB)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid2-even" style="margin-top:16px;">
+      <div class="card" style="background:var(--bg-card2);">
+        <h3>PO69-732 — FEAST ABA <small>P05-5463 · JR-26-06-066 / PR69-487</small></h3>
+        <table>
+          <thead><tr><th>งวด</th><th>%</th><th>กำหนด</th><th>USD</th><th>ประมาณการ (฿)</th></tr></thead>
+          <tbody>
+          {''.join(f'<tr><td>{r[0]}</td><td>{r[4]}%</td><td style="font-size:11.5px;">{r[2].split("·")[0].replace("ABA:","").strip()}</td><td>{r[5]:,.2f}</td><td>{nf(r[6])}</td></tr>' for r in PS)}
+          <tr class="total"><td colspan="3">รวม PO69-732</td><td>{sum(r[5] for r in PS):,.2f}</td><td>{nf(sum(r[6] for r in PS))}</td></tr>
+          </tbody>
+        </table>
+        <div class="note">กำหนดรับของ (Required Date): <b>10 ก.ย. 2026</b></div>
+      </div>
+      <div class="card" style="background:var(--bg-card2);">
+        <h3>PO69-733 — FEAST ECM <small>P63-2349 · JR-26-06-067 / PR69-488</small></h3>
+        <table>
+          <thead><tr><th>งวด</th><th>%</th><th>กำหนด</th><th>USD</th><th>ประมาณการ (฿)</th></tr></thead>
+          <tbody>
+          {''.join(f'<tr><td>{r[0]}</td><td>{r[4]}%</td><td style="font-size:11.5px;">{(r[2].split("·")[-1] if "·" in r[2] else r[2]).replace("ECM:","").strip()}</td><td>{r[7]:,.2f}</td><td>{nf(r[8])}</td></tr>' for r in PS)}
+          <tr class="total"><td colspan="3">รวม PO69-733</td><td>{sum(r[7] for r in PS):,.2f}</td><td>{nf(sum(r[8] for r in PS))}</td></tr>
+          </tbody>
+        </table>
+        <div class="note">กำหนดรับของ (Required Date): <b>11 ต.ค. 2026</b></div>
+      </div>
+    </div>
+
+    <div class="dnote" style="margin-top:16px;margin-bottom:0;border-left-color:var(--yellow);">
+      <h4 style="color:var(--yellow);">⚠ 3 เรื่องที่ต้องยืนยันก่อนนำเสนอ</h4>
+      <ul>
+        <li><b>งวด 1 เป็น Advance 50% (฿{PS_PAID/1e6:.2f}M) ไม่ใช่ "เงินมัดจำ" จำนวนเล็ก</b> —
+            ตามเอกสารครบกำหนดต้นเดือน ก.ค. 2026 ซึ่งผ่านมาแล้ว
+            <b>ต้องยืนยันว่าจ่ายไปแล้วจริงหรือยัง และได้รับเงินจากลูกค้า (Donaldson) ก่อนจ่ายตามเงื่อนไข Back-to-Back หรือไม่</b></li>
+        <li><b>ยังไม่มีตารางงวดรับเงินจากลูกค้า</b> — มีแต่ฝั่งจ่ายผู้ขาย
+            ถ้าผู้บริหาร TN ถามว่า "รับเงินลูกค้าก่อนจ่ายจริงไหม" ต้องมีตารางเทียบ 2 ฝั่งวางคู่กัน</li>
+        <li><b>ความเสี่ยงอัตราแลกเปลี่ยน ฿{PS_FX_GAP/1e6:.2f}M ({PS_FX_GAP/WUXI['v']*100:.2f}%)</b> —
+            PO บันทึกที่ {PS_BOOK_RATE:.2f} THB/USD แต่เอกสารประมาณการที่ {PS_RATE:.2f}
+            ยังเหลือ USD {PS_USD_LEFT:,.0f} ที่ยังไม่ชำระ <b>ควรระบุว่าจองอัตราล่วงหน้ากับ KBank ไปแล้วเท่าไหร่</b>
+            (เอกสารระบุว่าจัดทำเพื่อแจ้งธนาคารจองอัตรา)</li>
+      </ul>
     </div>
   </div>
 
@@ -273,6 +372,17 @@ new Chart(chOrigin,{{type:'bar',data:{{labels:['Jan–Jul 2026'],datasets:[
 ]}},options:{{indexAxis:'y',responsive:true,maintainAspectRatio:false,
   plugins:{{legend:{{position:'bottom'}},tooltip:{{callbacks:{{label:c=>` ${{c.dataset.label}}: ${{c.parsed.x.toFixed(1)}}%`}}}}}},
   scales:{{x:{{stacked:true,max:100,grid:{{color:'#2E2E2E'}},ticks:{{callback:v=>v+'%'}}}},y:{{stacked:true,grid:{{display:false}}}}}}}}}});
+
+/* 8a) กระแสเงินจ่ายโครงการ Donaldson ตามงวด */
+const PSF = {json.dumps(PS_FLOW, ensure_ascii=False)};
+const psCum = (()=>{{let s=0;return PSF.map(x=>s+=x[1]);}})();
+new Chart(chPaySched,{{data:{{labels:PSF.map(x=>x[0]),datasets:[
+  {{type:'bar',label:'จ่ายในงวด (฿)',data:PSF.map(x=>x[1]),backgroundColor:'#FF7A2F',borderRadius:4,order:2}},
+  {{type:'line',label:'สะสม (฿)',data:psCum,borderColor:'#4CAF50',backgroundColor:'rgba(76,175,80,.12)',fill:true,tension:.25,pointRadius:4,order:1}}
+]}},options:{{responsive:true,maintainAspectRatio:false,
+  plugins:{{legend:{{position:'top'}},tooltip:{{callbacks:{{label:c=>` ${{c.dataset.label}}: ${{fmtB(c.parsed.y)}}`+
+    (c.datasetIndex===1?` (${{(c.parsed.y/{PS_THB}*100).toFixed(1)}}% ของโครงการ)`:'')}}}}}},
+  scales:{{x:{{grid:{{display:false}}}},y:{{grid:{{color:'#2E2E2E'}},ticks:{{callback:v=>fmtM(v)}}}}}}}}}});
 '''
 rep("/* ===================== โหมดสว่าง / พิมพ์ ===================== */",
     charts + "\n/* ===================== โหมดสว่าง / พิมพ์ ===================== */",
@@ -281,9 +391,10 @@ rep("/* ===================== โหมดสว่าง / พิมพ์ ====
 # ================================================================ อัปเดตสรุป / หมายเหตุ
 rep('''    <li><b>ประเด็นที่ต้องตัดสินใจ:</b> ยอดซื้อกระจุกตัวที่กลุ่ม Standard Parts 77.9% ของยอดทั้งหมด
         และ Coverage การเจรจายังต่ำในเดือนที่มียอดซื้อสูง (มิ.ย. เพียง 3.9%)</li>''',
-    f'''    <li><b>โครงการ ฿{nf(WUXI['v'])} (Wuxi Yashitle, จีน) ยังไม่รับของและจ่ายเพียงเงินมัดจำ</b> —
-        เป็นงาน<b>แบ่งจ่ายหลายงวดแบบ Back-to-Back</b> (จ่ายผู้ขายเมื่อได้รับเงินจากลูกค้าแล้ว) จึง<span class="pos">ไม่มีภาระกระแสเงินสด</span>
-        แต่ยอดซื้อถูกบันทึกเต็มจำนวนในเดือน มิ.ย. ซึ่งเป็นที่มาของการโต +180.8%</li>
+    f'''    <li><b>โครงการ Donaldson ฿{nf(WUXI['v'])} (Wuxi Yashitle, จีน) — แบ่งจ่าย 4 งวด 50/20/20/10% ถึง Q1 2027</b>
+        เงื่อนไข Back-to-Back (จ่ายผู้ขายเมื่อได้รับเงินจากลูกค้าแล้ว) กำหนดรับของ ก.ย.–ต.ค. 2026 จึง<span class="pos">ไม่ใช่ของค้างส่ง</span><br>
+        <span style="color:var(--text-dim);">แต่ยอดซื้อบันทึกเต็มจำนวนในเดือน มิ.ย. ซึ่งเป็นที่มาของการโต +180.8% ·
+        งวด 1 Advance {PS[0][4]}% (฿{PS_PAID/1e6:.2f}M) ครบกำหนดต้นเดือน ก.ค. แล้ว <span class="todo">⚠ ต้องยืนยันสถานะการจ่าย</span></span></li>
     <li><b>On-time Delivery {otd['totPct']:.2f}%</b> ผ่านเป้า {otd['target']:.0f}% ทุกเดือน ({nf(otd['totOn'])}/{nf(otd['totPo'])} รายการ)
         แต่เดือน ก.ค. มูลค่าที่ล่าช้าคิดเป็น {(P['buckets']['Jul']['value']-P['buckets']['Jul']['rows'][BK[0]][1])/P['buckets']['Jul']['value']*100:.1f}% ของมูลค่ารับเข้า เพราะของที่ช้าเป็นรายการมูลค่าสูง</li>
     <li><b>ผู้ขายรายเดียวคิดเป็น {conc[1]}% ของยอดซื้อ · Top 5 = {conc[5]}%</b> จากผู้ขายทั้งหมด {P['supCount']} ราย — ความเสี่ยงด้าน Supply ที่ต้องมีแผนรองรับ</li>''',
