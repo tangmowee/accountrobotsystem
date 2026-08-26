@@ -932,7 +932,7 @@ function renderLeave(){const arr=load(LS_LEAVE).slice().filter(r=>canSee(r.name)
   $('lv-pending').textContent='รออนุมัติ '+arr.filter(r=>/pending/.test(r.status||'')).length;
   if(!arr.length){body.innerHTML='<tr class="empty"><td colspan="9">ยังไม่มีคำขอลา</td></tr>';return;}
   body.innerHTML=arr.map(r=>`<tr><td>${r.createdTs?fmtD(r.createdTs):'—'}</td><td><b>${nameOf(r.name)}</b></td>
-    <td>${LTYPE[r.type]||esc(r.type)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td>
+    <td>${LTYPE[r.type]||esc(r.type)}${r.half?' <span class="chip out">'+(r.half==='am'?'ครึ่งเช้า':'ครึ่งบ่าย')+'</span>':''}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td>
     <td>${esc(r.reason)||'<span style="color:var(--dim)">—</span>'}</td><td>${stChip(r.status)}${leaveTrail(r)}</td>
     <td class="ctr">${isHR()?`<button class="btn sm no" onclick="delLeave('${r.id}')">ลบ</button>`:''}</td></tr>`).join('');}
 
@@ -952,7 +952,7 @@ function renderApprovals(){
   const claimed=new Set(load(LS_OT).map(o=>o.logId).filter(Boolean));
   const sugg=load(LS_LOG).filter(r=>otOf(r)>0.01&&r.outTs&&!claimed.has(r.id)&&canSee(r.name)&&canL1(r.name));
   $('ap-badge').textContent=lv.length+ot.length+sugg.length+pdPending().length+tfPending().length;renderPerdiemApprovals();renderTimefixApprovals();$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
-  $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}</td>
+  $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}${r.half?' <span class="chip out">'+(r.half==='am'?'ครึ่งเช้า':'ครึ่งบ่าย')+'</span>':''}</td>
     <td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td><td>${esc(r.reason)||'—'}</td><td>${levelChip(s)}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveLeave('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectLeave('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
     :'<tr class="empty"><td colspan="8">ไม่มีคำขอลารอคุณอนุมัติ</td></tr>';

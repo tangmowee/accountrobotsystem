@@ -261,16 +261,24 @@
   <div class="card">
     <div class="title">🏖️ ขอลางาน</div>
     <label>ประเภทการลา</label>
-    <select id="lv-type">
+    <select id="lv-type" onchange="lvCalc()">
       <option value="sick">ลาป่วย</option>
       <option value="personal">ลากิจ</option>
       <option value="vacation">ลาพักร้อน</option>
       <option value="other">อื่นๆ</option>
     </select>
+    <div id="lv-quota"></div>
     <div style="display:flex;gap:10px;">
-      <div style="flex:1;"><label>ตั้งแต่</label><input type="date" id="lv-from"></div>
-      <div style="flex:1;"><label>ถึง</label><input type="date" id="lv-to"></div>
+      <div style="flex:1;"><label>ตั้งแต่</label><input type="date" id="lv-from" onchange="lvCalc()"></div>
+      <div style="flex:1;"><label>ถึง</label><input type="date" id="lv-to" onchange="lvCalc()"></div>
     </div>
+    <label>ช่วงเวลา</label>
+    <div class="slots" id="lv-slots">
+      <button type="button" class="slot active" data-half="" onclick="lvPickHalf('')">เต็มวัน</button>
+      <button type="button" class="slot" data-half="am" onclick="lvPickHalf('am')">ครึ่งวันเช้า</button>
+      <button type="button" class="slot" data-half="pm" onclick="lvPickHalf('pm')">ครึ่งวันบ่าย</button>
+    </div>
+    <div class="geo ok" style="margin-top:12px;"><span class="lbl">รวม</span> <span class="coord" id="lv-days">0</span> <span class="lbl">วัน</span> <span class="lbl" id="lv-warn"></span></div>
     <label>เหตุผล</label>
     <input type="text" id="lv-reason" placeholder="เช่น พาลูกไปหาหมอ">
     <button class="btn gps" onclick="submitLeave()">📨 ส่งคำขอลา</button>
@@ -494,6 +502,7 @@ function showTab(id){
   document.querySelectorAll('.tab-sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+id));
   document.querySelectorAll('#tabbar .tab').forEach(t=>t.classList.toggle('active',t.dataset.sec===id));
   if(id==='cal')renderCalendar();
+  if(id==='leave')lvCalc();
   if(id==='jobs')renderMyJobs();
   if(id==='checkin')renderTodaySummary();
   if(id==='more'){renderDirectory();renderSRList();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
@@ -947,15 +956,70 @@ function renderMyTL(){
 
 /* ===== leave ===== */
 function daysBetween(a,b){const d1=new Date(a),d2=new Date(b);if(isNaN(d1)||isNaN(d2))return 0;return Math.max(1,Math.round((d2-d1)/86400000)+1);}
+const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
+const LTYPE_LB={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
+let lvHalf='';
+function lvPickHalf(h){
+  lvHalf=h;
+  document.querySelectorAll('#lv-slots .slot').forEach(b=>b.classList.toggle('active',(b.dataset.half||'')===h));
+  if(h&&$('lv-to')&&$('lv-from'))$('lv-to').value=$('lv-from').value;   // ครึ่งวัน = วันเดียว
+  lvCalc();
+}
+/* จำนวนวันลา — ครึ่งวัน = 0.5 */
+function lvDays(){
+  const f=($('lv-from')||{}).value, t=($('lv-to')||{}).value||f;
+  if(!f)return 0;
+  if(lvHalf)return 0.5;
+  return daysBetween(f,t);
+}
+/* ใช้ไปแล้วปีนี้ (นับเฉพาะที่อนุมัติ) */
+function lvUsed(type){
+  const y=todayStr().slice(0,4),n=myName();
+  return load(LS_LEAVE).filter(r=>r.name===n&&r.status==='approved'&&r.type===type&&(r.from||'').slice(0,4)===y)
+    .reduce((s,r)=>s+(+r.days||0),0);
+}
+function lvCalc(){
+  const d=lvDays();
+  if($('lv-days'))$('lv-days').textContent=d%1?d.toFixed(1):String(d);
+  const type=($('lv-type')||{}).value, q=QUOTA[type];
+  const w=$('lv-warn');
+  if(w){
+    if(q==null){w.textContent='';w.style.color='';}
+    else{
+      const left=q-lvUsed(type);
+      if(d>left){w.textContent='· เกินโควตา! เหลือ '+left+' วัน';w.style.color='var(--red)';}
+      else{w.textContent='· เหลือหลังลา '+(left-d)+' วัน';w.style.color='';}
+    }
+  }
+  renderLeaveQuota();
+}
+function renderLeaveQuota(){
+  const el=$('lv-quota');if(!el)return;
+  el.innerHTML='<label>วันลาคงเหลือปีนี้</label><div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +Object.keys(QUOTA).map(k=>{
+      const used=lvUsed(k), q=QUOTA[k], left=q-used;
+      const col=left<=0?'var(--red)':(left<=q*0.3?'var(--yellow)':'var(--green)');
+      return '<div style="flex:1;min-width:96px;border:1px solid var(--border);border-radius:10px;padding:9px 11px;background:var(--card);">'
+        +'<div class="muted" style="font-size:12px;">'+esc(LTYPE_LB[k]||k)+'</div>'
+        +'<div style="font-weight:700;font-size:17px;color:'+col+'">'+(left%1?left.toFixed(1):left)+'</div>'
+        +'<div class="muted" style="font-size:11px;">ใช้ '+(used%1?used.toFixed(1):used)+' / '+q+'</div></div>';
+    }).join('')+'</div>';
+}
 function submitLeave(){
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
-  const from=$('lv-from').value,to=$('lv-to').value||$('lv-from').value;
+  const from=$('lv-from').value,to=lvHalf?from:($('lv-to').value||$('lv-from').value);
   if(!from){toast('เลือกวันที่ลา');return;}
-  const rec={id:uid(),name,type:$('lv-type').value,from,to,days:daysBetween(from,to),
+  if(!lvHalf&&to<from){toast('วันสิ้นสุดต้องไม่ก่อนวันเริ่ม');return;}
+  const type=$('lv-type').value, days=lvDays(), q=QUOTA[type];
+  if(q!=null){
+    const left=q-lvUsed(type);
+    if(days>left&&!confirm('ลา '+days+' วัน แต่'+(LTYPE_LB[type]||type)+'เหลือ '+left+' วัน\n\nส่งคำขอต่อไหม? (หัวหน้าจะเห็นว่าเกินโควตา)'))return;
+  }
+  const rec={id:uid(),name,type,from,to,half:lvHalf,days,
     reason:$('lv-reason').value.trim(),status:'pending_l1',createdTs:Date.now()};
   const arr=load(LS_LEAVE);arr.unshift(rec);save(LS_LEAVE,arr);
-  $('lv-reason').value='';renderMyLeave();
-  toast('📨 ส่งคำขอลาแล้ว รออนุมัติ');
+  $('lv-reason').value='';lvPickHalf('');renderMyLeave();
+  toast('📨 ส่งคำขอลา '+days+' วัน แล้ว รออนุมัติ');
 }
 function renderMyLeave(){
   const el=$('myleave');if(!el)return;
