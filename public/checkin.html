@@ -688,7 +688,7 @@ function checkin(){
         if(d>RADIUS&&!confirm(`⚠️ อยู่ห่างจากไซต์งาน "${job.title}" ~${Math.round(d)} ม. (เกิน ${RADIUS} ม.)\nยืนยันเช็คอิน?`))return;}}
   }
   const now=Date.now();
-  const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
+  const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jr:jobSel.options[jobSel.selectedIndex]?.dataset.jr||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
     note:$('note').value.trim(),inTs:now,inGeo:currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'',outTs:null,outGeo:''};
   const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
   if(rec.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===rec.jobId);if(j){j.status='in';save(LS_PLAN,p);}}
@@ -699,18 +699,34 @@ function checkin(){
 function hasTimelogToday(){const n=myName(),t=todayStr();return load(LS_TL).some(r=>r.name===n&&r.date===t);}
 function checkout(){
   const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
+  let autoJR='';
   if(REQUIRE_JR&&!hasTimelogToday()){
-    toast('⚠️ กรุณาบันทึกเวลาตาม JR ของวันนี้ก่อนเช็คเอาท์ (งานออฟฟิศเลือก JR OFFICE)');
-    const card=$('tl-job');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});
-      const box=card.closest('.card');if(box){box.style.transition='box-shadow .3s';box.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>box.style.boxShadow='',1800);}}
-    return;
+    // เช็คอินกับงานที่มีเลข JR อยู่แล้ว → ลงเวลาตาม JR ให้อัตโนมัติจากเวลาเข้า-ออกจริง
+    autoJR=rec.jr||(load(LS_PLAN).find(p=>p.id===rec.jobId)||{}).jr||'';
+    if(!autoJR){
+      toast('⚠️ กรุณาบันทึกเวลาตาม JR ของวันนี้ก่อนเช็คเอาท์ (งานออฟฟิศเลือก JR OFFICE)');
+      const card=$('tl-job');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});
+        const box=card.closest('.card');if(box){box.style.transition='box-shadow .3s';box.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>box.style.boxShadow='',1800);}}
+      return;
+    }
+    if(!confirm('ยังไม่ได้ลงเวลาตาม JR — ให้ระบบลงให้อัตโนมัติ?\n\n'+autoJR+' · '+fmtT(rec.inTs)+' ถึงตอนนี้ (หักพักเที่ยง)\n\nตกลง = ลงให้เลย · ยกเลิก = ไปลงเอง'))
+      {showTab('timelog');return;}
   }
   if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?'))return;
   const log=load(LS_LOG);const r=log.find(x=>x.id===rec.id);
   r.outTs=Date.now();r.outGeo=currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'';save(LS_LOG,log);
   if(r.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===r.jobId);if(j){j.status='done';save(LS_PLAN,p);}}
+  if(autoJR){
+    const hm=ts=>{const d=new Date(ts);return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);};
+    const ts=hm(r.inTs),te=hm(r.outTs),h=calcHours(ts,te);
+    if(h>0){const arr=load(LS_TL);
+      arr.unshift({id:uid(),name:r.name,date:r.date||todayStr(),createdTs:Date.now(),jr:autoJR,
+        jobId:r.jobId||'',jobTitle:r.jobTitle||'',slot:'custom',timeStart:ts,timeEnd:te,hours:h,
+        kind:isCentralJR(autoJR)?'office':'project',note:'ลงอัตโนมัติจากเช็คอิน-เอาท์',auto:true});
+      save(LS_TL,arr);renderMyTL();}
+  }
   currentGeo=null;resetGeo();refreshState();renderMyLog();
-  toast('🔴 เช็คเอาท์สำเร็จ '+fmtT(r.outTs));
+  toast(autoJR?('เช็คเอาท์สำเร็จ · ลงเวลา '+autoJR+' ให้แล้ว'):('เช็คเอาท์สำเร็จ '+fmtT(r.outTs)));
 }
 function refreshGeoBox(){if(currentGeo&&$('geo-txt')){const g=`${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
   $('geo-txt').innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div><div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่</a></div>`+siteDistanceHtml();}}
@@ -726,7 +742,7 @@ function renderJobs(){
     &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
   const jobs=plannerJobsForMe().concat(internal);
   sel.innerHTML='<option value="">— ไม่ระบุ / งานออฟฟิศ —</option>'+
-    jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);return `<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${esc(p.title)} — ${esc(p.site)} (${p.time||''})</option>`;}).join('');
+    jobs.map(p=>{const mine=p.assignees&&p.assignees.includes(me);const nm=jobName(p.title,p.jr);return `<option value="${p.id}" data-jr="${esc(p.jr||'')}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${p.jr?esc(p.jr)+' · ':''}${esc(nm)} — ${esc(p.site)}</option>`;}).join('');
   sel.value=cur;
   // งานวันนี้มีงานเดียว → เลือกให้เลย แล้วโชว์เป็นบรรทัดเดียว (ไม่ต้องมี dropdown ให้รก)
   const todayJobs=jobs.filter(p=>(p.date||today)===today);
@@ -742,24 +758,24 @@ function renderJobs(){
     }else{auto.style.display='none';pick.style.display='block';}
   }
   const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
-    jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
+    jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(jobName(p.title,p.jr))} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
   // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
   const tj=$('tl-job');if(tj){const c3=tj.value;
     const jrJobs=jobs.filter(p=>p.jr);
     tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
       CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
   // service report: เลือกงาน/JR
   const pj=$('pd-job');if(pj){const c5=pj.value;const jrJobs2=jobs.filter(p=>p.jr);
     pj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     pj.value=c5;}
   const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=jobs.filter(p=>p.jr);
     sj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(p.title)}</option>`).join('')+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     sj.value=c4;}
 }
@@ -1498,7 +1514,7 @@ function refreshBookVeh(){
   // fill job options too
   const jsel=$('bk-job');if(jsel){const c=jsel.value,me=myName(),today=todayStr();
     const jobs=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
-    jsel.innerHTML='<option value="">— ไม่ระบุ —</option>'+jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}" data-site="${esc(p.site)}">${esc(p.title)} — ${esc(p.site)}</option>`).join('');jsel.value=c;}
+    jsel.innerHTML='<option value="">— ไม่ระบุ —</option>'+jobs.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}" data-site="${esc(p.site)}">${esc(jobName(p.title,p.jr))} — ${esc(p.site)}</option>`).join('');jsel.value=c;}
   if(!d||!f||!t){sel.innerHTML='<option value="">— เลือกวันเวลาก่อน —</option>';return;}
   if(t<=f){sel.innerHTML='<option value="">— เวลากลับต้องหลังเวลาไป —</option>';return;}
   const avail=load(LS_VEH).filter(v=>v.active!==false&&!bookBusy(v.id,d,f,t));
