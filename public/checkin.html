@@ -505,17 +505,23 @@ let EMP = [];                            // rsc_employees (ไว้หา "ช�
 function stripTitle(s){return (s||'').replace(/^(นาย|นางสาว|นาง|น\.ส\.|ดร\.)\s*/,'').replace(/\s+/g,' ').trim();}
 function myFullName(){const id=myName();const e=EMP.find(x=>x.email===id||shortName(x.email||'')===id);return e?(e.name||''):'';}
 function myPlannerId(){const fn=stripTitle(myFullName());if(!fn)return '';const p=PLANNER.people.find(pp=>stripTitle(pp.fullName)===fn);return p?p.id:'';}
+/* Planner บางแถวไม่ได้กรอกช่องเลขงาน แต่ใส่ไว้ในชื่อ — ดึงออกมาให้ */
+function jrFromText(t){
+  const m=String(t||'').match(/JR[\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2,4}/i);
+  return m?m[0].toUpperCase().replace(/\s+/g,''):'';
+}
+function jrOf(j){return (j&&(j.ref||j.jr))||jrFromText(j&&(j.name||j.title))||'';}
 function plannerJobsAll(){
   const t=todayStr();
   return PLANNER.jobs.filter(j=>(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
-    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',
+    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:jrOf(j),site:j.site||'',
       time:j.timeStart||'',date:t,assignees:[],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
 }
 function plannerJobsForMe(){
   const pid=myPlannerId();if(!pid)return [];const t=todayStr();
   return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)
       &&(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
-    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:j.ref||'',site:j.site||'',
+    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:jrOf(j),site:j.site||'',
       time:j.timeStart||'',date:t,assignees:[myName()],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
 }
 function showTab(id){
@@ -773,14 +779,25 @@ function renderJobs(){
   // งานสดจาก RSC Planner (เฉพาะที่มอบหมายให้เรา วันนี้) + แผนงานในแอดมิน
   // เห็นเฉพาะจ๊อปที่มอบหมายให้เรา หรือจ๊อปกลาง (ไม่ระบุผู้รับ)
   const internal=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
-    &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)));
-  const jobs=plannerJobsForMe().concat(internal);
+    &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
+    .map(p=>Object.assign({},p,{jr:jrOf(p)}));   // เลข JR อาจอยู่ในชื่องาน
+  const sig=p=>((p.jr||'')+'|'+jobName(p.title,p.jr)).toUpperCase().replace(/\s+/g,' ').trim();
+  const uniq=list=>{const k={};return list.filter(p=>{const g=sig(p);if(k[g])return false;k[g]=1;return true;});};
+  const jobs=uniq(plannerJobsForMe().concat(internal));
   // งานอื่นทั้งหมดที่ไม่ได้มอบหมายให้เรา — เผื่อถูกเรียกไปช่วยงานหน้างาน เลือกลงเองได้
-  const seen={};jobs.forEach(p=>seen[p.id]=1);
-  const others=plannerJobsAll().concat(load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)))
-    .filter(p=>{if(seen[p.id])return false;seen[p.id]=1;return true;});
-  const opt=p=>{const mine=p.assignees&&p.assignees.includes(me);const nm=jobName(p.title,p.jr);
-    return `<option value="${p.id}" data-jr="${esc(p.jr||'')}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${p.jr?esc(p.jr)+' · ':''}${esc(nm)}${p.site?' — '+esc(p.site):''}</option>`;};
+  const seen={},seenSig={};jobs.forEach(p=>{seen[p.id]=1;seenSig[sig(p)]=1;});
+  const others=plannerJobsAll()
+    .concat(load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)).map(p=>Object.assign({},p,{jr:jrOf(p)})))
+    .filter(p=>{const k=sig(p);if(seen[p.id]||seenSig[k])return false;seen[p.id]=1;seenSig[k]=1;return true;});
+  const optLabel=p=>{
+    const nm=jobName(p.title,p.jr);
+    const hasSite=p.site&&nm.toUpperCase().indexOf(p.site.toUpperCase())>=0;
+    let t=nm+((p.site&&!hasSite)?' — '+p.site:'');
+    if(t.length>62)t=t.slice(0,60).trim()+'…';
+    return t;
+  };
+  const opt=p=>{const mine=p.assignees&&p.assignees.includes(me);
+    return `<option value="${p.id}" data-jr="${esc(p.jr||'')}" data-title="${esc(p.title)} @ ${esc(p.site)}">${mine?'★ ':''}${p.jr?esc(p.jr)+' · ':''}${esc(optLabel(p))}</option>`;};
   sel.innerHTML='<option value="">— ไม่ระบุ / งานออฟฟิศ —</option>'+jobs.map(opt).join('')+
     (others.length?'<optgroup label="งานอื่น (เลือกเองได้)">'+others.map(opt).join('')+'</optgroup>':'');
   sel.value=cur;
@@ -801,22 +818,23 @@ function renderJobs(){
   const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
     jobsAll.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(jobName(p.title,p.jr))} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
   // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
+  const uniqJR=uniq;
   const tj=$('tl-job');if(tj){const c3=tj.value;
-    const jrJobs=jobsAll.filter(p=>p.jr);
+    const jrJobs=uniqJR(jobsAll.filter(p=>p.jr));
     tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
       CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
   // service report: เลือกงาน/JR
-  const pj=$('pd-job');if(pj){const c5=pj.value;const jrJobs2=jobsAll.filter(p=>p.jr);
+  const pj=$('pd-job');if(pj){const c5=pj.value;const jrJobs2=uniqJR(jobsAll.filter(p=>p.jr));
     pj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
+      jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     pj.value=c5;}
-  const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=jobsAll.filter(p=>p.jr);
+  const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=uniqJR(jobsAll.filter(p=>p.jr));
     sj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
-      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(jobName(p.title,p.jr))}</option>`).join('')+
+      jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     sj.value=c4;}
 }
