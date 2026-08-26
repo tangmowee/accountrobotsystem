@@ -57,16 +57,16 @@ window.SRPrint = (function () {
   /* บรรทัดติดต่อบนหัวกระดาษ — แสดงเฉพาะที่กรอกไว้ */
   function coMeta() {
     var c = CO(), out = [];
-    if (c.phone) out.push('โทร ' + c.phone);
+    if (c.phone) out.push('Tel. ' + c.phone);
     if (c.email) out.push(c.email);
     if (c.web) out.push(c.web);
     return out.map(esc).join(' · ');
   }
   function coSub() {
     var c = CO(), out = [];
-    if (c.nameTh) out.push(c.nameTh);
+    if (c.nameEn) out.push(c.nameEn);          // ชื่อบริษัทภาษาอังกฤษบนหัวจดหมาย
     if (c.address) out.push(c.address);
-    if (c.taxId) out.push('เลขประจำตัวผู้เสียภาษี ' + c.taxId);
+    if (c.taxId) out.push('Tax ID ' + c.taxId);
     return out.map(esc).join(' · ');
   }
 
@@ -193,7 +193,6 @@ window.SRPrint = (function () {
 
   '<div class="head">' +
     '<div class="org">' + logoTag() + '<div>' +
-      (CO().logo ? '<div class="name">' + esc(CO().nameEn || '') + '</div>' : '') +
       '<div class="th">' + coSub() + '</div>' +
       '<div class="meta">' + coMeta() + '</div>' +
     '</div></div>' +
