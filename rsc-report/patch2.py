@@ -29,6 +29,7 @@ TOI = P['supTotal']               # ผลรวมรายการ PO รา�
 GAP = TOI - T26
 WUXI = next(x for x in P['topSup'] if 'Wuxi' in x['s'])
 PEND_TOT = pend['Jun']['missValue'] + pend['Jul']['missValue']
+OTHER_PEND = PEND_TOT - WUXI['v']    # ค้างส่งที่ไม่ใช่โครงการแบ่งงวด
 
 # ================================================================ SECTION 7-9
 def bucket_rows(m):
@@ -124,32 +125,45 @@ sections = f'''
 
 <!-- SECTION 8 : PENDING PO -->
 <div class="sec">
-  <div class="sec-title"><div class="num">8</div><h2>Pending PO / งานค้างส่ง <span class="en">(PO ที่ออกแล้วแต่ยังไม่พบรายการรับของ)</span></h2></div>
+  <div class="sec-title"><div class="num">8</div><h2>Pending PO / งานค้างส่ง <span class="en">(PO ที่ออกแล้วแต่ยังไม่พบรายการรับของ — แยกงานแบ่งงวดออกจากงานค้างจริง)</span></h2></div>
 
   <div class="kpis" style="margin-bottom:16px;">
-    <div class="kpi" style="border-left-color:var(--red);"><div class="lbl">มูลค่าค้างส่ง มิ.ย.–ก.ค.</div><div class="val">฿{PEND_TOT/1e6:.2f}M</div>
-      <div class="chg neg">{pend['Jun']['missCount']+pend['Jul']['missCount']} ใบ PO จากทั้งหมด {pend['Jun']['poCount']+pend['Jul']['poCount']} ใบ</div></div>
-    <div class="kpi" style="border-left-color:var(--red);"><div class="lbl">โครงการเดือน มิ.ย. ยังไม่รับของ</div><div class="val">฿{WUXI['v']/1e6:.2f}M</div>
-      <div class="chg neg">Wuxi Yashitle · PO69-732 + PO69-733</div></div>
-    <div class="kpi"><div class="lbl">% ค้างส่งของเดือน มิ.ย.</div><div class="val">{pend['Jun']['missValue']/pend['Jun']['poValue']*100:.1f}%</div>
-      <div class="chg dim">฿{nf(pend['Jun']['missValue'])} จาก ฿{nf(pend['Jun']['poValue'])}</div></div>
-    <div class="kpi"><div class="lbl">% ค้างส่งของเดือน ก.ค.</div><div class="val">{pend['Jul']['missValue']/pend['Jul']['poValue']*100:.1f}%</div>
-      <div class="chg dim">฿{nf(pend['Jul']['missValue'])} จาก ฿{nf(pend['Jul']['poValue'])}</div></div>
+    <div class="kpi"><div class="lbl">ยังไม่รับของ มิ.ย.–ก.ค. (รวม)</div><div class="val">฿{PEND_TOT/1e6:.2f}M</div>
+      <div class="chg dim">{pend['Jun']['missCount']+pend['Jul']['missCount']} ใบ PO จากทั้งหมด {pend['Jun']['poCount']+pend['Jul']['poCount']} ใบ</div></div>
+    <div class="kpi green"><div class="lbl">โครงการแบ่งงวด (ตามแผน)</div><div class="val">฿{WUXI['v']/1e6:.2f}M</div>
+      <div class="chg pos">✔ Wuxi Yashitle · จ่ายตามงวด Back-to-Back</div></div>
+    <div class="kpi" style="border-left-color:var(--yellow);"><div class="lbl">ค้างส่งที่ต้องติดตาม</div><div class="val">฿{OTHER_PEND/1e6:.2f}M</div>
+      <div class="chg dim">{pend['Jun']['missCount']+pend['Jul']['missCount']-2} ใบ PO (ไม่รวมโครงการแบ่งงวด)</div></div>
+    <div class="kpi"><div class="lbl">% ยังไม่รับของ (ไม่รวมโครงการ)</div><div class="val">{OTHER_PEND/(pend['Jun']['poValue']+pend['Jul']['poValue']-WUXI['v'])*100:.1f}%</div>
+      <div class="chg dim">฿{nf(OTHER_PEND)} จาก ฿{nf(pend['Jun']['poValue']+pend['Jul']['poValue']-WUXI['v'])}</div></div>
   </div>
 
-  <div class="dnote" style="border-left-color:var(--red);">
-    <h4 style="color:var(--red);">🚨 ประเด็นสำคัญที่สุดของรายงานฉบับนี้</h4>
+  <div class="dnote" style="border-left-color:var(--green);">
+    <h4 style="color:var(--green-soft);">✔ โครงการ ฿{WUXI['v']/1e6:.2f}M — โครงสร้างการจ่ายเงินบริหารความเสี่ยงไว้แล้ว</h4>
     <ul>
-      <li>โครงการ Standard Parts เดือน มิ.ย. มูลค่า <b>฿{nf(WUXI['v'])}</b> จาก <b>Wuxi Yashitle Machinery Co., Ltd. (จีน)</b>
-          <b>ยังไม่ปรากฏในรายการรับของทั้งเดือน มิ.ย. และ ก.ค.</b></li>
-      <li>คิดเป็น <b>{WUXI['v']/TOI*100:.1f}% ของยอดซื้อทั้ง 7 เดือน</b> และอยู่ภายใต้ <b>เครดิต 15 วัน</b> —
-          ยอดซื้อบันทึกแล้วแต่ของยังไม่เข้า ขณะที่รอบชำระเงินสั้นมาก</li>
-      <li><span class="todo">⚠ ต้องเตรียมคำตอบ 3 ข้อ:</span>
-          (1) กำหนดรับของจริงคือเมื่อไหร่ (2) นับเครดิต 15 วันจากวันไหน — วัน Invoice หรือวันรับของ
-          (3) สอดคล้องกับกำหนดรับเงินจากลูกค้าหรือไม่</li>
-      <li style="color:var(--text-dim);">หมายเหตุวิธีคำนวณ: เทียบเลขที่ PO ที่ออกเดือน มิ.ย.–ก.ค. กับรายการรับของเดือน มิ.ย.–ก.ค.
-          ยังไม่มีข้อมูลรับของเดือน ส.ค. จึงอาจมีบางรายการรับเข้าแล้วในเดือน ส.ค. — ควรยืนยันกับคลัง</li>
+      <li><b>เป็นงานแบ่งจ่ายหลายงวด ไม่ใช่จ่ายก้อนเดียวใน 15 วัน</b> — ปัจจุบัน<b>จ่ายเพียงเงินมัดจำ</b>
+          ส่วนที่เหลือทยอยจ่ายตามงวดงาน</li>
+      <li><b>เงื่อนไขเป็นแบบ Back-to-Back</b> — บริษัทจ่ายผู้ขายก็ต่อเมื่อ<b>ได้รับเงินจากลูกค้าแล้ว</b>
+          จึงไม่เกิดภาระกระแสเงินสดจากโครงการนี้</li>
+      <li>เครดิต 15 วันในระบบ <b>นับจากวันที่ Invoice</b> และ Invoice จะออกตามงวด —
+          ไม่ใช่ทั้ง ฿{WUXI['v']/1e6:.1f}M ครบกำหนดพร้อมกัน</li>
+      <li>ดังนั้นการที่ยังไม่ปรากฏรายการรับของในเดือน มิ.ย.–ก.ค. <b>เป็นไปตามแผนของงานแบ่งงวด ไม่ใช่ผู้ขายส่งล่าช้า</b>
+          — รายการนี้จึงไม่ถูกนับรวมในสถิติ On-time Delivery ข้อ 7</li>
     </ul>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);color:var(--text-dim);">
+      <b style="color:var(--orange);">สิ่งที่ยังต้องระวัง (คนละเรื่องกับกระแสเงินสด):</b><br>
+      1. <b>ยอดซื้อ ฿{nf(WUXI['v'])} ถูกบันทึกเต็มจำนวนในเดือน มิ.ย.</b> ทั้งที่จ่ายจริงแค่มัดจำและของยังไม่เข้า —
+         เป็นเหตุผลที่ยอดรวมโต +180.8% และเป็นเหตุผลที่ต้องดูตัวเลข "ตัดโครงการออก" คู่กันเสมอ<br>
+      2. <b>ความเสี่ยงย้ายไปอยู่ฝั่งลูกค้า</b> — ถ้าลูกค้าจ่ายช้า เราจะจ่ายผู้ขายช้าตาม อาจกระทบกำหนดส่งมอบและความสัมพันธ์กับผู้ขาย
+         ควรมีตารางเทียบ <b>งวดรับเงินลูกค้า vs งวดจ่ายผู้ขาย</b> ประกอบ<br>
+      3. <b>ข้อมูลในระบบระบุเครดิตเป็น "15 วัน" ซึ่งไม่สะท้อนเงื่อนไขจริง</b> (แบ่งงวด + Back-to-Back)
+         ทำให้การคำนวณเครดิตเฉลี่ยถ่วงน้ำหนักในข้อ 2 ต่ำกว่าความเป็นจริง — ดูหมายเหตุในข้อ 2<br>
+      <span class="todo">⚠ ตัวเลขที่ยังต้องเติม:</span> จำนวนเงินมัดจำที่จ่ายไปแล้ว · จำนวนงวด · กำหนดแต่ละงวด
+    </div>
+    <div style="margin-top:10px;color:var(--text-dim);font-size:12.5px;">
+      หมายเหตุวิธีคำนวณ: เทียบเลขที่ PO ที่ออกเดือน มิ.ย.–ก.ค. กับรายการรับของเดือน มิ.ย.–ก.ค.
+      ยังไม่มีข้อมูลรับของเดือน ส.ค. จึงอาจมีบางรายการรับเข้าแล้วในเดือน ส.ค. — ควรยืนยันกับคลัง
+    </div>
   </div>
 
   <div class="grid2-even">
@@ -267,8 +281,9 @@ rep("/* ===================== โหมดสว่าง / พิมพ์ ====
 # ================================================================ อัปเดตสรุป / หมายเหตุ
 rep('''    <li><b>ประเด็นที่ต้องตัดสินใจ:</b> ยอดซื้อกระจุกตัวที่กลุ่ม Standard Parts 77.9% ของยอดทั้งหมด
         และ Coverage การเจรจายังต่ำในเดือนที่มียอดซื้อสูง (มิ.ย. เพียง 3.9%)</li>''',
-    f'''    <li><b style="color:var(--red);">🚨 เรื่องด่วนที่สุด:</b> โครงการ ฿{nf(WUXI['v'])} จาก Wuxi Yashitle (จีน)
-        <b>ยังไม่ปรากฏในรายการรับของทั้ง มิ.ย. และ ก.ค.</b> ทั้งที่อยู่ภายใต้เครดิต 15 วัน — ต้องยืนยันกำหนดรับของและรอบชำระเงิน</li>
+    f'''    <li><b>โครงการ ฿{nf(WUXI['v'])} (Wuxi Yashitle, จีน) ยังไม่รับของและจ่ายเพียงเงินมัดจำ</b> —
+        เป็นงาน<b>แบ่งจ่ายหลายงวดแบบ Back-to-Back</b> (จ่ายผู้ขายเมื่อได้รับเงินจากลูกค้าแล้ว) จึง<span class="pos">ไม่มีภาระกระแสเงินสด</span>
+        แต่ยอดซื้อถูกบันทึกเต็มจำนวนในเดือน มิ.ย. ซึ่งเป็นที่มาของการโต +180.8%</li>
     <li><b>On-time Delivery {otd['totPct']:.2f}%</b> ผ่านเป้า {otd['target']:.0f}% ทุกเดือน ({nf(otd['totOn'])}/{nf(otd['totPo'])} รายการ)
         แต่เดือน ก.ค. มูลค่าที่ล่าช้าคิดเป็น {(P['buckets']['Jul']['value']-P['buckets']['Jul']['rows'][BK[0]][1])/P['buckets']['Jul']['value']*100:.1f}% ของมูลค่ารับเข้า เพราะของที่ช้าเป็นรายการมูลค่าสูง</li>
     <li><b>ผู้ขายรายเดียวคิดเป็น {conc[1]}% ของยอดซื้อ · Top 5 = {conc[5]}%</b> จากผู้ขายทั้งหมด {P['supCount']} ราย — ความเสี่ยงด้าน Supply ที่ต้องมีแผนรองรับ</li>''',
