@@ -289,6 +289,15 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
       </table></div>
     </div>
 
+    <div class="card">
+      <div class="card-h"><div class="card-t">🕐 คำขอแก้เวลาเข้า–ออก</div><span class="tag" id="ap-tf-c">0</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>วันที่</th><th>พนักงาน</th><th>เวลาเดิม</th><th>ขอแก้เป็น</th><th class="num">ชม.ใหม่</th><th>เหตุผล</th><th></th></tr></thead>
+        <tbody id="ap-tf"><tr class="empty"><td colspan="7">ไม่มีคำขอแก้เวลารอคุณอนุมัติ</td></tr></tbody>
+      </table></div>
+      <div class="note">อนุมัติแล้วระบบจะแก้เวลาในบันทึกเช็คอินให้ทันที และชั่วโมงจะกลับเข้ารายงาน/ค่าแรงตามปกติ</div>
+    </div>
+
   </section>
 
   <!-- ===== REPORT ===== -->
@@ -658,12 +667,12 @@ const STD_HOURS=window.STD_HOURS||8, GRACE=window.LATE_GRACE_MIN||0;
 const QUOTA=window.LEAVE_QUOTA||{vacation:6,personal:3,sick:30};
 const HOLIDAYS=window.HOLIDAYS||[]; const isHoliday=ds=>HOLIDAYS.includes(ds);
 const LTYPE={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
-const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service',LS_DLB='rsc_dlbudget',LS_PD='rsc_perdiem';
+const LS_LOG='rsc_checkin_log',LS_PLAN='rsc_planner',LS_LEAVE='rsc_leave',LS_EMP='rsc_employees',LS_OT='rsc_ot',LS_VEH='rsc_vehicles',LS_BOOK='rsc_bookings',LS_TL='rsc_timelog',LS_SR='rsc_service',LS_DLB='rsc_dlbudget',LS_PD='rsc_perdiem',LS_TF='rsc_timefix';
 
 /* ===== state/storage ===== */
 let MODE='local',db=null,auth=null,user=null;
 const LS_PAY='rsc_payroll'; // เงินเดือน เก็บแยก เห็นเฉพาะ HR (ไม่อยู่ใน listener รวม)
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_DLB]:[],[LS_PD]:[],[LS_PAY]:[]};
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_EMP]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_DLB]:[],[LS_PD]:[],[LS_TF]:[],[LS_PAY]:[]};
 const PAY_DIVISOR=window.PAY_DIVISOR||240, OT_MULT=window.OT_MULT||{normal:1.5,holiday:3};
 const $=id=>document.getElementById(id);
 let _toastT=null;
@@ -700,7 +709,11 @@ function seesAll(){const r=myRole();return r==='hr'||r==='admin'||r==='manager'|
 function canSee(key){if(seesAll())return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
 function canL1(key){if(isHR())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
 function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin';}
-function otOf(r){if(!r.outTs)return 0;const h=(r.outTs-r.inTs)/3600000;const dow=new Date(r.date).getDay();return (dow===0||dow===6)?h:Math.max(0,h-STD_HOURS);}
+/* ชั่วโมงที่ 'นับได้จริง' — ถ้ายาวเกิน MAX_SHIFT_HOURS แปลว่าลืมกดเช็คเอาท์ จึงยังไม่นับ
+   จนกว่าจะมีการขอแก้เวลาและอนุมัติ (กันชั่วโมง/ค่าแรงเพี้ยน) */
+const MAX_SHIFT_H=+(window.MAX_SHIFT_HOURS||16);
+function workedH(r){if(!r||!r.inTs||!r.outTs)return 0;const h=(r.outTs-r.inTs)/3600000;return h>MAX_SHIFT_H?0:h;}
+function otOf(r){const h=workedH(r);if(!h)return 0;const dow=new Date(r.date).getDay();return (dow===0||dow===6)?h:Math.max(0,h-STD_HOURS);}
 function otStatusOf(r){return r.otStatus||(otOf(r)>0.01?'pending_l1':'none');}
 const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้ว</span>',rejected:'<span class="chip absent">ไม่อนุมัติ</span>',
   pending_l1:'<span class="chip late">รอ ลำดับ 1</span>',pending_l2:'<span class="chip plan">รอ ลำดับ 2</span>',pending:'<span class="chip late">รออนุมัติ</span>'}[s]||'');
@@ -709,7 +722,7 @@ const stChip=s=>({approved:'<span class="chip in">อนุมัติแล้
 function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
   try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
 function listen(){
-  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  [LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD,LS_TF].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
   RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:3,onChange:()=>renderAll()});
 }
 function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
@@ -844,7 +857,7 @@ function renderJRAll(){
 }
 
 /* ===== render all ===== */
-function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();renderPerdiemApprovals();renderPerdiemMatch();}
+function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();renderPerdiemApprovals();renderPerdiemMatch();renderTimefixApprovals();}
 
 /* ===== TODAY ===== */
 function renderToday(){
@@ -864,7 +877,8 @@ function renderToday(){
   else body.innerHTML=rows.map(r=>{const e=empOf(r.name);const ci=new Date(r.inTs);const late=ci.getHours()*60+ci.getMinutes()-startMin-GRACE;
     const st=late>0?`<span class="chip late">สาย ${hm(late)}</span>`:'<span class="chip in">ตรงเวลา</span>';
     const oc=r.outTs?'<span class="chip out">ออกแล้ว</span>':'<span class="chip in">ทำงานอยู่</span>';
-    const wh=r.outTs?((r.outTs-r.inTs)/3600000).toFixed(1):'—';
+    const bad=isBadShiftA(r), stale=isStaleA(r);
+    const wh=bad?'⚠️':(r.outTs?workedH(r).toFixed(1):'—');
     return `<tr><td><b>${esc((e&&e.name)||r.name)}</b></td><td>${esc((e&&e.dept)||'—')}</td>
       <td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'<span style="color:var(--dim)">—</span>'}</td>
       <td class="mono">${fmtT(r.inTs)}</td><td class="mono">${fmtT(r.outTs)}</td><td class="mono ctr">${wh}</td><td>${st} ${oc}</td></tr>`;}).join('');
@@ -937,7 +951,7 @@ function renderApprovals(){
   const ot=load(LS_OT).filter(r=>{const s=r.status==='pending'?'pending_l1':r.status;return (s==='pending_l1'&&canL1(r.name))||(s==='pending_l2'&&canL2());});
   const claimed=new Set(load(LS_OT).map(o=>o.logId).filter(Boolean));
   const sugg=load(LS_LOG).filter(r=>otOf(r)>0.01&&r.outTs&&!claimed.has(r.id)&&canSee(r.name)&&canL1(r.name));
-  $('ap-badge').textContent=lv.length+ot.length+sugg.length+pdPending().length;renderPerdiemApprovals();$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
+  $('ap-badge').textContent=lv.length+ot.length+sugg.length+pdPending().length+tfPending().length;renderPerdiemApprovals();renderTimefixApprovals();$('ap-lv-c').textContent=lv.length;$('ap-ot-c').textContent=ot.length;
   $('ap-lv').innerHTML=lv.length?lv.map(r=>{const s=r.status==='pending'?'pending_l1':r.status;return `<tr><td><b>${nameOf(r.name)}</b></td><td>${LTYPE[r.type]||esc(r.type)}</td>
     <td>${esc(r.from)}</td><td>${esc(r.to)}</td><td class="ctr">${r.days}</td><td>${esc(r.reason)||'—'}</td><td>${levelChip(s)}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveLeave('${r.id}')">อนุมัติ</button> <button class="btn sm no" onclick="rejectLeave('${r.id}')">ปฏิเสธ</button></td></tr>`;}).join('')
@@ -978,9 +992,9 @@ function buildReport(ym){
     let present=0,wh=0,lateDays=0,lateMin=0,absent=0,leaveDays=0;const ot=otByKey[key]||0;
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
       const lv=appr.some(l=>(l.name===key||l.name===(e&&(e.email||'').split('@')[0]))&&ds>=l.from&&ds<=l.to);
-      if(rec){present++;if(rec.outTs){const h=(rec.outTs-rec.inTs)/3600000;wh+=h;}
+      if(rec){present++;if(rec.outTs){wh+=workedH(rec);}
         const ci=new Date(rec.inTs);const late=ci.getHours()*60+ci.getMinutes()-startMin-GRACE;if(late>0){lateDays++;lateMin+=late;}
-        const jt=rec.jobTitle?rec.jobTitle.split(' @ ')[0]:'(ไม่ระบุงาน)';const j=jobs[jt]||(jobs[jt]={ppl:new Set(),wh:0});j.ppl.add(key);if(rec.outTs)j.wh+=(rec.outTs-rec.inTs)/3600000;}
+        const jt=rec.jobTitle?rec.jobTitle.split(' @ ')[0]:'(ไม่ระบุงาน)';const j=jobs[jt]||(jobs[jt]={ppl:new Set(),wh:0});j.ppl.add(key);if(rec.outTs)j.wh+=workedH(rec);}
       else if(lv){leaveDays++;}else if(ds<today){absent++;}});
     persons.push({key,disp,dept,present,wh,ot,lateDays,lateMin,absent,leaveDays});
     const d=depts[dept]||(depts[dept]={ppl:new Set(),wh:0,ot:0,late:0,absent:0});d.ppl.add(key);d.wh+=wh;d.ot+=ot;d.late+=lateDays;d.absent+=absent;});
@@ -1146,7 +1160,7 @@ function buildPay(ym){
   [...keys].filter(k=>canSee(k)).forEach(key=>{const e=empOf(key);const disp=(e&&e.name)||key,dept=(e&&e.dept)||'—';
     let present=0,normalH=0;
     workdays.forEach(ds=>{const rec=logs.find(r=>r.name===key&&r.date===ds);
-      if(rec&&rec.outTs){present++;const h=(rec.outTs-rec.inTs)/3600000;normalH+=Math.min(h,STD_HOURS);}
+      if(rec&&rec.outTs){present++;const h=workedH(rec);normalH+=Math.min(h,STD_HOURS);}
       else if(rec){present++;}});
     // OT×1.5 = OT วันทำงาน · เสาร์/อาทิตย์: ≤8 ชม.=×1, เกิน=×3 · วันหยุดนักขัตฤกษ์ = ×3 ทั้งหมด
     let ot15=0,ot1=0,ot3=0; const weekendByDay={};
@@ -1337,6 +1351,55 @@ function renderBookings(){const body=$('bk-body');if(!body)return;const day=$('b
       <td>${b.jobTitle?esc(b.jobTitle.split(' @ ')[0]):''}${b.dest?'<div class="note">→ '+esc(b.dest)+'</div>':''}</td>
       <td><select onchange="reassignBooking('${b.id}',this.value)" style="padding:5px 8px;font-size:12px">${opts}</select></td>
       <td class="ctr"><button class="btn sm no" onclick="cancelBooking('${b.id}')">ยกเลิก</button></td></tr>`;}).join('');}
+
+/* ===== คำขอแก้เวลาเข้า–ออก ===== */
+const MAX_SHIFT_A=+(window.MAX_SHIFT_HOURS||16);
+function isBadShiftA(r){return !!(r&&r.inTs&&r.outTs&&((r.outTs-r.inTs)/3600000>MAX_SHIFT_A));}
+function isStaleA(r){return !!(r&&!r.outTs&&(r.date||'')<todayStr());}
+function tfPending(){
+  return load(LS_TF).filter(r=>{
+    const st=r.status==='pending'?'pending_l1':r.status;
+    return (st==='pending_l1'&&canL1(r.name))||(st==='pending_l2'&&canL2());
+  });
+}
+function tfHoursNew(r){
+  const a=parseHM(r.newIn),b=parseHM(r.newOut);
+  return b>a?((b-a)/60).toFixed(1):'—';
+}
+function approveTimefix(id){
+  const arr=load(LS_TF),r=arr.find(x=>x.id===id);if(!r)return;
+  if(!(canL1(r.name)||canL2()||isHR())){toast('ไม่มีสิทธิ์อนุมัติ',true);return;}
+  const logs=load(LS_LOG),lg=logs.find(x=>x.id===r.logId);
+  if(!lg){toast('ไม่พบบันทึกเช็คอินเดิม (อาจถูกลบ)',true);return;}
+  const day=r.date||lg.date||new Date(lg.inTs).toISOString().slice(0,10);
+  const mk=(hm)=>{const p=(hm||'0:0').split(':');const d=new Date(day+'T00:00');d.setHours(+p[0],+p[1]||0,0,0);return d.getTime();};
+  lg.inTs=mk(r.newIn); lg.outTs=mk(r.newOut);
+  lg.timeFixed={by:myName(),ts:Date.now(),reason:r.reason};
+  save(LS_LOG,logs);
+  r.status='approved';r.approvedBy=myName();r.approvedTs=Date.now();
+  save(LS_TF,arr);renderAll();
+  toast('✅ แก้เวลาแล้ว '+r.newIn+'–'+r.newOut+' ('+nameOf(r.name)+')');
+}
+function rejectTimefix(id){
+  const arr=load(LS_TF),r=arr.find(x=>x.id===id);if(!r)return;
+  if(!(canL1(r.name)||canL2()||isHR())){toast('ไม่มีสิทธิ์',true);return;}
+  r.status='rejected';r.rejBy=myName();save(LS_TF,arr);renderAll();toast('ปฏิเสธคำขอแก้เวลาแล้ว');
+}
+function renderTimefixApprovals(){
+  const box=$('ap-tf');if(!box)return;
+  const list=tfPending().sort((a,b)=>(b.createdTs||0)-(a.createdTs||0));
+  if($('ap-tf-c'))$('ap-tf-c').textContent=list.length;
+  if(!list.length){box.innerHTML='<tr class="empty"><td colspan="7">ไม่มีคำขอแก้เวลารอคุณอนุมัติ</td></tr>';return;}
+  box.innerHTML=list.map(r=>'<tr>'
+    +'<td class="mono" style="white-space:nowrap">'+esc(r.date)+'</td>'
+    +'<td><b>'+nameOf(r.name)+'</b></td>'
+    +'<td class="mono">'+esc(r.oldIn||'—')+' – '+esc(r.oldOut||'—')+'</td>'
+    +'<td class="mono"><b style="color:var(--orange2)">'+esc(r.newIn)+' – '+esc(r.newOut)+'</b></td>'
+    +'<td class="num mono">'+tfHoursNew(r)+'</td>'
+    +'<td>'+esc(r.reason||'-')+'</td>'
+    +'<td class="ctr" style="white-space:nowrap"><button class="btn sm ok" onclick="approveTimefix(\''+r.id+'\')">อนุมัติ</button> '
+    +'<button class="btn sm no" onclick="rejectTimefix(\''+r.id+'\')">ปฏิเสธ</button></td></tr>').join('');
+}
 
 /* ===== เบี้ยเลี้ยง: อนุมัติ + แมตช์กับงบ ===== */
 function pdPending(){
@@ -1750,7 +1813,7 @@ setInterval(clock,1000);clock();
 if(MODE==='firebase'){listen();auth.onAuthStateChanged(onAuth);}
 else{
   /* คอลเลกชันขนาดคงที่ — อ่านตรงจาก localStorage */
-  const PLAIN=[LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD];
+  const PLAIN=[LS_PLAN,LS_LEAVE,LS_EMP,LS_OT,LS_VEH,LS_BOOK,LS_SR,LS_DLB,LS_PD,LS_TF];
   const loadPlain=()=>PLAIN.forEach(k=>{try{state[k]=JSON.parse(localStorage.getItem(k))||[];}catch(e){state[k]=[];}});
   loadPlain();
   if(!state[LS_EMP].length){seedLocal();loadPlain();}

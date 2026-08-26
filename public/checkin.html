@@ -459,8 +459,8 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
-const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service', LS_PD='rsc_perdiem';
-const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PD]:[]};
+const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service', LS_PD='rsc_perdiem', LS_TF='rsc_timefix';
+const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PD]:[],[LS_TF]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
@@ -597,7 +597,7 @@ function initFb(){
   catch(e){console.error(e);return false;}
 }
 function refreshAllViews(){renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();renderMyPD();refreshState();}
-function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service','rsc_perdiem'].forEach(k=>{
+function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service','rsc_perdiem','rsc_timefix'].forEach(k=>{
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];refreshAllViews();},e=>console.error(e));
 });
   // เช็คอิน + ลงเวลา JR → เก็บแยกรายเดือน (โหลด 3 เดือนล่าสุด)
@@ -733,7 +733,28 @@ function renderTodaySummary(){
   el.innerHTML='<div class="io">'
     +'<div><div class="co">เข้างาน ('+WORK_START+')</div><div class="big'+(firstIn?'':' miss')+'">'+(firstIn?fmtT(firstIn.inTs):'--:--')+'</div><div class="dt">'+(firstIn?bd:'ยังไม่เข้างาน')+'</div></div>'
     +'<div><div class="co">ออกงาน ('+WORK_END+')</div><div class="big'+(lastOut?'':' miss')+'">'+(lastOut?fmtT(lastOut.outTs):'--:--')+'</div><div class="dt">'+(lastOut?bd:'ยังไม่ออกงาน')+'</div></div>'
-    +'</div>';
+    +'</div>'+staleWarnHtml();
+}
+
+/* เตือนรายการเช็คอินที่ค้าง/ผิดปกติของวันก่อน ๆ — กดแก้ได้ทันที */
+function staleIssues(){
+  const n=myName();
+  return load(LS_LOG).filter(r=>r.name===n&&(isStale(r)||isBadShift(r)))
+    .sort((a,b)=>(b.inTs||0)-(a.inTs||0)).slice(0,5);
+}
+function staleWarnHtml(){
+  const list=staleIssues(); if(!list.length)return '';
+  return '<div class="card" style="margin-top:12px;border-color:var(--red);">'
+    +'<div style="font-weight:700;color:var(--red);margin-bottom:6px;">⚠️ มีเวลาที่ต้องแก้ '+list.length+' รายการ</div>'
+    +'<div class="muted" style="font-size:13px;margin-bottom:8px;">ลืมกดเช็คเอาท์ ทำให้ชั่วโมงไม่ถูกนับเข้ารายงาน — กดขอแก้เวลาเพื่อให้หัวหน้าอนุมัติ</div>'
+    +list.map(r=>{
+      const d=new Date(r.inTs).toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'});
+      return '<div style="padding:8px 0;border-top:1px solid var(--border);">'
+        +'<div style="font-weight:600;">'+d+' · เข้า '+fmtT(r.inTs)+' · ออก '+(r.outTs?fmtT(r.outTs):'—')+'</div>'
+        +'<div style="margin-top:4px;">'+tfStatusOf(r.id)
+        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">🕐 ขอแก้เวลา</a></div>'
+        +tfFormHtml(r)+'</div>';
+    }).join('')+'</div>';
 }
 
 /* ===== ปฏิทิน ===== */
@@ -792,12 +813,20 @@ function renderDay(ds){
   recs.forEach(r=>{
     const im=r.inGeo?' · <a href="https://www.google.com/maps?q='+r.inGeo+'" target="_blank">📍 แผนที่</a>':'';
     const om=r.outGeo?' · <a href="https://www.google.com/maps?q='+r.outGeo+'" target="_blank">📍 แผนที่</a>':'';
+    const bad=isBadShift(r), stale=isStale(r);
+    const sh=shiftHours(r);
     h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;">'
       +'<div>🟢 <b>เข้า</b> '+fmtT(r.inTs)+im+'</div>'
       +'<div>🔴 <b>ออก</b> '+(r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์')+om+'</div>'
       +(r.jobTitle?'<div>🏗️ '+esc(r.jobTitle)+'</div>':'')
       +(r.note?'<div>📝 '+esc(r.note)+'</div>':'')
-      +'<div>⏱️ รวม '+hrs(r.inTs,r.outTs)+' ชม.</div></div>';
+      +'<div>⏱️ รวม '+(sh!==null?sh.toFixed(1):'—')+' ชม.'
+        +(bad?' <span style="color:var(--red);font-weight:600;">(ยาวผิดปกติ ยังไม่นับ)</span>':'')
+        +(stale?' <span style="color:var(--red);font-weight:600;">(ค้างเช็คเอาท์)</span>':'')+'</div>'
+      +'<div style="margin-top:6px;">'+tfStatusOf(r.id)
+        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">🕐 ขอแก้เวลา</a></div>'
+      +tfFormHtml(r)
+      +'</div>';
   });
   if(tls.length){const sum=tls.reduce((s,x)=>s+(+x.hours||0),0);
     h+='<div class="rec-detail" style="display:block;padding-left:0;padding-right:0;"><div>🧾 <b>เวลาตาม JR รวม '+sum.toFixed(1)+' ชม.</b></div>'
@@ -972,6 +1001,70 @@ function renderDirectory(){
       +(c.length?'<div style="margin-top:7px;display:flex;flex-direction:column;gap:4px;font-size:14px;">'+c.join('')+'</div>':'<div class="muted" style="font-size:13px;margin-top:5px;">— ยังไม่มีข้อมูลติดต่อ —</div>')
       +'</div></div>';
   }).join('');
+}
+
+/* ===== ขอแก้เวลาเข้า–ออก (ลืมกดเช็คเอาท์ ฯลฯ) ===== */
+const MAX_SHIFT=+(window.MAX_SHIFT_HOURS||16);
+/* ชั่วโมงที่ "นับได้จริง" — ถ้ายาวผิดปกติ (ลืมกดออก) จะไม่นับส่วนเกิน */
+function shiftHours(r){
+  if(!r||!r.inTs||!r.outTs)return null;
+  const h=(r.outTs-r.inTs)/3600000;
+  return h>MAX_SHIFT?null:h;
+}
+function isBadShift(r){return !!(r&&r.inTs&&r.outTs&&((r.outTs-r.inTs)/3600000>MAX_SHIFT));}
+/* ค้างเช็คเอาท์ข้ามวัน */
+function isStale(r){return !!(r&&!r.outTs&&(r.date||'')<todayStr());}
+function hhmm(ts){if(!ts)return '';const d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+function tfOpen(logId){
+  const r=load(LS_LOG).find(x=>x.id===logId&&x.name===myName());if(!r)return;
+  const box=$('tf-'+logId);if(!box)return;
+  const show=box.style.display!=='block';
+  box.style.display=show?'block':'none';
+  if(show){
+    $('tfin-'+logId).value=hhmm(r.inTs)||WORK_START;
+    $('tfout-'+logId).value=hhmm(r.outTs)||(window.WORK_END||'17:30');
+  }
+}
+function tfSubmit(logId){
+  const name=myName();
+  const r=load(LS_LOG).find(x=>x.id===logId&&x.name===name);if(!r){toast('ไม่พบรายการ');return;}
+  const nin=$('tfin-'+logId).value, nout=$('tfout-'+logId).value, why=($('tfwhy-'+logId).value||'').trim();
+  if(!nin||!nout){toast('กรอกเวลาเข้าและออก');return;}
+  if(parseHM(nout)<=parseHM(nin)){toast('เวลาออกต้องหลังเวลาเข้า');return;}
+  if(!why){toast('กรอกเหตุผล เช่น ลืมกดเช็คเอาท์');return;}
+  const date=r.date||new Date(r.inTs).toISOString().slice(0,10);
+  const pending=load(LS_TF).some(x=>x.logId===logId&&(x.status||'').indexOf('pending')===0);
+  if(pending){toast('มีคำขอแก้เวลาของวันนี้รออนุมัติอยู่แล้ว');return;}
+  const rec={id:uid(),name,logId,date,
+    oldIn:hhmm(r.inTs),oldOut:hhmm(r.outTs),newIn:nin,newOut:nout,
+    reason:why,status:'pending_l1',createdTs:Date.now()};
+  const arr=load(LS_TF);arr.unshift(rec);save(LS_TF,arr);
+  $('tf-'+logId).style.display='none';
+  renderMyLog();renderCalendarIfOpen();
+  toast('📨 ส่งคำขอแก้เวลาแล้ว รออนุมัติ');
+}
+function renderCalendarIfOpen(){const c=$('sec-cal');if(c&&c.classList.contains('on'))renderCalendar();}
+function tfStatusOf(logId){
+  const r=load(LS_TF).filter(x=>x.logId===logId).sort((a,b)=>(b.createdTs||0)-(a.createdTs||0))[0];
+  if(!r)return '';
+  if((r.status||'').indexOf('pending')===0)return '<span class="chip out">⏳ ขอแก้เวลา รออนุมัติ</span>';
+  if(r.status==='approved')return '<span class="chip in">✅ แก้เวลาแล้ว</span>';
+  if(r.status==='rejected')return '<span class="chip out">❌ คำขอแก้เวลาไม่ผ่าน</span>';
+  return '';
+}
+/* กล่องฟอร์มขอแก้เวลา (ซ่อนไว้ใต้รายการของวันนั้น) */
+function tfFormHtml(r){
+  const warn=isBadShift(r)?'<div style="color:var(--red);font-weight:600;margin-bottom:6px;">⚠️ ชั่วโมงยาวผิดปกติ — น่าจะลืมกดเช็คเอาท์ (ยังไม่ถูกนับเข้ารายงานจนกว่าจะแก้)</div>'
+      :(isStale(r)?'<div style="color:var(--red);font-weight:600;margin-bottom:6px;">⚠️ ยังไม่ได้เช็คเอาท์ของวันนั้น</div>':'');
+  return '<div id="tf-'+r.id+'" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:var(--dark2);">'
+    +warn
+    +'<div style="display:flex;gap:10px;">'
+      +'<div style="flex:1;"><label>เวลาเข้า</label><input type="time" id="tfin-'+r.id+'"></div>'
+      +'<div style="flex:1;"><label>เวลาออก</label><input type="time" id="tfout-'+r.id+'"></div></div>'
+    +'<label>เหตุผล</label><input type="text" id="tfwhy-'+r.id+'" placeholder="เช่น ลืมกดเช็คเอาท์ กลับ 17:30">'
+    +'<button class="btn gps" onclick="tfSubmit(\''+r.id+'\')">📨 ส่งคำขอแก้เวลา</button>'
+    +'</div>';
 }
 
 /* ===== เบิกเบี้ยเลี้ยง / ค่าที่พัก ===== */
@@ -1290,6 +1383,7 @@ else{
   try{state[LS_BOOK]=JSON.parse(localStorage.getItem(LS_BOOK))||[];}catch(e){}
   try{state[LS_SR]=JSON.parse(localStorage.getItem(LS_SR))||[];}catch(e){}
   try{state[LS_PD]=JSON.parse(localStorage.getItem(LS_PD))||[];}catch(e){}
+  try{state[LS_TF]=JSON.parse(localStorage.getItem(LS_TF))||[];}catch(e){}
   try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
   fetchPlanner();
   $('login').classList.remove('show');
