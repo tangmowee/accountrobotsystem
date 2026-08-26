@@ -702,7 +702,9 @@ function needMonth(ym){if(!ym||!window.RSCStore)return;SHARDED.forEach(k=>RSCSto
 
 /* ===== helpers ===== */
 function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
-function todayStr(){return new Date().toISOString().slice(0,10);}
+function dstr(d){d=d||new Date();const p=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function mstr(d){return dstr(d).slice(0,7);}
+function todayStr(){return dstr();}
 function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 function fmtT(ts){return ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';}
 function fmtD(s){return s?new Date(s).toLocaleDateString('th-TH',{day:'2-digit',month:'short'}):'—';}
@@ -826,8 +828,8 @@ function importPlannerJobs(){
 function jraFiltered(){
   const range=($('jra-range')||{}).value||'upcoming';
   const q=(($('jra-search')||{}).value||'').trim().toLowerCase();
-  const t=new Date().toISOString().slice(0,10);
-  const wkEnd=(()=>{const d=new Date();d.setDate(d.getDate()+(7-((d.getDay()+6)%7)));return d.toISOString().slice(0,10);})();
+  const t=todayStr();
+  const wkEnd=(()=>{const d=new Date();d.setDate(d.getDate()+(7-((d.getDay()+6)%7)));return dstr(d);})();
   const nameMap={};PLANNER_A.people.forEach(p=>nameMap[p.id]=((p.name||'')+' '+(p.fullName||'')).toLowerCase());
   let jobs=PLANNER_A.jobs.slice().filter(j=>{
     const s=j.start||'',e=j.end||s;
@@ -845,7 +847,7 @@ function jraFiltered(){
 
 function renderJRAll(){
   const body=$('jra-body');if(!body)return;
-  const t=new Date().toISOString().slice(0,10);
+  const t=todayStr();
   const jobs=jraFiltered();
   $('jra-count').textContent=jobs.length+' งาน';
   if(!jobs.length){body.innerHTML='<tr class="empty"><td colspan="7">ไม่พบงานตามเงื่อนไข</td></tr>';return;}
@@ -1047,8 +1049,8 @@ function bplusTime(ts){const d=new Date(ts);
   const p=n=>(n<10?'0':'')+n;
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':00';}
 function exportBPlusTA(){
-  const ym=($('rp-month')&&$('rp-month').value)||new Date().toISOString().slice(0,7);
-  const rows=load(LS_LOG).filter(r=>canSee(r.name)&&((r.date||new Date(r.inTs).toISOString().slice(0,10)).slice(0,7)===ym));
+  const ym=($('rp-month')&&$('rp-month').value)||mstr();
+  const rows=load(LS_LOG).filter(r=>canSee(r.name)&&((r.date||dstr(new Date(r.inTs))).slice(0,7)===ym));
   if(!rows.length){alert('เดือน '+ym+' ยังไม่มีการลงเวลา');return;}
   const lines=[],skip=new Set();
   rows.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.inTs-b.inTs)).forEach(r=>{
@@ -1132,7 +1134,7 @@ function buildDL(ym){
 }
 function renderDL(){
   if(!$('s-dl'))return;
-  if(!_dlYm){const d=new Date();_dlYm=d.toISOString().slice(0,7);if($('dl-month'))$('dl-month').value=_dlYm;}
+  if(!_dlYm){const d=new Date();_dlYm=mstr(d);if($('dl-month'))$('dl-month').value=_dlYm;}
   _dlYm=($('dl-month')&&$('dl-month').value)||_dlYm;
   const R=_dl=buildDL(_dlYm);
   if($('dl-officejr'))$('dl-officejr').textContent=CENTRAL_JRS.join(' / ');
@@ -1412,7 +1414,7 @@ function approveTimefix(id){
   if(!(canL1(r.name)||canL2()||isHR())){toast('ไม่มีสิทธิ์อนุมัติ',true);return;}
   const logs=load(LS_LOG),lg=logs.find(x=>x.id===r.logId);
   if(!lg){toast('ไม่พบบันทึกเช็คอินเดิม (อาจถูกลบ)',true);return;}
-  const day=r.date||lg.date||new Date(lg.inTs).toISOString().slice(0,10);
+  const day=r.date||lg.date||dstr(new Date(lg.inTs));
   const mk=(hm)=>{const p=(hm||'0:0').split(':');const d=new Date(day+'T00:00');d.setHours(+p[0],+p[1]||0,0,0);return d.getTime();};
   lg.inTs=mk(r.newIn); lg.outTs=mk(r.newOut);
   lg.timeFixed={by:myName(),ts:Date.now(),reason:r.reason};
@@ -1791,7 +1793,7 @@ function exportSrvXlsx(){const r=srvRows();if(!r.length){alert('ไม่มี�
 /* ===== ตารางว่างรถ (7 วัน) ===== */
 const WDAY=['อา','จ','อ','พ','พฤ','ศ','ส'];
 function avStart(){const el=$('av-start');if(el&&!el.value)el.value=todayStr();return el?el.value:todayStr();}
-function availNav(n){const el=$('av-start');const d=new Date((el.value||todayStr())+'T00:00');d.setDate(d.getDate()+n);el.value=d.toISOString().slice(0,10);renderAvail();}
+function availNav(n){const el=$('av-start');const d=new Date((el.value||todayStr())+'T00:00');d.setDate(d.getDate()+n);el.value=dstr(d);renderAvail();}
 function avDays(){const s=avStart();const out=[];for(let i=0;i<7;i++){const d=new Date(s+'T00:00');d.setDate(d.getDate()+i);out.push(d);}return out;}
 /* การจองของรถคันนั้นในวันนั้น (เรียงตามเวลา) */
 function avBookings(vehId,ds){return load(LS_BOOK).filter(b=>b.vehicleId===vehId&&b.date===ds&&b.status!=='cancelled').sort((a,b)=>(a.from||'').localeCompare(b.from||''));}
@@ -1806,11 +1808,11 @@ function renderAvail(){
   const head=$('av-head'),body=$('av-body');if(!head||!body)return;
   const vehs=load(LS_VEH).filter(v=>v.active!==false);
   const days=avDays(),today=todayStr();
-  head.innerHTML='<th style="min-width:120px">รถ</th>'+days.map(d=>{const ds=d.toISOString().slice(0,10);
+  head.innerHTML='<th style="min-width:120px">รถ</th>'+days.map(d=>{const ds=dstr(d);
     return '<th style="text-align:center'+(ds===today?';color:var(--orange)':'')+'">'+WDAY[d.getDay()]+'<div class="note" style="margin:0">'+d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'})+'</div></th>';}).join('');
   if(!vehs.length){body.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีรถ — เพิ่มรถที่การ์ด “＋ เพิ่มรถ”</td></tr>';return;}
   body.innerHTML=vehs.map(v=>'<tr><td><b>'+esc(v.plate)+'</b><div class="note">'+esc(v.type||'')+(v.seats?(' · '+v.seats+' ที่นั่ง'):'')+'</div></td>'
-    +days.map(d=>{const ds=d.toISOString().slice(0,10);const c=avCell(v.id,ds);
+    +days.map(d=>{const ds=dstr(d);const c=avCell(v.id,ds);
       const bg=c.cls==='free'?'rgba(46,204,113,.14)':(c.cls==='busy'?'rgba(231,76,60,.14)':'rgba(243,156,18,.16)');
       const ic='<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(c.cls==='free'?'#16A34A':(c.cls==='busy'?'#DC2626':'#EAB308'))+'"></i>';
       return '<td style="text-align:center;background:'+bg+';cursor:pointer;font-size:12px" onclick="avShow(\''+v.id+'\',\''+ds+'\')">'+ic+'<div class="mono" style="font-size:11px">'+esc(c.txt)+'</div></td>';}).join('')
@@ -1824,7 +1826,7 @@ function avShow(vehId,ds){
 }
 const AV_HEAD=['ทะเบียน','ประเภท','วันที่','สถานะ','ช่วงที่ถูกจอง','ผู้จอง'];
 function avRows(){const vehs=load(LS_VEH).filter(v=>v.active!==false),out=[];
-  vehs.forEach(v=>avDays().forEach(d=>{const ds=d.toISOString().slice(0,10);const c=avCell(v.id,ds);
+  vehs.forEach(v=>avDays().forEach(d=>{const ds=dstr(d);const c=avCell(v.id,ds);
     out.push([v.plate,v.type||'',ds,c.cls==='free'?'ว่าง':(c.cls==='busy'?'เต็ม':'ว่างบางช่วง'),
       c.bs.map(b=>b.from+'-'+b.to).join(' | '),c.bs.map(b=>nameOf(b.name)).join(' | ')]);}));
   return out;}

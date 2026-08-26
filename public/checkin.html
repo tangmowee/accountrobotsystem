@@ -607,7 +607,9 @@ function renderMyJobs(){
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
 function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
-function todayStr(){return new Date().toISOString().slice(0,10);}
+function dstr(d){d=d||new Date();const p=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function mstr(d){return dstr(d).slice(0,7);}
+function todayStr(){return dstr();}
 function fmtT(ts){return ts?new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';}
 function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 function hrs(a,b){return b&&a?((b-a)/3600000).toFixed(1):'—';}
@@ -802,7 +804,7 @@ function renderJobs(){
 function renderMyLog(){renderTodaySummary();const c=$('sec-cal');if(c&&c.classList.contains('on'))renderCalendar();}
 
 const WORK_END = window.WORK_END || '17:30';
-function dayRecs(ds){const n=myName();return load(LS_LOG).filter(r=>r.name===n&&((r.date||new Date(r.inTs).toISOString().slice(0,10))===ds));}
+function dayRecs(ds){const n=myName();return load(LS_LOG).filter(r=>r.name===n&&((r.date||dstr(new Date(r.inTs)))===ds));}
 function renderTodaySummary(){
   const el=$('today-sum');if(!el)return;
   const t=todayStr();const recs=dayRecs(t);
@@ -1269,7 +1271,7 @@ function tfSubmit(logId){
   if(!nin||!nout){toast('กรอกเวลาเข้าและออก');return;}
   if(parseHM(nout)<=parseHM(nin)){toast('เวลาออกต้องหลังเวลาเข้า');return;}
   if(!why){toast('กรอกเหตุผล เช่น ลืมกดเช็คเอาท์');return;}
-  const date=r.date||new Date(r.inTs).toISOString().slice(0,10);
+  const date=r.date||dstr(new Date(r.inTs));
   const pending=load(LS_TF).some(x=>x.logId===logId&&(x.status||'').indexOf('pending')===0);
   if(pending){toast('มีคำขอแก้เวลาของวันนี้รออนุมัติอยู่แล้ว');return;}
   const rec={id:uid(),name,logId,date,

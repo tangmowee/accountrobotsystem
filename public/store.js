@@ -28,12 +28,15 @@ window.RSCStore = (function () {
     if (typeof window.toast === 'function') window.toast('❌ บันทึกไม่สำเร็จ: ' + (e && (e.message || e)), true);
   }
 
-  function ym(d) { return d.toISOString().slice(0, 10).slice(0, 7); }
+  /* เดือนตามเวลาท้องถิ่น — ห้ามใช้ toISOString (เป็น UTC ทำให้ไทย UTC+7 ได้เดือนก่อนหน้า) */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function ym(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
   function todayYM() { return ym(new Date()); }
 
   /* เดือนของเรคคอร์ด — ใช้ date ถ้ามี ไม่งั้นใช้เวลาเช็คอิน */
   function monthOf(r) {
-    var d = (r && (r.date || (r.inTs ? new Date(r.inTs).toISOString().slice(0, 10) : ''))) || '';
+    var d = (r && (r.date || (r.inTs ? ymd(new Date(r.inTs)) : ''))) || '';
     return String(d).slice(0, 7) || todayYM();
   }
 
