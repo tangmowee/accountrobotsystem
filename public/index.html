@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="brand.js"></script>
+<script src="icons.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -36,7 +37,8 @@
   .tile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,var(--orange)),transparent);}
   .tile:hover{border-color:var(--accent,var(--orange));transform:translateY(-3px);box-shadow:0 14px 40px -22px var(--accent,var(--orange));}
   .tile.lock{opacity:.55;pointer-events:none;filter:grayscale(.5);}
-  .ico{font-size:30px;margin-bottom:12px;display:block;}
+  .ico{margin-bottom:14px;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:color-mix(in srgb,var(--accent) 14%, transparent);color:var(--accent);}
+  .ico svg{display:block;}
   .tile h3{font-size:18px;font-weight:600;margin-bottom:5px;}
   .tile p{color:var(--muted);font-size:14px;line-height:1.45;}
   .badge{display:inline-block;margin-top:12px;font-size:13px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);}
@@ -90,10 +92,10 @@ const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"
 
 /* ทุกระบบ + สิทธิ์ที่เข้าถึงได้ */
 const APPS=[
-  {href:'checkin.html', ico:'🕐', accent:'#F97316', title:'ลงเวลา / เช็คอิน', desc:'เช็คอิน-เอาท์ GPS · ขอลา · OT · จองรถ · บันทึกเวลาตาม JR', roles:'*'},
-  {href:'admin',        ico:'📊', accent:'#22D3EE', title:'แดชบอร์ด HR', desc:'ภาพรวมวันนี้ · Planner · อนุมัติลา/OT · รายงาน · ชั่วโมงตาม JR · พนักงาน', roles:['supervisor','manager','hr','director','admin']},
-  {href:'RSC-JR360.html', ico:'📈', accent:'#FB923C', title:'JR 360 (ผู้บริหาร)', desc:'ภาพรวมงานตามเลข JR · เปรียบเทียบ DL งบ vs จริง · สรุปรายปี', roles:['manager','hr','director','admin']},
-  {href:'finance.html', ico:'💰', accent:'#34D399', title:'แดชบอร์ดการเงิน', desc:'สรุปการเงินบริษัท (ข้อมูลลับ — เฉพาะผู้บริหาร/บัญชี)', roles:['manager','hr','director','admin','finance']},
+  {href:'checkin.html', ico:'clock', accent:'#F97316', title:'ลงเวลา / เช็คอิน', desc:'เช็คอิน-เอาท์ GPS · ขอลา · OT · จองรถ · บันทึกเวลาตาม JR', roles:'*'},
+  {href:'admin',        ico:'chart', accent:'#22D3EE', title:'แดชบอร์ด HR', desc:'ภาพรวมวันนี้ · Planner · อนุมัติลา/OT · รายงาน · ชั่วโมงตาม JR · พนักงาน', roles:['supervisor','manager','hr','director','admin']},
+  {href:'RSC-JR360.html', ico:'grid', accent:'#FB923C', title:'JR 360 (ผู้บริหาร)', desc:'ภาพรวมงานตามเลข JR · เปรียบเทียบ DL งบ vs จริง · สรุปรายปี', roles:['manager','hr','director','admin']},
+  {href:'finance.html', ico:'wallet', accent:'#34D399', title:'แดชบอร์ดการเงิน', desc:'สรุปการเงินบริษัท (ข้อมูลลับ — เฉพาะผู้บริหาร/บัญชี)', roles:['manager','hr','director','admin','finance']},
 ];
 let BOOTSTRAP=false; // ยังไม่มีข้อมูลพนักงาน (ตั้งค่าครั้งแรก) → ปลดล็อกชั่วคราวให้เข้าไป import ได้
 const can=a=>a.roles==='*'||(MODE==='local')||BOOTSTRAP||a.roles.includes(ROLE);
@@ -101,15 +103,15 @@ const can=a=>a.roles==='*'||(MODE==='local')||BOOTSTRAP||a.roles.includes(ROLE);
 function render(){
   $('greet').textContent=NAME?('สวัสดี, '+NAME):'ยินดีต้อนรับ';
   $('tiles').innerHTML=APPS.map(a=>{const ok=can(a);
-    const inner=`<span class="ico">${a.ico}</span><h3>${a.title}</h3><p>${a.desc}</p>
-      <span class="badge ${ok?'on':''}">${ok?'เปิดใช้งาน →':'🔒 ไม่มีสิทธิ์'}</span>`;
+    const inner=`<span class="ico">${RSCIcon.get(a.ico,26,1.7)}</span><h3>${a.title}</h3><p>${a.desc}</p>
+      <span class="badge ${ok?'on':''}">${ok?'เปิดใช้งาน →':'ไม่มีสิทธิ์'}</span>`;
     return ok?`<a class="tile" style="--accent:${a.accent}" href="${a.href}">${inner}</a>`
              :`<div class="tile lock" style="--accent:${a.accent}">${inner}</div>`;
   }).join('');
   $('note').innerHTML=MODE==='local'
-    ?'⚠️ โหมดทดลอง (ยังไม่ได้ตั้งค่า Firebase) — แสดงทุกระบบ · เมื่อเปิดใช้จริงจะเห็นเฉพาะตามสิทธิ์'
+    ?'โหมดทดลอง (ยังไม่ได้ตั้งค่า Firebase) — แสดงทุกระบบ · เมื่อเปิดใช้จริงจะเห็นเฉพาะตามสิทธิ์'
     :BOOTSTRAP
-    ?'🛠️ <b style="color:var(--orange-light)">โหมดตั้งค่าครั้งแรก</b> — ยังไม่มีข้อมูลพนักงาน จึงเปิดทุกเมนูชั่วคราว · เข้า “แดชบอร์ด HR → พนักงาน → นำเข้า JSON” เพื่อลงทะเบียน 38 คน แล้วสิทธิ์จะเริ่มทำงาน'
+    ?'<b style="color:var(--orange-light)">โหมดตั้งค่าครั้งแรก</b> — ยังไม่มีข้อมูลพนักงาน จึงเปิดทุกเมนูชั่วคราว · เข้า “แดชบอร์ด HR → พนักงาน → นำเข้า JSON” เพื่อลงทะเบียน 38 คน แล้วสิทธิ์จะเริ่มทำงาน'
     :'สิทธิ์ของคุณ: <b style="color:var(--orange-light)">'+esc(ROLE||'พนักงาน')+'</b> · ระบบอื่นถูกล็อกตามระดับสิทธิ์';
 }
 

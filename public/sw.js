@@ -1,8 +1,8 @@
 /* RSC Connect — service worker (network-first, precache all app pages) */
-const C = 'rscc-v6';
+const C = 'rscc-v7';
 const SHELL = [
   './', './index.html', './checkin.html', './admin.html', './finance.html', './RSC-JR360.html',
-  './firebase-config.js', './store.js', './brand.js', './srprint.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'
+  './firebase-config.js', './store.js', './brand.js', './icons.js', './srprint.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'
 ];
 self.addEventListener('install', e => {
   self.skipWaiting();

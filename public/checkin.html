@@ -15,6 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="brand.js"></script>
+<script src="icons.js"></script>
 <script src="store.js"></script>
 <script src="srprint.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -40,33 +41,33 @@
   .conn.local{background:rgba(243,156,18,0.12);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
 
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 96px;}
-  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
-  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.6),rgba(34,211,238,.45),transparent);}
+  .card{position:relative;overflow:hidden;background:var(--card);border:1px solid rgba(0,0,0,.05);border-radius:20px;padding:22px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -14px rgba(16,24,40,.18);}
+  .card::before{content:none;}
 
-  .clock{font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--orange);line-height:1;text-align:center;}
+  .clock{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:50px;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--text);line-height:1;text-align:center;}
   .date{color:var(--muted);font-size:13px;text-align:center;margin-top:4px;}
   .statusline{text-align:center;margin-top:14px;}
   .chip{display:inline-block;font-size:15px;font-weight:600;padding:7px 16px;border-radius:20px;}
   .chip.in{background:rgba(46,204,113,0.15);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
   .chip.out{background:rgba(136,136,136,0.15);color:var(--muted);border:1px solid rgba(136,136,136,0.3);}
 
-  label{display:block;font-size:14px;font-weight:700;letter-spacing:0.3px;color:var(--muted);margin:16px 0 7px;}
-  select,input,textarea{width:100%;background:var(--dark2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:18px;padding:14px;outline:none;}
-  select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+  label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:16px 0 6px;}
+  select,input,textarea{width:100%;background:#F4F6F9;border:1px solid transparent;border-radius:12px;color:var(--text);font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:16px;padding:14px 15px;outline:none;transition:.15s;}
+  select:focus,input:focus,textarea:focus{background:#fff;border-color:var(--orange);box-shadow:0 0 0 3px rgba(249,115,22,.12);}
 
-  .geo{background:var(--dark2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
-  .geo.ok{border-style:solid;border-color:rgba(46,204,113,0.4);}
-  .geo.err{border-style:solid;border-color:rgba(231,76,60,0.4);}
+  .geo{background:#F4F6F9;border:1px solid transparent;border-radius:12px;padding:14px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .geo.ok{background:#ECFDF5;}
+  .geo.err{background:#FEF2F2;}
   .geo .coord{color:var(--orange-light);font-weight:600;font-size:15px;}
   .geo .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
   .maplink{color:var(--green);text-decoration:none;}
 
-  .btn{width:100%;font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:17px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);padding:16px;border-radius:10px;cursor:pointer;margin-top:12px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn{width:100%;font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:16px;font-weight:600;border:1px solid transparent;background:#F4F6F9;color:var(--text);padding:15px;border-radius:14px;cursor:pointer;margin-top:10px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:9px;}
   .btn:active{transform:scale(.98);}
   .btn:disabled{opacity:.35;}
-  .btn.gps{background:var(--dark2);}
-  .btn.in{background:var(--orange);border-color:var(--orange);color:#fff;font-size:19px;}
-  .btn.out{border-color:rgba(231,76,60,0.5);color:var(--red);font-size:19px;}
+  .btn.gps{background:#F4F6F9;}
+  .btn.in{background:var(--orange);border-color:transparent;color:#fff;font-size:17px;box-shadow:0 6px 16px -8px rgba(249,115,22,.9);}
+  .btn.out{background:#FEF2F2;border-color:transparent;color:var(--red);font-size:17px;}
   .btn.ghost{padding:11px;font-size:13px;font-weight:600;}
 
   .rec-wrap{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--card);}
@@ -78,7 +79,7 @@
   .rec-detail a{color:var(--orange-light);font-weight:600;text-decoration:none;}
   .rec-detail .jr{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);}
   .muted{color:var(--muted);font-size:14px;}
-  .title{font-size:14px;font-weight:700;letter-spacing:0.3px;color:var(--muted);margin-bottom:12px;}
+  .title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text);margin-bottom:14px;}
 
   /* login */
   .overlay{position:fixed;inset:0;background:rgba(5,5,5,0.96);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
@@ -91,7 +92,7 @@
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--card);border:1px solid var(--orange);color:var(--text);padding:12px 20px;border-radius:24px;font-size:14px;z-index:300;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);}
   .toast.show{opacity:1;}
   .slots{display:flex;gap:8px;flex-wrap:wrap;}
-  .slot{flex:1;min-width:70px;font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;font-weight:600;padding:11px 6px;border-radius:9px;border:1px solid var(--border);background:var(--dark2);color:var(--muted);cursor:pointer;transition:.12s;}
+  .slot{flex:1;min-width:70px;font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;font-weight:500;padding:11px 6px;border-radius:11px;border:1px solid transparent;background:#EDEFF3;color:var(--muted);cursor:pointer;transition:.12s;}
   .slot:active{transform:scale(.97);}
   .slot.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange-light);}
 </style>
@@ -115,9 +116,9 @@
 <div class="topbar">
   <div class="brand"><div data-brand="header" data-brand-size="30"></div></div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <button id="bell" onclick="toggleNotif()" title="แจ้งเตือน" style="position:relative;background:none;border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:17px;cursor:pointer;line-height:1;">🔔<span id="bell-n" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:10px;line-height:19px;text-align:center;padding:0 4px;"></span></button>
-    <a href="index.html" title="กลับเมนูรวมระบบ" style="text-decoration:none;color:var(--text);font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;padding:5px 12px;white-space:nowrap;">🏠 เมนู</a>
-    <button id="install-btn" onclick="installApp()" style="display:none;align-items:center;gap:6px;background:var(--orange);color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">📲 ติดตั้งแอป</button>
+    <button id="bell" onclick="toggleNotif()" title="แจ้งเตือน" style="position:relative;background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;line-height:0;"><span data-icon="bell" data-icon-size="22"></span><span id="bell-n" style="display:none;position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:9px;line-height:17px;text-align:center;padding:0 4px;"></span></button>
+    <a href="index.html" title="กลับเมนูรวมระบบ" style="display:flex;align-items:center;color:var(--muted);text-decoration:none;padding:6px;"><span data-icon="home" data-icon-size="22"></span></a>
+    <button id="install-btn" onclick="installApp()" style="display:none;align-items:center;gap:6px;background:var(--orange);color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;"><span data-icon="download" data-size="15"></span>ติดตั้งแอป</button>
     <span class="conn local" id="conn">LOCAL</span>
     <span class="user" id="user"></span>
   </div>
@@ -126,7 +127,7 @@
 <div id="notif" style="display:none;position:fixed;top:56px;right:10px;left:10px;max-width:460px;margin:0 auto;z-index:120;
   background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:14px;max-height:70vh;overflow:auto;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <b style="font-size:16px;">🔔 แจ้งเตือน</b>
+    <b style="font-size:16px;display:flex;align-items:center;gap:8px;"><span data-icon="bell" data-size="18"></span>แจ้งเตือน</b>
     <a onclick="toggleNotif()" style="color:var(--muted);cursor:pointer;font-size:20px;line-height:1;">✕</a>
   </div>
   <div id="notif-list"></div>
@@ -136,9 +137,9 @@
   <style>
     .tab-sec{display:none;} .tab-sec.on{display:block;}
     /* แถบเมนูล่าง (แบบแอปมือถือ) */
-    .botnav{position:fixed;left:0;right:0;bottom:0;z-index:100;display:flex;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,0.07);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
-    .botnav .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-family:inherit;font-size:11px;font-weight:600;padding:6px 2px;cursor:pointer;}
-    .botnav .tab .i{font-size:23px;line-height:1;}
+    .botnav{position:fixed;left:0;right:0;bottom:0;z-index:100;display:flex;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-top:1px solid rgba(0,0,0,.06);padding:5px 4px calc(5px + env(safe-area-inset-bottom));}
+    .botnav .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:#98A1B0;font-family:inherit;font-size:11px;font-weight:500;padding:7px 2px;cursor:pointer;transition:.12s;}
+    .botnav .tab .i{display:flex;align-items:center;justify-content:center;height:24px;}
     .botnav .tab.active{color:var(--orange);}
     /* การ์ดเวลาเข้า-ออก สองคอลัมน์ */
     .io{display:flex;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.05);}
@@ -180,17 +181,17 @@
     /* เมนูย่อยในแท็บ "เพิ่มเติม" */
     .subbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;}
     .subbar::-webkit-scrollbar{display:none;}
-    .subbar .sub{flex:0 0 auto;white-space:nowrap;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:10px 16px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;}
-    .subbar .sub.active{background:var(--orange);color:#fff;border-color:var(--orange);}
+    .subbar .sub{display:flex;align-items:center;gap:6px;flex:0 0 auto;white-space:nowrap;background:#EDEFF3;color:var(--muted);border:none;border-radius:11px;padding:9px 14px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:.12s;}
+    .subbar .sub.active{background:var(--text);color:#fff;font-weight:600;}
     .sub-sec{display:none;} .sub-sec.on{display:block;}
   </style>
   <div class="botnav" id="tabbar">
-    <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i">🕐</span>ลงเวลา</button>
-    <button class="tab" data-sec="jobs" onclick="showTab('jobs')"><span class="i">📋</span>งาน</button>
-    <button class="tab" data-sec="cal" onclick="showTab('cal')"><span class="i">📅</span>ปฏิทิน</button>
-    <button class="tab" data-sec="timelog" onclick="showTab('timelog')"><span class="i">🧾</span>ลง JR</button>
-    <button class="tab" data-sec="leave" onclick="showTab('leave')"><span class="i">🏖️</span>ลา</button>
-    <button class="tab" data-sec="more" onclick="showTab('more')"><span class="i">➕</span>เพิ่มเติม</button>
+    <button class="tab active" data-sec="checkin" onclick="showTab('checkin')"><span class="i" data-icon="clock" data-icon-size="23"></span>ลงเวลา</button>
+    <button class="tab" data-sec="jobs" onclick="showTab('jobs')"><span class="i" data-icon="briefcase" data-icon-size="23"></span>งาน</button>
+    <button class="tab" data-sec="cal" onclick="showTab('cal')"><span class="i" data-icon="calendar" data-icon-size="23"></span>ปฏิทิน</button>
+    <button class="tab" data-sec="timelog" onclick="showTab('timelog')"><span class="i" data-icon="receipt" data-icon-size="23"></span>ลง JR</button>
+    <button class="tab" data-sec="leave" onclick="showTab('leave')"><span class="i" data-icon="sun" data-icon-size="23"></span>ลา</button>
+    <button class="tab" data-sec="more" onclick="showTab('more')"><span class="i" data-icon="grid" data-icon-size="23"></span>เพิ่มเติม</button>
   </div>
 
   <section class="tab-sec on" id="sec-checkin">
@@ -214,13 +215,13 @@
 
     <div class="geo" id="geo"><div class="lbl">พิกัด GPS</div><div id="geo-txt">ยังไม่ได้ระบุพิกัด</div></div>
 
-    <button class="btn gps" onclick="getLoc()">🛰️ ดึงพิกัด GPS</button>
-    <button class="btn in"  id="btn-in"  onclick="checkin()">✅ เช็คอิน</button>
-    <button class="btn out" id="btn-out" onclick="checkout()" disabled>🔴 เช็คเอาท์</button>
+    <button class="btn gps" onclick="getLoc()"><span data-icon="satellite" data-icon-size="19"></span>ดึงพิกัด GPS</button>
+    <button class="btn in"  id="btn-in"  onclick="checkin()"><span data-icon="play" data-icon-size="21"></span>เช็คอิน</button>
+    <button class="btn out" id="btn-out" onclick="checkout()" disabled><span data-icon="stop" data-icon-size="21"></span>เช็คเอาท์</button>
   </div>
 
   <!-- today in/out summary -->
-  <div class="title" style="margin:4px 2px 10px;">🕓 เวลาเข้า–ออกงานวันนี้</div>
+  <div class="title" style="margin:4px 2px 10px;"><span data-icon="clock" data-icon-size="18"></span>เวลาเข้า–ออกงานวันนี้</div>
   <div id="today-sum"></div>
 
   </section>
@@ -237,7 +238,7 @@
   <section class="tab-sec" id="sec-timelog">
   <!-- time log (DL cost capture) -->
   <div class="card">
-    <div class="title">🧾 บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR) <span id="tl-req" style="display:none;color:var(--orange-light);font-weight:700;">· จำเป็น</span></div>
+    <div class="title"><span data-icon="receipt" data-icon-size="18"></span>บันทึกเวลาตามจ๊อป (ชั่วโมงจริงตาม JR) <span id="tl-req" style="display:none;color:var(--orange-light);font-weight:700;">· จำเป็น</span></div>
     <div class="muted" style="margin:-6px 0 4px;" id="tl-hint">ลงเวลาที่ทำงานให้แต่ละ JR · งานออฟฟิศ/ส่วนกลางเลือก “JR OFFICE” — บัญชีจะนำชั่วโมงไปแยกค่าแรงเอง</div>
 
     <label>งาน / JR</label>
@@ -261,7 +262,7 @@
 
     <label>หมายเหตุ (ถ้ามี)</label>
     <input type="text" id="tl-note" placeholder="เช่น เดินสายไฟ / ประกอบชุดแขนกล">
-    <button class="btn gps" id="tl-save" onclick="submitTimelog()">🧾 บันทึกเวลา</button>
+    <button class="btn gps" id="tl-save" onclick="submitTimelog()"><span data-icon="check" data-icon-size="19"></span>บันทึกเวลา</button>
     <button class="btn ghost" id="tl-cancel" onclick="tlCancelEdit()" style="display:none;">ยกเลิกการแก้ไข</button>
     <div id="mytl" style="margin-top:14px;"></div>
   </div>
@@ -271,7 +272,7 @@
   <section class="tab-sec" id="sec-leave">
   <!-- leave request -->
   <div class="card">
-    <div class="title">🏖️ ขอลางาน</div>
+    <div class="title"><span data-icon="sun" data-icon-size="18"></span>ขอลางาน</div>
     <label>ประเภทการลา</label>
     <select id="lv-type" onchange="lvCalc()">
       <option value="sick">ลาป่วย</option>
@@ -293,7 +294,7 @@
     <div class="geo ok" style="margin-top:12px;"><span class="lbl">รวม</span> <span class="coord" id="lv-days">0</span> <span class="lbl">วัน</span> <span class="lbl" id="lv-warn"></span></div>
     <label>เหตุผล</label>
     <input type="text" id="lv-reason" placeholder="เช่น พาลูกไปหาหมอ">
-    <button class="btn gps" onclick="submitLeave()">📨 ส่งคำขอลา</button>
+    <button class="btn gps" onclick="submitLeave()"><span data-icon="send" data-icon-size="19"></span>ส่งคำขอลา</button>
     <div id="myleave" style="margin-top:14px;"></div>
   </div>
 
@@ -301,17 +302,17 @@
 
   <section class="tab-sec" id="sec-more">
   <div class="subbar" id="subbar">
-    <button class="sub active" data-sub="dir" onclick="showSub('dir')">📇 รายชื่อ</button>
-    <button class="sub" data-sub="sr" onclick="showSub('sr')">📄 ใบรายงาน</button>
-    <button class="sub" data-sub="ot" onclick="showSub('ot')">🌙 OT</button>
-    <button class="sub" data-sub="pd" onclick="showSub('pd')">💵 เบี้ยเลี้ยง</button>
-    <button class="sub" data-sub="book" onclick="showSub('book')">🚗 จองรถ</button>
+    <button class="sub active" data-sub="dir" onclick="showSub('dir')"><span data-icon="users" data-icon-size="17"></span>รายชื่อ</button>
+    <button class="sub" data-sub="sr" onclick="showSub('sr')"><span data-icon="file" data-icon-size="17"></span>ใบรายงาน</button>
+    <button class="sub" data-sub="ot" onclick="showSub('ot')"><span data-icon="moon" data-icon-size="17"></span>OT</button>
+    <button class="sub" data-sub="pd" onclick="showSub('pd')"><span data-icon="cash" data-icon-size="17"></span>เบี้ยเลี้ยง</button>
+    <button class="sub" data-sub="book" onclick="showSub('book')"><span data-icon="car" data-icon-size="17"></span>จองรถ</button>
   </div>
 
   <!-- Directory / contacts -->
   <div class="sub-sec on" id="sub-dir">
   <div class="card">
-    <div class="title">📇 รายชื่อ/ติดต่อเพื่อนร่วมงาน</div>
+    <div class="title"><span data-icon="users" data-icon-size="18"></span>รายชื่อ/ติดต่อเพื่อนร่วมงาน</div>
     <input type="text" id="dir-search" oninput="renderDirectory()" placeholder="ค้นหา ชื่อ / ชื่อเล่น / แผนก / เบอร์">
     <div id="dir-list" style="margin-top:12px;"></div>
   </div>
@@ -320,7 +321,7 @@
   <!-- Service Report -->
   <div class="sub-sec" id="sub-sr">
   <div class="card">
-    <div class="title">📄 ใบรายงานบริการ (Service Report)</div>
+    <div class="title"><span data-icon="file" data-icon-size="18"></span>ใบรายงานบริการ · Service Report</div>
     <div class="muted" style="margin:-6px 0 4px;">สำหรับงานนอก/เข้าลูกค้า — เลขที่: <b id="sr-no" style="color:var(--orange-light)">—</b></div>
 
     <label>งาน / JR</label>
@@ -389,9 +390,9 @@
 
     <label>ลายเซ็นลูกค้า</label>
     <div class="sig-wrap"><canvas id="sr-sig" class="sigpad"></canvas></div>
-    <button class="btn ghost" type="button" onclick="srClearSig()" style="margin-top:6px;">🧹 ล้างลายเซ็น</button>
+    <button class="btn ghost" type="button" onclick="srClearSig()" style="margin-top:6px;"><span data-icon="trash" data-size="17"></span>ล้างลายเซ็น</button>
 
-    <button class="btn in" onclick="submitServiceReport()" style="margin-top:14px;">📄 บันทึกใบรายงาน</button>
+    <button class="btn in" onclick="submitServiceReport()" style="margin-top:14px;"><span data-icon="file" data-icon-size="19"></span>บันทึกใบรายงาน</button>
     <div id="sr-done" class="geo ok" style="display:none;margin-top:14px;"></div>
     <div id="sr-mylist" style="margin-top:16px;"></div>
   </div>
@@ -400,7 +401,7 @@
   <!-- Per-diem claim -->
   <div class="sub-sec" id="sub-pd">
   <div class="card">
-    <div class="title">💵 เบิกเบี้ยเลี้ยง</div>
+    <div class="title"><span data-icon="cash" data-icon-size="18"></span>เบิกเบี้ยเลี้ยง</div>
     <div class="muted" style="margin:-6px 0 4px;">งานต่างจังหวัด/ค้างคืน — เหมาจ่าย <b>ไม่ต้องแนบใบเสร็จ</b> · ผูกกับเลข JR เพื่อเทียบกับงบของงานนั้น</div>
 
     <label>งาน / JR</label>
@@ -430,7 +431,7 @@
 
     <label>หมายเหตุ</label>
     <input type="text" id="pd-note" placeholder="เช่น ค้างคืน 3 คืน ติดตั้งหน้างาน">
-    <button class="btn in" onclick="submitPerdiem()" style="margin-top:14px;">📨 ส่งคำขอเบิก</button>
+    <button class="btn in" onclick="submitPerdiem()" style="margin-top:14px;"><span data-icon="send" data-icon-size="19"></span>ส่งคำขอเบิก</button>
     <div id="mypd" style="margin-top:16px;"></div>
   </div>
   </div>
@@ -438,7 +439,7 @@
   <!-- OT request -->
   <div class="sub-sec" id="sub-ot">
   <div class="card">
-    <div class="title">🌙 ขอ OT ล่วงหน้า</div>
+    <div class="title"><span data-icon="moon" data-icon-size="18"></span>ขอ OT ล่วงหน้า</div>
     <label>งาน (จาก RSC Planner)</label>
     <select id="ot-job"><option value="">— เลือกงาน —</option></select>
     <div style="display:flex;gap:10px;">
@@ -447,7 +448,7 @@
     </div>
     <label>เหตุผล</label>
     <input type="text" id="ot-reason" placeholder="เช่น เร่งงานส่งมอบ">
-    <button class="btn gps" onclick="submitOT()">📨 ส่งคำขอ OT</button>
+    <button class="btn gps" onclick="submitOT()"><span data-icon="send" data-icon-size="19"></span>ส่งคำขอ OT</button>
     <div id="myot" style="margin-top:14px;"></div>
   </div>
   </div>
@@ -455,7 +456,7 @@
   <!-- vehicle booking -->
   <div class="sub-sec" id="sub-book">
   <div class="card">
-    <div class="title">🚗 จองรถ</div>
+    <div class="title"><span data-icon="car" data-icon-size="18"></span>จองรถ</div>
     <div style="display:flex;gap:10px;">
       <div style="flex:1.2;"><label>วันที่</label><input type="date" id="bk-date" onchange="refreshBookVeh()"></div>
       <div style="flex:1;"><label>ไป</label><input type="time" id="bk-from" onchange="refreshBookVeh()"></div>
@@ -467,7 +468,7 @@
     <select id="bk-job" onchange="bkJobDest()"><option value="">— ไม่ระบุ —</option></select>
     <label>ปลายทาง</label>
     <input type="text" id="bk-dest" placeholder="เช่น โรงงานลูกค้า ศรีราชา">
-    <button class="btn gps" onclick="submitBooking()">🚗 จองรถ</button>
+    <button class="btn gps" onclick="submitBooking()"><span data-icon="car" data-icon-size="19"></span>จองรถ</button>
     <div id="mybook" style="margin-top:14px;"></div>
   </div>
   </div>
@@ -571,13 +572,13 @@ function renderMyJobs(){
   const el=$('myjobs');if(!el)return;
   const t=todayStr();
   const jobs=plannerMyJobs().concat(internalMyJobs()).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
-  if(!jobs.length){el.innerHTML='<div class="card"><div class="muted">ยังไม่มีงานที่ได้รับมอบหมาย<br><span style="font-size:12px;">หัวหน้า/HR มอบหมายงานได้ที่หน้าแอดมิน → 🗓️ Planner</span></div></div>';return;}
-  el.innerHTML='<div class="title" style="margin:4px 2px 12px;">📋 งานที่ได้รับมอบหมาย ('+jobs.length+')</div>'+
+  if(!jobs.length){el.innerHTML='<div class="card"><div class="muted">ยังไม่มีงานที่ได้รับมอบหมาย<br><span style="font-size:12px;">หัวหน้า/HR มอบหมายงานได้ที่หน้าแอดมิน → Planner</span></div></div>';return;}
+  el.innerHTML='<div class="title" style="margin:4px 2px 12px;">'+RSCIcon.get('briefcase',18)+'งานที่ได้รับมอบหมาย ('+jobs.length+')</div>'+
     jobs.map(j=>{
       const isToday=((j.start||t)<=t&&(j.end||t)>=t);
       const d=new Date((j.start||t)+'T00:00').toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'});
       const pr=Math.max(0,Math.min(100,j.progress||0));
-      const map=j.mapLink?' · <a href="'+esc(j.mapLink)+'" target="_blank" style="color:var(--orange-light);font-weight:600;">🗺️ เปิดแผนที่</a>':'';
+      const map=j.mapLink?' · <a href="'+esc(j.mapLink)+'" target="_blank" style="color:var(--orange-light);font-weight:600;">เปิดแผนที่</a>':'';
       const jrSafe=esc(j.ref||'').replace(/'/g,'');
       const siteSafe=esc(j.site||'').replace(/'/g,'');
       const titleSafe=esc(jobName(j.name,j.ref)+(j.site?(' @ '+j.site):'')).replace(/'/g,'');
@@ -586,12 +587,12 @@ function renderMyJobs(){
           +'<div style="font-weight:700;font-size:16px;">'+esc(j.ref||'(ไม่มีเลข JR)')+(isToday?' <span style="color:var(--orange);font-size:12px;font-weight:700;">• วันนี้</span>':'')+'</div>'
           +'<div class="muted" style="font-size:13px;white-space:nowrap;">'+d+'</div></div>'
         +'<div style="margin-top:3px;font-size:15px;">'+esc(jobName(j.name,j.ref))+'</div>'
-        +'<div class="muted" style="margin-top:8px;">📍 <b>'+esc(j.site||'-')+'</b>'+map+'</div>'
-        +'<div class="muted">⏰ '+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
+        +'<div class="muted" style="display:flex;align-items:center;gap:6px;margin-top:9px;">'+RSCIcon.get('pin',15)+'<b>'+esc(j.site||'-')+'</b>'+map+'</div>'
+        +'<div class="muted" style="display:flex;align-items:center;gap:6px;margin-top:3px;">'+RSCIcon.get('clock',15)+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
         +'<div style="margin-top:10px;height:8px;background:var(--dark2);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+pr+'%;background:var(--orange);"></div></div>'
         +'<div class="muted" style="font-size:12px;margin-top:4px;">ความคืบหน้า '+pr+'%</div>'
-        +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\',\''+titleSafe+'\')">🧾 ลงเวลางานนี้</button>'
-        +'<button class="btn ghost" style="margin-top:8px;" onclick="goServiceReport(\''+jrSafe+'\',\''+siteSafe+'\')">📄 ออกใบรายงาน + แนบรูป</button>'
+        +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\',\''+titleSafe+'\')">'+RSCIcon.get('receipt',18)+' ลงเวลางานนี้</button>'
+        +'<button class="btn ghost" style="margin-top:8px;" onclick="goServiceReport(\''+jrSafe+'\',\''+siteSafe+'\')">'+RSCIcon.get('file',18)+' ออกใบรายงาน</button>'
         +'</div>';
     }).join('');
 }
@@ -647,7 +648,7 @@ function getLoc(){
     box.className='geo ok';
     const g=`${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
     txt.innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div>
-      <div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่ 🗺️</a></div>`
+      <div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่</a></div>`
       + siteDistanceHtml();
   },e=>{box.className='geo err';txt.textContent='ระบุพิกัดไม่สำเร็จ: '+e.message;},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
@@ -712,7 +713,7 @@ function checkout(){
   toast('🔴 เช็คเอาท์สำเร็จ '+fmtT(r.outTs));
 }
 function refreshGeoBox(){if(currentGeo&&$('geo-txt')){const g=`${currentGeo.lat.toFixed(6)},${currentGeo.lng.toFixed(6)}`;
-  $('geo-txt').innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div><div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่ 🗺️</a></div>`+siteDistanceHtml();}}
+  $('geo-txt').innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div><div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่</a></div>`+siteDistanceHtml();}}
 function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยังไม่ได้ระบุพิกัด';}
 
 /* ===== render ===== */
@@ -733,7 +734,10 @@ function renderJobs(){
   if(auto&&pick){
     if(todayJobs.length===1&&!cur){
       const j=todayJobs[0];sel.value=j.id;
-      auto.innerHTML='<label>งานวันนี้</label><div class="geo ok" style="margin-top:0;"><div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(j.title)+'</div><div class="lbl" style="margin-top:4px">📍 '+esc(j.site||'-')+'</div><div style="margin-top:8px"><a onclick="jobShowPicker()" style="color:var(--orange-light);font-weight:600;cursor:pointer;font-size:13px">เปลี่ยนงาน</a></div></div>';
+      auto.innerHTML='<label>งานวันนี้</label><div class="geo ok" style="margin-top:0;font-family:inherit;">'
+        +'<div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(j.title)+'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:5px;color:var(--muted);font-size:13px;">'+RSCIcon.get('pin',15)+esc(j.site||'-')+'</div>'
+        +'<div style="margin-top:9px"><a onclick="jobShowPicker()" style="color:var(--orange-light);font-weight:600;cursor:pointer;font-size:13px">เปลี่ยนงาน</a></div></div>';
       auto.style.display='block';pick.style.display='none';
     }else{auto.style.display='none';pick.style.display='block';}
   }
@@ -792,7 +796,7 @@ function staleWarnHtml(){
       return '<div style="padding:8px 0;border-top:1px solid var(--border);">'
         +'<div style="font-weight:600;">'+d+' · เข้า '+fmtT(r.inTs)+' · ออก '+(r.outTs?fmtT(r.outTs):'—')+'</div>'
         +'<div style="margin-top:4px;">'+tfStatusOf(r.id)
-        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">🕐 ขอแก้เวลา</a></div>'
+        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">ขอแก้เวลา</a></div>'
         +tfFormHtml(r)+'</div>';
     }).join('')+'</div>';
 }
@@ -804,21 +808,21 @@ function notifItems(){
   // เวลาที่ต้องแก้
   staleIssues().forEach(r=>{
     const d=new Date(r.inTs).toLocaleDateString('th-TH',{day:'2-digit',month:'short'});
-    out.push({icon:'⚠️',color:'var(--red)',title:'เวลา '+d+' ต้องแก้',
+    out.push({icon:'alert',urgent:1,color:'var(--red)',title:'เวลา '+d+' ต้องแก้',
       body:isStale(r)?'ยังไม่ได้เช็คเอาท์ — ชั่วโมงยังไม่ถูกนับ':'ชั่วโมงยาวผิดปกติ น่าจะลืมกดออก',
       go:()=>{showTab('checkin');setTimeout(()=>tfOpen(r.id),200);}});
   });
   // วันนี้: ยังไม่เช็คอิน / ยังไม่ออก / ยังไม่ลง JR
   const today=dayRecs(t), open=today.find(r=>!r.outTs);
   const hh=new Date().getHours();
-  if(!today.length&&hh>=8)out.push({icon:'🕐',color:'var(--orange-light)',title:'ยังไม่ได้เช็คอินวันนี้',body:'แตะเพื่อไปหน้าลงเวลา',go:()=>showTab('checkin')});
-  if(open&&hh>=17)out.push({icon:'🔴',color:'var(--orange-light)',title:'ยังไม่ได้เช็คเอาท์',body:'เข้างานตั้งแต่ '+fmtT(open.inTs),go:()=>showTab('checkin')});
+  if(!today.length&&hh>=8)out.push({icon:'clock',urgent:1,color:'var(--orange-light)',title:'ยังไม่ได้เช็คอินวันนี้',body:'แตะเพื่อไปหน้าลงเวลา',go:()=>showTab('checkin')});
+  if(open&&hh>=17)out.push({icon:'stop',urgent:1,color:'var(--orange-light)',title:'ยังไม่ได้เช็คเอาท์',body:'เข้างานตั้งแต่ '+fmtT(open.inTs),go:()=>showTab('checkin')});
   if(open&&!load(LS_TL).some(x=>x.name===n&&x.date===t))
-    out.push({icon:'🧾',color:'var(--orange-light)',title:'ยังไม่ได้ลงเวลาตาม JR',body:'ต้องลงก่อนเช็คเอาท์',go:()=>showTab('timelog')});
+    out.push({icon:'receipt',urgent:1,color:'var(--orange-light)',title:'ยังไม่ได้ลงเวลาตาม JR',body:'ต้องลงก่อนเช็คเอาท์',go:()=>showTab('timelog')});
   // สถานะคำขอที่เพิ่งเปลี่ยน
   const recent=(arr,lb)=>arr.filter(r=>r.name===n&&(r.status==='approved'||r.status==='rejected'))
     .sort((a,b)=>(b.approvedTs||b.createdTs||0)-(a.approvedTs||a.createdTs||0)).slice(0,2)
-    .forEach(r=>out.push({icon:r.status==='approved'?'✅':'❌',color:r.status==='approved'?'var(--green)':'var(--muted)',
+    .forEach(r=>out.push({icon:r.status==='approved'?'check':'x',color:r.status==='approved'?'var(--green)':'var(--muted)',
       title:lb+(r.status==='approved'?' ได้รับอนุมัติ':' ไม่ผ่าน'),
       body:(r.from||r.date||'')+(r.total?(' · '+(+r.total).toLocaleString()+' บาท'):'')}));
   recent(load(LS_LEAVE),'คำขอลา'); recent(load(LS_PD),'เบิกเบี้ยเลี้ยง'); recent(load(LS_TF),'คำขอแก้เวลา');
@@ -835,16 +839,16 @@ function renderNotif(){
   const el=$('notif-list');if(!el)return;
   const items=notifItems();
   window._notifActions=items.map(x=>x.go||null);
-  if(!items.length){el.innerHTML='<div class="muted" style="padding:8px 0;">ไม่มีแจ้งเตือน 🎉</div>';return;}
+  if(!items.length){el.innerHTML='<div class="muted" style="padding:14px 0;text-align:center;">ไม่มีแจ้งเตือน</div>';return;}
   el.innerHTML=items.map((x,i)=>'<div onclick="notifGo('+i+')" style="display:flex;gap:10px;padding:11px 4px;border-top:1px solid var(--border);'+(x.go?'cursor:pointer;':'')+'">'
-    +'<div style="font-size:19px;line-height:1.2;">'+x.icon+'</div><div style="min-width:0;">'
+    +'<div style="flex:none;width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#F4F6F9;color:'+(x.color||'var(--muted)')+';">'+RSCIcon.get(x.icon,18)+'</div><div style="min-width:0;padding-top:1px;">'
     +'<div style="font-weight:600;color:'+(x.color||'var(--text)')+';">'+esc(x.title)+'</div>'
     +'<div class="muted" style="font-size:13px;">'+esc(x.body||'')+'</div></div></div>').join('');
 }
 function notifGo(i){const f=(window._notifActions||[])[i];if(f){toggleNotif();f();}}
 function refreshBell(){
   const b=$('bell-n');if(!b)return;
-  const n=notifItems().filter(x=>x.icon==='⚠️'||x.icon==='🕐'||x.icon==='🔴'||x.icon==='🧾').length;
+  const n=notifItems().filter(x=>x.urgent).length;
   b.style.display=n?'inline-block':'none'; b.textContent=n>99?'99+':n;
   if(_notifOpen)renderNotif();
 }
@@ -924,32 +928,32 @@ function renderDay(ds){
   const el=$('cal-day');if(!el)return;
   const n=myName(),recs=dayRecs(ds),tls=load(LS_TL).filter(x=>x.name===n&&x.date===ds);
   const bd=new Date(ds+'T00:00').toLocaleDateString('th-TH',{weekday:'long',day:'2-digit',month:'long'});
-  let h='<div class="card"><div class="title" style="margin-bottom:12px;">📅 '+bd+'</div>';
+  let h='<div class="card"><div class="title" style="margin-bottom:12px;">'+RSCIcon.get('calendar',18)+bd+'</div>';
   const jobs=jobsOnDate(ds);
-  if(jobs.length){h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;"><div><b>📋 งานที่ได้รับมอบหมาย ('+jobs.length+')</b></div>'
+  if(jobs.length){h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;"><div style="display:flex;align-items:center;gap:7px;font-weight:700;">'+RSCIcon.get('briefcase',16)+'งานที่ได้รับมอบหมาย ('+jobs.length+')</div>'
     +jobs.map(j=>{const nm=jobName(j.name,j.ref);
-      return '<div class="jr">• <b>'+esc(j.ref||'')+'</b>'+(nm?' · '+esc(nm):'')+'<br><span style="margin-left:12px">'+(j.site?('📍'+esc(j.site)):'')+(j.timeStart?(' ⏰'+tlHM(j.timeStart)+'–'+tlHM(j.timeEnd)):'')+'</span></div>';}).join('')+'</div>';}
+      return '<div class="jr">• <b>'+esc(j.ref||'')+'</b>'+(nm?' · '+esc(nm):'')+'<br><span style="margin-left:12px">'+(j.site?esc(j.site):'')+(j.timeStart?(' · '+tlHM(j.timeStart)+'–'+tlHM(j.timeEnd)):'')+'</span></div>';}).join('')+'</div>';}
   if(!recs.length&&!tls.length&&!jobs.length){h+='<div class="muted">ไม่มีงานและการลงเวลาในวันนี้</div>';}
   recs.forEach(r=>{
-    const im=r.inGeo?' · <a href="https://www.google.com/maps?q='+r.inGeo+'" target="_blank">📍 แผนที่</a>':'';
-    const om=r.outGeo?' · <a href="https://www.google.com/maps?q='+r.outGeo+'" target="_blank">📍 แผนที่</a>':'';
+    const im=r.inGeo?' · <a href="https://www.google.com/maps?q='+r.inGeo+'" target="_blank">แผนที่</a>':'';
+    const om=r.outGeo?' · <a href="https://www.google.com/maps?q='+r.outGeo+'" target="_blank">แผนที่</a>':'';
     const bad=isBadShift(r), stale=isStale(r);
     const sh=shiftHours(r);
     h+='<div class="rec-detail" style="display:block;border-top:none;padding-left:0;padding-right:0;">'
-      +'<div>🟢 <b>เข้า</b> '+fmtT(r.inTs)+im+'</div>'
-      +'<div>🔴 <b>ออก</b> '+(r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์')+om+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;"><i style="flex:none;width:8px;height:8px;border-radius:50%;background:var(--green);"></i><b>เข้า</b> '+fmtT(r.inTs)+im+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-top:3px;"><i style="flex:none;width:8px;height:8px;border-radius:50%;background:'+(r.outTs?'var(--red)':'var(--border)')+';"></i><b>ออก</b> '+(r.outTs?fmtT(r.outTs):'— ยังไม่เช็คเอาท์')+om+'</div>'
       +(r.jobTitle?'<div>🏗️ '+esc(r.jobTitle)+'</div>':'')
       +(r.note?'<div>📝 '+esc(r.note)+'</div>':'')
       +'<div>⏱️ รวม '+(sh!==null?sh.toFixed(1):'—')+' ชม.'
         +(bad?' <span style="color:var(--red);font-weight:600;">(ยาวผิดปกติ ยังไม่นับ)</span>':'')
         +(stale?' <span style="color:var(--red);font-weight:600;">(ค้างเช็คเอาท์)</span>':'')+'</div>'
       +'<div style="margin-top:6px;">'+tfStatusOf(r.id)
-        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">🕐 ขอแก้เวลา</a></div>'
+        +' <a onclick="tfOpen(\''+r.id+'\')" style="color:var(--orange-light);cursor:pointer;font-weight:600;">ขอแก้เวลา</a></div>'
       +tfFormHtml(r)
       +'</div>';
   });
   if(tls.length){const sum=tls.reduce((s,x)=>s+(+x.hours||0),0);
-    h+='<div class="rec-detail" style="display:block;padding-left:0;padding-right:0;"><div>🧾 <b>เวลาตาม JR รวม '+sum.toFixed(1)+' ชม.</b></div>'
+    h+='<div class="rec-detail" style="display:block;padding-left:0;padding-right:0;"><div style="display:flex;align-items:center;gap:7px;font-weight:700;">'+RSCIcon.get('receipt',16)+'เวลาตาม JR รวม '+sum.toFixed(1)+' ชม.</div>'
       +tls.map(x=>{const t=(x.jobTitle||'').split(' @ ')[0];
       return '<div class="jr">• <b>'+esc(x.jr||'')+'</b>'+(t?' · '+esc(t):'')+'<br><span style="margin-left:12px">'+tlHM(x.timeStart)+'-'+tlHM(x.timeEnd)+' · '+(+x.hours||0).toFixed(1)+' ชม.'+(x.note?' · '+esc(x.note):'')+'</span></div>';}).join('')+'</div>';}
   h+='</div>';el.innerHTML=h;
@@ -1038,10 +1042,10 @@ function editTimelog(id){
   // ช่วง + เวลา
   tlSlot=r.slot||'custom';document.querySelectorAll('#tl-slots .slot').forEach(b=>b.classList.toggle('active',b.dataset.slot===tlSlot));
   $('tl-start').value=r.timeStart;$('tl-end').value=r.timeEnd;tlRecalc();
-  $('tl-save').textContent='✏️ อัปเดตรายการ';$('tl-cancel').style.display='block';
+  $('tl-save').textContent='อัปเดตรายการ';$('tl-cancel').style.display='block';
   $('tl-job').scrollIntoView({behavior:'smooth',block:'center'});
 }
-function tlCancelEdit(){_tlEdit=null;$('tl-save').textContent='🧾 บันทึกเวลา';$('tl-cancel').style.display='none';
+function tlCancelEdit(){_tlEdit=null;$('tl-save').textContent='บันทึกเวลา';$('tl-cancel').style.display='none';
   $('tl-date').value=todayStr();$('tl-note').value='';$('tl-jr-manual').value='';$('tl-job').selectedIndex=0;tlJobChange();tlPickSlot('full');}
 function delTimelog(id){if(!confirm('ลบรายการนี้?'))return;save(LS_TL,load(LS_TL).filter(x=>x.id!==id));if(_tlEdit===id)tlCancelEdit();renderMyTL();}
 function renderMyTL(){
@@ -1056,7 +1060,7 @@ function renderMyTL(){
     (todayH>0&&Math.abs(todayH-8)>0.05?` <span style="color:${todayH<8?'var(--yellow)':'var(--cyan)'}">(มาตรฐาน 8 ชม.)</span>`:'')+`</div>`;
   const isOffice=r=>(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr));
   html+=recent.length?recent.map(r=>`<div class="rec">
-    <div><div>${isOffice(r)?'🏢':'🔧'} <b>${esc(r.jr)}</b>${r.jobTitle?' <span class="muted">· '+esc(r.jobTitle.split(' @ ')[0])+'</span>':''} <span class="muted">· ${slotLbl(r.slot)}</span></div>
+    <div><div>${RSCIcon.get(isOffice(r)?'home':'briefcase',16)} <b>${esc(r.jr)}</b>${r.jobTitle?' <span class="muted">· '+esc(r.jobTitle.split(' @ ')[0])+'</span>':''} <span class="muted">· ${slotLbl(r.slot)}</span></div>
       <div class="t">${new Date(r.date).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})} · ${esc(r.timeStart)}–${esc(r.timeEnd)}${r.note?' · '+esc(r.note):''}</div></div>
     <div style="text-align:right;"><div class="h">${(+r.hours).toFixed(1)} ชม.</div>
       <a onclick="editTimelog('${r.id}')" style="color:var(--cyan);cursor:pointer;font-size:11px;">แก้ไข</a>
@@ -1167,9 +1171,9 @@ function renderDirectory(){
   const lk='style="color:var(--orange-light);text-decoration:none;font-weight:600;"';
   el.innerHTML=list.map(e=>{
     const c=[];
-    if(e.phone)c.push('<a '+lk+' href="tel:'+esc(e.phone)+'">📞 '+esc(e.phone)+'</a>');
-    if(e.cemail)c.push('<a '+lk+' href="mailto:'+esc(e.cemail)+'">✉️ '+esc(e.cemail)+'</a>');
-    if(e.line)c.push('<span>💬 '+esc(e.line)+'</span>');
+    if(e.phone)c.push('<a '+lk+' style="display:flex;align-items:center;gap:7px" href="tel:'+esc(e.phone)+'">'+RSCIcon.get('phone',15)+esc(e.phone)+'</a>');
+    if(e.cemail)c.push('<a '+lk+' style="display:flex;align-items:center;gap:7px" href="mailto:'+esc(e.cemail)+'">'+RSCIcon.get('mail',15)+esc(e.cemail)+'</a>');
+    if(e.line)c.push('<span style="display:flex;align-items:center;gap:7px;color:var(--muted)">'+RSCIcon.get('chat',15)+esc(e.line)+'</span>');
     return '<div class="rec-wrap"><div style="padding:13px 14px;">'
       +'<div style="font-weight:600;font-size:16px;">'+esc(e.name||e.email)+(e.nick?' <span class="muted" style="font-size:14px;">('+esc(e.nick)+')</span>':'')+'</div>'
       +'<div class="muted" style="font-size:13px;">'+(esc([e.pos,e.dept].filter(Boolean).join(' · '))||'-')+'</div>'
@@ -1318,7 +1322,7 @@ function renderMyPD(){
   const mine=load(LS_PD).filter(r=>r.name===myName()).slice(0,10);
   if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีคำขอเบิก</div>';return;}
   const sum=mine.filter(r=>r.status==='approved').reduce((s,r)=>s+(+r.total||0),0);
-  el.innerHTML='<div class="title" style="margin:8px 2px;">🧾 คำขอเบิกล่าสุด'+(sum?(' · อนุมัติแล้วรวม '+sum.toLocaleString()+' บาท'):'')+'</div>'
+  el.innerHTML='<div class="title" style="margin:8px 2px;">'+RSCIcon.get('receipt',18)+'คำขอเบิกล่าสุด'+(sum?(' · อนุมัติแล้วรวม '+sum.toLocaleString()+' บาท'):'')+'</div>'
     +mine.map(r=>'<div class="rec-wrap"><div class="rec">'
       +'<div><div style="font-weight:600;"><b>'+esc(r.jr)+'</b> · '+esc(r.typeLabel||'')+'</div>'
       +'<div class="t">'+esc(r.from)+(r.to&&r.to!==r.from?(' – '+esc(r.to)):'')+' · '+r.units+(r.unitKind==='night'?' คืน':' วัน')
@@ -1523,7 +1527,7 @@ function renderMyBookings(){
   const mine=load(LS_BOOK).filter(b=>b.name===myName()&&b.status!=='cancelled').slice(0,5);
   if(!mine.length){el.innerHTML='<div class="muted">ยังไม่มีการจองรถ</div>';return;}
   el.innerHTML='<div class="muted" style="margin-bottom:6px;">การจองของฉัน</div>'+mine.map(b=>`<div class="rec">
-    <div><div>🚗 ${vehName(b.vehicleId)} · ${esc(b.date)}</div><div class="t">${b.from}–${b.to}${b.dest?' · '+esc(b.dest):''}</div></div>
+    <div><div style="display:flex;align-items:center;gap:7px;">${RSCIcon.get('car',16)}${vehName(b.vehicleId)} · ${esc(b.date)}</div><div class="t">${b.from}–${b.to}${b.dest?' · '+esc(b.dest):''}</div></div>
     <div><a onclick="cancelMyBooking('${b.id}')" style="color:var(--red);cursor:pointer;font-size:12px;">ยกเลิก</a></div></div>`).join('');
 }
 

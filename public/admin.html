@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <script src="brand.js"></script>
+<script src="icons.js"></script>
 <script src="store.js"></script>
 <script src="srprint.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -53,6 +54,15 @@ body{
 .user{font-size:14px;color:var(--muted)}
 .user a{color:var(--orange2);cursor:pointer;text-decoration:none}
 
+
+/* modern: line icons inline */
+.spark{opacity:.28}
+.spark svg{width:30px;height:30px}
+.nav a,.card-t,.subttl,.btn,.stat .k{display:inline-flex;align-items:center;gap:7px}
+.card-t{display:flex}
+.nav a svg,.card-t svg,.subttl svg,.btn svg,.stat .k svg{flex:none;opacity:.85}
+.nav a.active svg{opacity:1}
+.spark svg{opacity:.5}
 /* nav */
 .wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:22px}
 .nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
@@ -163,7 +173,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
 <div class="top">
   <div class="brand"><div data-brand="header" data-brand-size="30"></div><div class="tagline" style="margin-left:2px">ATTENDANCE &amp; HR</div></div>
   <div class="top-right">
-    <a href="index.html" title="กลับเมนูรวมระบบ" style="text-decoration:none;color:var(--text);font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-right:2px;white-space:nowrap;">🏠 เมนู</a>
+    <a href="index.html" title="กลับเมนูรวมระบบ" style="text-decoration:none;color:var(--text);font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-right:2px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;"><span data-icon="home" data-size="15"></span>เมนู</a>
     <span class="conn local" id="conn"><span class="dot"></span>LOCAL</span>
     <span class="user" id="user"></span>
   </div>
@@ -171,18 +181,18 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
 
 <div class="wrap">
   <div class="nav">
-    <a class="active" data-s="today" onclick="showSec('today')">⚡ วันนี้</a>
-    <a data-s="planner" onclick="showSec('planner')">🗓️ Planner</a>
-    <a data-s="leave" onclick="showSec('leave')">🏖️ ลางาน</a>
-    <a data-s="approve" onclick="showSec('approve')">✅ อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
-    <a data-s="report" onclick="showSec('report')">📊 รายงาน</a>
-    <a data-s="pay" id="nav-pay" onclick="showSec('pay')" style="display:none">💵 เงินเดือน (HR)</a>
-    <a data-s="dl" onclick="showSec('dl')">🧾 เวลาตาม JR</a>
-    <a data-s="jrall" onclick="showSec('jrall')">📋 งาน Planner</a>
-    <a data-s="srv" onclick="showSec('srv')">📄 ใบรายงานบริการ</a>
-    <a data-s="dlb" onclick="showSec('dlb')">💰 DL งบ vs จริง</a>
-    <a data-s="fleet" onclick="showSec('fleet')">🚗 จองรถ</a>
-    <a data-s="people" onclick="showSec('people')">👥 พนักงาน</a>
+    <a class="active" data-s="today" onclick="showSec('today')"><span data-icon="zap" data-size="17"></span>วันนี้</a>
+    <a data-s="planner" onclick="showSec('planner')"><span data-icon="calendar" data-size="17"></span>Planner</a>
+    <a data-s="leave" onclick="showSec('leave')"><span data-icon="sun" data-size="17"></span>ลางาน</a>
+    <a data-s="approve" onclick="showSec('approve')"><span data-icon="check" data-size="17"></span>อนุมัติ<span class="tag" id="ap-badge" style="margin-left:6px;padding:1px 7px">0</span></a>
+    <a data-s="report" onclick="showSec('report')"><span data-icon="chart" data-size="17"></span>รายงาน</a>
+    <a data-s="pay" id="nav-pay" onclick="showSec('pay')" style="display:none"><span data-icon="cash" data-size="17"></span>เงินเดือน (HR)</a>
+    <a data-s="dl" onclick="showSec('dl')"><span data-icon="receipt" data-size="17"></span>เวลาตาม JR</a>
+    <a data-s="jrall" onclick="showSec('jrall')"><span data-icon="briefcase" data-size="17"></span>งาน Planner</a>
+    <a data-s="srv" onclick="showSec('srv')"><span data-icon="file" data-size="17"></span>ใบรายงานบริการ</a>
+    <a data-s="dlb" onclick="showSec('dlb')"><span data-icon="wallet" data-size="17"></span>DL งบ vs จริง</a>
+    <a data-s="fleet" onclick="showSec('fleet')"><span data-icon="car" data-size="17"></span>จองรถ</a>
+    <a data-s="people" onclick="showSec('people')"><span data-icon="users" data-size="17"></span>พนักงาน</a>
   </div>
 
   <!-- ===== TODAY ===== -->
@@ -190,13 +200,13 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="h1">ภาพรวมวันนี้</div>
     <div class="sub" id="today-sub">—</div>
     <div class="grid g4" style="margin-bottom:18px">
-      <div class="stat g"><div class="k">เข้างานแล้ว</div><div class="v" id="t-in">0</div><div class="u">คน</div><div class="spark">✅</div></div>
-      <div class="stat a"><div class="k">มาสาย</div><div class="v" id="t-late">0</div><div class="u">คน</div><div class="spark">⏰</div></div>
-      <div class="stat c"><div class="k">ลาวันนี้</div><div class="v" id="t-leave">0</div><div class="u">คน</div><div class="spark">🏖️</div></div>
-      <div class="stat r"><div class="k">ยังไม่เข้า</div><div class="v" id="t-miss">0</div><div class="u">คน (จากทะเบียน)</div><div class="spark">•</div></div>
+      <div class="stat g"><div class="k">เข้างานแล้ว</div><div class="v" id="t-in">0</div><div class="u">คน</div><div class="spark"><span data-icon="check" data-size="18"></span></div></div>
+      <div class="stat a"><div class="k">มาสาย</div><div class="v" id="t-late">0</div><div class="u">คน</div><div class="spark"><span data-icon="clock" data-size="18"></span></div></div>
+      <div class="stat c"><div class="k">ลาวันนี้</div><div class="v" id="t-leave">0</div><div class="u">คน</div><div class="spark"><span data-icon="sun" data-size="18"></span></div></div>
+      <div class="stat r"><div class="k">ยังไม่เข้า</div><div class="v" id="t-miss">0</div><div class="u">คน (จากทะเบียน)</div><div class="spark"><span data-icon="alert" data-size="18"></span></div></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t">◐ สถานะพนักงานวันนี้</div><span class="tag" id="t-clock">--:--</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>สถานะพนักงานวันนี้</div><span class="tag" id="t-clock">--:--</span></div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>งาน (Planner)</th><th>เข้า</th><th>ออก</th><th>ชม.</th><th>สถานะ</th></tr></thead>
         <tbody id="t-body"><tr class="empty"><td colspan="7">ยังไม่มีข้อมูลวันนี้</td></tr></tbody>
@@ -210,21 +220,21 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">วางแผนงาน–ไซต์งาน และมอบหมายให้พนักงานรายคน</div>
     <div class="grid g12">
       <div class="card">
-        <div class="card-h"><div class="card-t">＋ เพิ่มแผนงาน</div></div>
+        <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>เพิ่มแผนงาน</div></div>
         <div class="f"><label>ชื่องาน / โปรเจกต์</label><input id="pl-title" placeholder="ติดตั้งหุ่นยนต์สายการผลิต"></div>
         <div class="f"><label>เลขที่งาน JR (ใส่ให้ตรงกับชีตต้นทุน เช่น JR-25-07-075 — เว้นว่าง = งานส่วนกลาง)</label><input id="pl-jr" placeholder="เช่น JR-25-07-075"></div>
         <div class="f"><label>สถานที่ / ไซต์งาน</label><input id="pl-site" placeholder="โรงงานลูกค้า ศรีราชา"></div>
         <div class="f"><label>ทีม / ผู้รับผิดชอบ</label><input id="pl-owner" placeholder="ทีมวิศวกรรม A"></div>
         <div class="f"><label>มอบหมายให้ (เลือกหลายคน — เว้นว่าง = งานกลาง)</label><select id="pl-assignees" multiple size="4"></select></div>
         <div class="grid g2"><div class="f"><label>วันที่</label><input type="date" id="pl-date"></div><div class="f"><label>เวลาเริ่ม</label><input type="time" id="pl-time"></div></div>
-        <div class="f"><label>พิกัดไซต์งาน</label><input id="pl-geo" placeholder="lat, lng"><div style="margin-top:8px"><button class="btn sm" onclick="plGeo()">🛰️ ดึงพิกัด</button></div></div>
+        <div class="f"><label>พิกัดไซต์งาน</label><input id="pl-geo" placeholder="lat, lng"><div style="margin-top:8px"><button class="btn sm" onclick="plGeo()"><span data-icon="satellite" data-size="16"></span>ดึงพิกัด</button></div></div>
         <button class="btn p" style="width:100%" onclick="addPlan()">บันทึกแผนงาน</button>
       </div>
       <div class="card">
-        <div class="card-h"><div class="card-t">🗓️ แผนงานทั้งหมด</div>
+        <div class="card-h"><div class="card-t"><span data-icon="calendar" data-size="16"></span>แผนงานทั้งหมด</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="tag" id="pl-count">0 งาน</span>
-            <button class="btn sm p" onclick="exportPlanXlsx()">⬇️ Excel</button>
+            <button class="btn sm p" onclick="exportPlanXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
             <button class="btn sm" onclick="exportPlanCsv()">CSV</button>
           </div>
         </div>
@@ -241,14 +251,14 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="h1">ลางาน</div>
     <div class="sub">อนุมัติคำขอลา และดูวันลาคงเหลือรายคน</div>
     <div class="card">
-      <div class="card-h"><div class="card-t">📝 คำขอลา</div><span class="tag" id="lv-pending">รออนุมัติ 0</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="file" data-size="16"></span>คำขอลา</div><span class="tag" id="lv-pending">รออนุมัติ 0</span></div>
       <div class="tw"><table>
         <thead><tr><th>ยื่นเมื่อ</th><th>พนักงาน</th><th>ประเภท</th><th>ตั้งแต่</th><th>ถึง</th><th>วัน</th><th>เหตุผล</th><th>สถานะ</th><th></th></tr></thead>
         <tbody id="lv-body"><tr class="empty"><td colspan="9">ยังไม่มีคำขอลา</td></tr></tbody>
       </table></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t">🧮 วันลาคงเหลือ (ปีนี้)</div><span class="tag" id="lv-year">—</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="chart" data-size="16"></span>วันลาคงเหลือ (ปีนี้)</div><span class="tag" id="lv-year">—</span></div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>ลาป่วย</th><th>ลากิจ</th><th>ลาพักร้อน</th></tr></thead>
         <tbody id="lv-bal"><tr class="empty"><td colspan="5">ยังไม่มีพนักงานในทะเบียน</td></tr></tbody>
@@ -262,14 +272,14 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="h1">คิวอนุมัติของฉัน</div>
     <div class="sub" id="ap-sub">อนุมัติลา และ OT ตามลำดับสิทธิ์ของคุณ (หัวหน้างาน = ลำดับ 1 · ผู้จัดการ/HR = ลำดับ 2)</div>
     <div class="card">
-      <div class="card-h"><div class="card-t">🏖️ คำขอลา — รอฉันอนุมัติ</div><span class="tag" id="ap-lv-c">0</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="sun" data-size="16"></span>คำขอลา — รอฉันอนุมัติ</div><span class="tag" id="ap-lv-c">0</span></div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>ประเภท</th><th>ตั้งแต่</th><th>ถึง</th><th>วัน</th><th>เหตุผล</th><th>ลำดับ</th><th></th></tr></thead>
         <tbody id="ap-lv"><tr class="empty"><td colspan="8">ไม่มีรายการรออนุมัติ</td></tr></tbody>
       </table></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t">🌙 คำขอ OT — รอฉันอนุมัติ</div><span class="tag" id="ap-ot-c">0</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="moon" data-size="16"></span>คำขอ OT — รอฉันอนุมัติ</div><span class="tag" id="ap-ot-c">0</span></div>
       <div class="tw"><table>
         <thead><tr><th>วันที่</th><th>พนักงาน</th><th>งาน</th><th>ชม.OT</th><th>เหตุผล</th><th>ที่มา</th><th>ลำดับ</th><th></th></tr></thead>
         <tbody id="ap-ot"><tr class="empty"><td colspan="8">ไม่มีคำขอ OT รอคุณอนุมัติ</td></tr></tbody>
@@ -283,7 +293,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     </div>
   
     <div class="card">
-      <div class="card-h"><div class="card-t">💵 คำขอเบิกเบี้ยเลี้ยง</div><span class="tag" id="ap-pd-c">0</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="cash" data-size="16"></span>คำขอเบิกเบี้ยเลี้ยง</div><span class="tag" id="ap-pd-c">0</span></div>
       <div class="tw"><table>
         <thead><tr><th>ช่วงวันที่</th><th>พนักงาน</th><th>JR</th><th>ประเภท</th><th class="num">หน่วย</th><th class="num">ยอดขอเบิก</th><th>สถานที่</th><th></th></tr></thead>
         <tbody id="ap-pd"><tr class="empty"><td colspan="8">ไม่มีคำขอเบิกรอคุณอนุมัติ</td></tr></tbody>
@@ -307,10 +317,10 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">ขาด / ลา / มาสาย / ชั่วโมงทำงาน — แยกรายคน · แผนก · จ๊อป (แสดงเป็นชั่วโมง ไม่มีเงิน)</div>
     <div class="card">
       <div class="card-h">
-        <div class="card-t">📊 สรุปประจำเดือน</div>
+        <div class="card-t"><span data-icon="chart" data-size="16"></span>สรุปประจำเดือน</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="rp-month" onchange="needMonth(this.value);renderReport()" style="width:auto">
-          <button class="btn sm p" onclick="exportReportXlsx()">⬇️ Excel</button>
+          <button class="btn sm p" onclick="exportReportXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportCSV()">CSV รายคน</button>
         </div>
       </div>
@@ -321,21 +331,21 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <div class="stat r"><div class="k">ขาดงานรวม</div><div class="v mono" id="rp-abs">0</div><div class="u">วัน</div></div>
       </div>
 
-      <div class="subttl">👤 รายคน</div>
+      <div class="subttl"><span data-icon="user" data-size="16"></span>รายคน</div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>มา</th><th>ชม.ทำงาน</th><th>OT</th><th>มาสาย</th><th>รวมสาย</th><th>ขาด</th><th>ลา</th></tr></thead>
         <tbody id="rp-person"></tbody>
       </table></div>
 
       <hr class="divider">
-      <div class="subttl">🏢 ตามแผนก</div>
+      <div class="subttl"><span data-icon="building" data-size="16"></span>ตามแผนก</div>
       <div class="tw"><table>
         <thead><tr><th>แผนก</th><th>คน</th><th>ชม.ทำงาน</th><th>OT</th><th>มาสาย(ครั้ง)</th><th>ขาด(วัน)</th></tr></thead>
         <tbody id="rp-dept"></tbody>
       </table></div>
 
       <hr class="divider">
-      <div class="subttl">🗂️ รายจ๊อป (Planner)</div>
+      <div class="subttl"><span data-icon="folder" data-size="16"></span>รายจ๊อป (Planner)</div>
       <div class="tw"><table>
         <thead><tr><th>งาน</th><th>คน</th><th>ชม.ทำงาน</th></tr></thead>
         <tbody id="rp-job"></tbody>
@@ -350,29 +360,29 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">รวมชั่วโมงที่พนักงานบันทึกตาม JR — แยกฝั่งสำนักงาน/โรงงาน เพื่อให้บัญชีนำไปแยกค่าแรงทางตรงเอง · แสดงเป็นชั่วโมง (ไม่มีการตีเป็นต้นทุน)</div>
     <div class="card">
       <div class="card-h">
-        <div class="card-t">🧾 สรุปชั่วโมงตาม JR</div>
+        <div class="card-t"><span data-icon="receipt" data-size="16"></span>สรุปชั่วโมงตาม JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="dl-month" onchange="needMonth(this.value);renderDL()" style="width:auto">
-          <button class="btn sm p" onclick="exportDLxlsx()">⬇️ Excel (3 ชีท)</button>
+          <button class="btn sm p" onclick="exportDLxlsx()"><span data-icon="download" data-size="16"></span>Excel (3 ชีท)</button>
           <button class="btn sm" onclick="exportDLcsv()">CSV ตาม JR</button>
           <button class="btn sm" onclick="exportDLdetail()">CSV รายบันทึก</button>
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:18px">
         <div class="stat"><div class="k">ชม.รวมทั้งหมด</div><div class="v mono" id="dl-total">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat o"><div class="k">🏢 ฝั่งสำนักงาน</div><div class="v mono" id="dl-office">0</div><div class="u">ชั่วโมง</div></div>
-        <div class="stat a"><div class="k">🏭 ฝั่งโรงงาน</div><div class="v mono" id="dl-factory">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat o"><div class="k"><span data-icon="building" data-size="16"></span>ฝั่งสำนักงาน</div><div class="v mono" id="dl-office">0</div><div class="u">ชั่วโมง</div></div>
+        <div class="stat a"><div class="k"><span data-icon="factory" data-size="16"></span>ฝั่งโรงงาน</div><div class="v mono" id="dl-factory">0</div><div class="u">ชั่วโมง</div></div>
         <div class="stat r"><div class="k">จำนวน JR โปรเจกต์</div><div class="v mono" id="dl-jrs">0</div><div class="u">งาน</div></div>
       </div>
 
-      <div class="subttl">🗂️ ตาม JR</div>
+      <div class="subttl"><span data-icon="folder" data-size="16"></span>ตาม JR</div>
       <div class="tw"><table>
         <thead><tr><th>JR</th><th>งาน</th><th>ประเภท</th><th>คน</th><th>ชม.สำนักงาน</th><th>ชม.โรงงาน</th><th>ชม.รวม</th></tr></thead>
         <tbody id="dl-jr"></tbody>
       </table></div>
 
       <hr class="divider">
-      <div class="subttl">👤 รายคน</div>
+      <div class="subttl"><span data-icon="user" data-size="16"></span>รายคน</div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>ฝั่ง</th><th>ชม.งานโปรเจกต์</th><th>ชม.ส่วนกลาง</th><th>รวม</th></tr></thead>
         <tbody id="dl-person"></tbody>
@@ -387,10 +397,10 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">สรุปชั่วโมงปกติ / OT×1.5 / OT×3 รายคน + เงินเดือน → ส่งออกไปทำต่อใน Business Plus · ข้อมูลเงินเดือนเห็นเฉพาะ HR</div>
     <div class="card">
       <div class="card-h">
-        <div class="card-t">💵 สรุปรายเดือน (รายบุคคล)</div>
+        <div class="card-t"><span data-icon="cash" data-size="16"></span>สรุปรายเดือน (รายบุคคล)</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="month" id="pay-month" onchange="needMonth(this.value);renderPay()" style="width:auto">
-          <button class="btn sm p" onclick="exportPayXlsx()">⬇️ Excel (3 ชีท)</button>
+          <button class="btn sm p" onclick="exportPayXlsx()"><span data-icon="download" data-size="16"></span>Excel (3 ชีท)</button>
           <button class="btn sm" onclick="exportPayCsv('hours')">CSV ชั่วโมง</button>
           <button class="btn sm" onclick="exportPayCsv('money')">CSV เงิน</button>
           <button class="btn sm" onclick="exportPayCsv('all')">CSV รวม</button>
@@ -426,10 +436,10 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
             <option value="all">ทั้งหมด</option>
           </select>
           <input type="text" id="jra-search" oninput="renderJRAll()" placeholder="ค้นหา JR/งาน/ไซต์/คน" style="width:auto">
-          <button class="btn sm" onclick="fetchPlannerAdmin(true)">🔄 รีเฟรช</button>
-          <button class="btn sm p" onclick="exportJRAllXlsx()">⬇️ Excel</button>
+          <button class="btn sm" onclick="fetchPlannerAdmin(true)"><span data-icon="refresh" data-size="16"></span>รีเฟรช</button>
+          <button class="btn sm p" onclick="exportJRAllXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportJRAllCsv()">CSV</button>
-          <button class="btn sm" onclick="importPlannerJobs()">📥 นำเข้างานเข้าระบบ</button>
+          <button class="btn sm" onclick="importPlannerJobs()"><span data-icon="download" data-size="16"></span>นำเข้างานเข้าระบบ</button>
         </div>
       </div>
       <div id="jra-status" class="note" style="margin-bottom:10px"></div>
@@ -447,9 +457,9 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">งบมาจากใบ EST (คอลัมน์ DL) · ที่ทำจริงมาจากชั่วโมงที่พนักงานลงตาม JR × ต้นทุนต่อชั่วโมงของแผนก · เบี้ยเลี้ยงแยกออกจากค่าแรง</div>
 
     <div class="card">
-      <div class="card-h"><div class="card-t">＋ ใส่งบ DL ของ JR</div>
+      <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>ใส่งบ DL ของ JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn sm" onclick="dlbTogglePaste()">📋 วางจาก Excel</button>
+          <button class="btn sm" onclick="dlbTogglePaste()"><span data-icon="briefcase" data-size="16"></span>วางจาก Excel</button>
         </div>
       </div>
       <div class="grid g2">
@@ -479,7 +489,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="card">
       <div class="card-h"><div class="card-t">📊 สรุปเทียบรายจ๊อบ <span class="tag" id="dlb-count">0 JR</span></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn sm p" onclick="exportDlbXlsx()">⬇️ Excel</button>
+          <button class="btn sm p" onclick="exportDlbXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportDlbCsv()">CSV</button>
         </div>
       </div>
@@ -497,7 +507,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     </div>
 
     <div class="card">
-      <div class="card-h"><div class="card-t">🏭 แยกตามแผนก</div>
+      <div class="card-h"><div class="card-t"><span data-icon="factory" data-size="16"></span>แยกตามแผนก</div>
         <select id="dlb-pick" onchange="renderDlb()" style="width:auto"><option value="">— ทุก JR —</option></select>
       </div>
       <div class="tw"><table>
@@ -507,9 +517,9 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     </div>
 
     <div class="card">
-      <div class="card-h"><div class="card-t">💵 เบี้ยเลี้ยง — งบ vs เบิกจริง</div>
+      <div class="card-h"><div class="card-t"><span data-icon="cash" data-size="16"></span>เบี้ยเลี้ยง — งบ vs เบิกจริง</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn sm p" onclick="exportPdXlsx()">⬇️ Excel</button>
+          <button class="btn sm p" onclick="exportPdXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportPdCsv()">CSV</button>
         </div>
       </div>
@@ -545,7 +555,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
           <input type="date" id="srv-day" onchange="renderSrv()" style="width:auto;display:none">
           <input type="month" id="srv-month" onchange="needMonthSrv();renderSrv()" style="width:auto">
           <input type="text" id="srv-search" oninput="renderSrv()" placeholder="ค้นหา ลูกค้า/JR/เลขที่/ช่าง" style="width:auto">
-          <button class="btn sm p" onclick="exportSrvXlsx()">⬇️ Excel</button>
+          <button class="btn sm p" onclick="exportSrvXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportSrvCsv()">CSV</button>
         </div>
       </div>
@@ -569,7 +579,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">จองแบบมาก่อนได้ก่อน • ระบบกันเวลาชนกันอัตโนมัติ • ผู้ดูแลย้าย/ยกเลิกการจองได้</div>
     <div class="grid g12">
       <div class="card">
-        <div class="card-h"><div class="card-t">＋ เพิ่มรถ</div><span class="tag" id="veh-count">0 คัน</span></div>
+        <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>เพิ่มรถ</div><span class="tag" id="veh-count">0 คัน</span></div>
         <div class="f"><label>ทะเบียนรถ</label><input id="veh-plate" placeholder="1กก 1234"></div>
         <div class="grid g2"><div class="f"><label>ประเภท</label><input id="veh-type" placeholder="กระบะ / ตู้ / เก๋ง"></div><div class="f"><label>ที่นั่ง</label><input type="number" id="veh-seats" min="1" placeholder="4"></div></div>
         <button class="btn p" style="width:100%" onclick="addVeh()">บันทึกรถ</button>
@@ -580,7 +590,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
       </div>
       <div class="card">
         <div class="card-h">
-          <div class="card-t">🗓️ ตารางการจอง</div>
+          <div class="card-t"><span data-icon="calendar" data-size="16"></span>ตารางการจอง</div>
           <input type="date" id="bk-day" onchange="renderBookings()" style="width:auto">
         </div>
         <div class="tw"><table>
@@ -598,7 +608,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
           <button class="btn sm" onclick="availNav(-7)">‹ ก่อนหน้า</button>
           <input type="date" id="av-start" onchange="renderAvail()" style="width:auto">
           <button class="btn sm" onclick="availNav(7)">ถัดไป ›</button>
-          <button class="btn sm p" onclick="exportAvailXlsx()">⬇️ Excel</button>
+          <button class="btn sm p" onclick="exportAvailXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportAvailCsv()">CSV</button>
         </div>
       </div>
@@ -606,7 +616,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <thead><tr id="av-head"></tr></thead>
         <tbody id="av-body"><tr class="empty"><td>ยังไม่มีรถ</td></tr></tbody>
       </table></div>
-      <div class="note">🟢 ว่างทั้งวัน • 🟡 ว่างบางช่วง (แสดงเวลาที่ถูกจอง) • 🔴 เต็มทั้งวัน — คลิกช่องเพื่อดูรายละเอียดการจองวันนั้น</div>
+      <div class="note"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#16A34A;vertical-align:middle;margin-right:5px"></i>ว่างทั้งวัน • <i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#EAB308;vertical-align:middle;margin-right:5px"></i>ว่างบางช่วง (แสดงเวลาที่ถูกจอง) • <i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#DC2626;vertical-align:middle;margin-right:5px"></i>เต็มทั้งวัน — คลิกช่องเพื่อดูรายละเอียดการจองวันนั้น</div>
     </div>
   </section>
 
@@ -616,7 +626,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="sub">เพิ่มพนักงาน + แผนก — ชื่อผู้ใช้ต้องตรงกับที่ใช้ล็อกอิน</div>
     <div class="grid g12">
       <div class="card">
-        <div class="card-h"><div class="card-t">＋ เพิ่มพนักงาน</div></div>
+        <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>เพิ่มพนักงาน</div></div>
         <div class="f"><label>ชื่อผู้ใช้ / ชื่อเล่น (ใช้ล็อกอิน)</label><input id="em-user" placeholder="joe"></div>
         <div class="f"><label>ชื่อ–สกุล</label><input id="em-name" placeholder="สมชาย ใจดี"></div>
         <div class="grid g2"><div class="f"><label>แผนก</label><input id="em-dept" placeholder="วิศวกรรม"></div><div class="f"><label>ตำแหน่ง</label><input id="em-pos" placeholder="วิศวกร"></div></div>
@@ -638,11 +648,11 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <div class="note">สร้างรหัสผ่านที่ Firebase Console → Authentication (เป็น ชื่อผู้ใช้@rsc.local) • หัวหน้างาน = ผู้อนุมัติลำดับ 1 ของพนักงานคนนี้</div>
       </div>
       <div class="card">
-        <div class="card-h"><div class="card-t">👥 พนักงานทั้งหมด</div>
+        <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>พนักงานทั้งหมด</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="tag" id="em-count">0 คน</span>
             <button class="btn sm" onclick="exportEmp()">💾 สำรอง</button>
-            <button class="btn sm" onclick="document.getElementById('em-import').click()">📥 นำเข้า JSON</button>
+            <button class="btn sm" onclick="document.getElementById('em-import').click()"><span data-icon="download" data-size="16"></span>นำเข้า JSON</button>
             <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
             <button class="btn sm" onclick="bulkCreateLogins()">🔑 สร้างรหัสล็อกอินทั้งหมด</button>
             <button class="btn sm" onclick="seedNicksFromPlanner()">🏷️ ดึงชื่อเล่นจาก Planner</button>
@@ -1107,7 +1117,7 @@ function renderDL(){
     :'<tr class="empty"><td colspan="7">ยังไม่มีการบันทึกเวลา</td></tr>';
   const ppl=Object.values(R.byPerson).sort((a,b)=>(b.proj+b.central)-(a.proj+a.central));
   $('dl-person').innerHTML=ppl.length?ppl.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.dept)}</td>
-    <td>${p.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}</td>
+    <td>${p.side==='factory'?RSCIcon.get('factory',14)+' โรงงาน':RSCIcon.get('building',14)+' สำนักงาน'}</td>
     <td class="num">${p.proj.toFixed(1)}</td><td class="num">${p.central.toFixed(1)}</td><td class="num"><b>${(p.proj+p.central).toFixed(1)}</b></td></tr>`).join('')
     :'<tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr>';
 }
@@ -1294,7 +1304,7 @@ function renderEmps(){fillCostOptions();const arr=load(LS_EMP);const body=$('em-
   const rc={supervisor:'chip plan',manager:'chip leave',director:'chip all',hr:'chip in',employee:'chip out',admin:'chip in'};
   body.innerHTML=arr.slice().sort((a,b)=>(a.active===false)-(b.active===false)||(a.dept||'').localeCompare(b.dept||'')).map(e=>{const sup=e.supervisor?empOf(e.supervisor):null;const off=e.active===false;
     return `<tr${off?' style="opacity:.5"':''}><td><b>${esc(e.name||e.email)}</b>${off?' <span class="chip absent" style="font-size:10px">ลาออก</span>':''}</td>
-    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?'🏭 โรงงาน':'🏢 สำนักงาน'}${(()=>{const k=empSection(e);const m=(window.COST_SECTIONS||{})[k];return m?(' · '+esc(m.label)+(e.costSection?'':' (auto)')):'';})()}</div></td>
+    <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?RSCIcon.get('factory',14)+' โรงงาน':RSCIcon.get('building',14)+' สำนักงาน'}${(()=>{const k=empSection(e);const m=(window.COST_SECTIONS||{})[k];return m?(' · '+esc(m.label)+(e.costSection?'':' (auto)')):'';})()}</div></td>
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
     <td class="ctr" style="white-space:nowrap"><button class="btn sm" onclick="editEmp('${e.id}')">แก้</button> ${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
@@ -1549,7 +1559,7 @@ function dlbParsePaste(){
   out.innerHTML='พบ <b>'+found.length+'</b> บรรทัด · รวม <b>'+totMd.toLocaleString()+'</b> คน-วัน · <b>'+totB.toLocaleString()+'</b> บาท<br>'
     +found.slice(0,6).map(x=>'• '+esc(x.cat||'(ไม่มีชื่อหมวด)')+' — '+x.rate.toLocaleString()+' × '+x.persons+' คน × '+x.days+' วัน').join('<br>')
     +(found.length>6?'<br>…':'')
-    +'<div style="margin-top:10px"><button class="btn sm p" onclick="dlbCommitPaste()">✅ นำเข้าทั้งหมด</button></div>';
+    +'<div style="margin-top:10px"><button class="btn sm p" onclick="dlbCommitPaste()"><span data-icon="check" data-size="16"></span>นำเข้าทั้งหมด</button></div>';
   window._dlbPending={jr,name:($('dlb-name').value||'').trim(),rows:found};
 }
 function dlbCommitPaste(){
@@ -1772,7 +1782,7 @@ function renderAvail(){
   body.innerHTML=vehs.map(v=>'<tr><td><b>'+esc(v.plate)+'</b><div class="note">'+esc(v.type||'')+(v.seats?(' · '+v.seats+' ที่นั่ง'):'')+'</div></td>'
     +days.map(d=>{const ds=d.toISOString().slice(0,10);const c=avCell(v.id,ds);
       const bg=c.cls==='free'?'rgba(46,204,113,.14)':(c.cls==='busy'?'rgba(231,76,60,.14)':'rgba(243,156,18,.16)');
-      const ic=c.cls==='free'?'🟢':(c.cls==='busy'?'🔴':'🟡');
+      const ic='<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(c.cls==='free'?'#16A34A':(c.cls==='busy'?'#DC2626':'#EAB308'))+'"></i>';
       return '<td style="text-align:center;background:'+bg+';cursor:pointer;font-size:12px" onclick="avShow(\''+v.id+'\',\''+ds+'\')">'+ic+'<div class="mono" style="font-size:11px">'+esc(c.txt)+'</div></td>';}).join('')
     +'</tr>').join('');
 }
