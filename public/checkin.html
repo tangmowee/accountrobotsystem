@@ -665,6 +665,7 @@ function getLoc(){
     txt.innerHTML=`<div class="coord">${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}</div>
       <div class="lbl" style="margin-top:5px;">ความแม่นยำ ±${currentGeo.acc} ม. · <a class="maplink" target="_blank" href="https://www.google.com/maps?q=${g}">เปิดแผนที่</a></div>`
       + siteDistanceHtml();
+    renderJobs();          // ได้พิกัดแล้ว → เลือกงานที่ใกล้ที่สุดให้อัตโนมัติ
   },e=>{box.className='geo err';txt.textContent='ระบุพิกัดไม่สำเร็จ: '+e.message;},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
 
@@ -724,6 +725,7 @@ function checkin(){
   const now=Date.now();
   const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jr:jobSel.options[jobSel.selectedIndex]?.dataset.jr||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
     note:$('note').value.trim(),inTs:now,inGeo:currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'',outTs:null,outGeo:''};
+  if(rec.jr)rememberJob(rec);
   const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
   if(rec.jobId){const p=load(LS_PLAN);const j=p.find(x=>x.id===rec.jobId);if(j){j.status='in';save(LS_PLAN,p);}}
   currentGeo=null;$('note').value='';resetGeo();refreshState();renderMyLog();
@@ -773,7 +775,39 @@ function refreshGeoBox(){if(currentGeo&&$('geo-txt')){const g=`${currentGeo.lat.
 function resetGeo(){$('geo').className='geo';$('geo-txt').textContent='ยังไม่ได้ระบุพิกัด';}
 
 /* ===== render ===== */
-function jobShowPicker(){$('job-auto').style.display='none';$('job-pick').style.display='block';}
+let _jobPickerOpen=false;
+function jobShowPicker(){_jobPickerOpen=true;$('job-auto').style.display='none';$('job-pick').style.display='block';}
+const LS_LASTJOB='rsc_lastjob';
+function lastJobKey(){try{return localStorage.getItem(LS_LASTJOB+'_'+myName())||'';}catch(e){return '';}}
+function rememberJob(p){try{if(p&&p.jr)localStorage.setItem(LS_LASTJOB+'_'+myName(),p.jr);}catch(e){}}
+/* เลือกงานให้อัตโนมัติ — คืน {job, why, strong} หรือ null ถ้าเดาไม่ได้ */
+function _autoPick(list){
+  if(!list||!list.length)return null;
+  const mine=list.filter(p=>p.assignees&&p.assignees.includes(myName()));
+  const pool=mine.length?mine:list;
+  // 1) มีพิกัดแล้ว → งานที่อยู่ใกล้ที่สุดและอยู่ในรัศมี
+  if(currentGeo){
+    let best=null;
+    pool.forEach(p=>{
+      if(!p.geo)return;
+      const c=String(p.geo).split(',').map(Number);
+      if(c.length<2||isNaN(c[0])||isNaN(c[1]))return;
+      const d=haversine(currentGeo.lat,currentGeo.lng,c[0],c[1]);
+      if(d<=RADIUS&&(!best||d<best.d))best={job:p,d:d};
+    });
+    if(best)return {job:best.job,strong:true,
+      why:'เลือกให้จากพิกัด — อยู่ห่างไซต์นี้ '+(best.d<1000?Math.round(best.d)+' ม.':(best.d/1000).toFixed(1)+' กม.')};
+  }
+  // 2) ทุกงานวันนี้อยู่ไซต์เดียวกัน → เลือกงานแรก
+  const sites={};pool.forEach(p=>{if(p.site)sites[p.site.trim().toUpperCase()]=1;});
+  if(pool.length>1&&Object.keys(sites).length===1)return {job:pool[0],strong:false,why:'งานวันนี้อยู่ไซต์เดียวกันทั้งหมด'};
+  // 3) มีงานเดียว
+  if(pool.length===1)return {job:pool[0],strong:false,why:mine.length?'งานที่ได้รับมอบหมายวันนี้':'งานเดียวของวันนี้'};
+  // 4) งานที่ใช้ล่าสุด ถ้ายังอยู่ในรายการวันนี้
+  const lj=lastJobKey();
+  if(lj){const m=pool.find(p=>p.jr===lj);if(m)return {job:m,strong:false,why:'งานที่คุณลงเวลาล่าสุด'};}
+  return null;
+}
 function renderJobs(){
   const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
   // งานสดจาก RSC Planner (เฉพาะที่มอบหมายให้เรา วันนี้) + แผนงานในแอดมิน
@@ -802,15 +836,17 @@ function renderJobs(){
     (others.length?'<optgroup label="งานอื่น (เลือกเองได้)">'+others.map(opt).join('')+'</optgroup>':'');
   sel.value=cur;
   const jobsAll=jobs.concat(others);
-  // งานวันนี้มีงานเดียว → เลือกให้เลย แล้วโชว์เป็นบรรทัดเดียว (ไม่ต้องมี dropdown ให้รก)
-  const todayJobs=jobs.filter(p=>(p.date||today)===today);
+  // เลือกงานให้อัตโนมัติ — เรียงความมั่นใจ: อยู่ใกล้ไซต์ > ทุกงานไซต์เดียวกัน > มีงานเดียว > งานที่ใช้ล่าสุด
+  const todayJobs=jobs.concat(others).filter(p=>(p.date||today)===today);
   const auto=$('job-auto'),pick=$('job-pick');
   if(auto&&pick){
-    if(todayJobs.length===1&&!cur){
-      const j=todayJobs[0];sel.value=j.id;
+    const g=_autoPick(todayJobs);
+    if(g&&!cur&&!_jobPickerOpen){
+      const j=g.job;sel.value=j.id;
       auto.innerHTML='<label>งานวันนี้</label><div class="geo ok" style="margin-top:0;font-family:inherit;">'
-        +'<div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(j.title)+'</div>'
+        +'<div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(jobName(j.title,j.jr))+'</div>'
         +'<div style="display:flex;align-items:center;gap:6px;margin-top:5px;color:var(--muted);font-size:13px;">'+RSCIcon.get('pin',15)+esc(j.site||'-')+'</div>'
+        +'<div class="lbl" style="margin-top:6px;color:'+(g.strong?'var(--green)':'var(--muted)')+';font-size:12.5px;">'+esc(g.why)+'</div>'
         +'<div style="margin-top:9px"><a onclick="jobShowPicker()" style="color:var(--orange-light);font-weight:600;cursor:pointer;font-size:13px">เปลี่ยนงาน</a></div></div>';
       auto.style.display='block';pick.style.display='none';
     }else{auto.style.display='none';pick.style.display='block';}
@@ -1121,7 +1157,7 @@ function submitTimelog(){
     const total=day.reduce((t,x)=>t+(+x.hours||0),0)+h;
     if(total>24){toast('⚠️ รวมเกิน 24 ชม./วันไม่ได้ — ลบรายการซ้ำก่อน');return;}
     if(total>16&&!confirm(`วันนี้จะรวม ${total.toFixed(1)} ชม. (เกิน 16 ชม.)\nแน่ใจว่าถูกต้อง?`))return;
-    arr.unshift(Object.assign({id:uid(),name,date,createdTs:Date.now()},fields));save(LS_TL,arr);
+    arr.unshift(Object.assign({id:uid(),name,date,createdTs:Date.now()},fields));save(LS_TL,arr);rememberJob(fields);
     toast(`🧾 บันทึก ${h.toFixed(1)} ชม. → ${jr}`);
   }
   $('tl-note').value='';renderMyTL();
