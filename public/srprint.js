@@ -31,22 +31,22 @@ window.SRPrint = (function () {
   /* โลโก้ Robot System — วาดเป็นเวกเตอร์ (คมทุกขนาด ใช้ได้ทั้งพิมพ์/PDF/อีเมล)
      ใช้ textLength ล็อกความกว้างตัวอักษร วงแหวนส้มจึงตรงตำแหน่งตัว O เสมอ
      แม้เครื่องปลายทางจะมีฟอนต์ต่างกัน */
-  var ORANGE = '#E87B1E', DARKINK = '#1A1A18';
+  var ORANGE = '#E8801E', DARKINK = '#1D1B19';
   var LOGO_FALLBACK =
-    '<svg class="logo" viewBox="0 0 1000 435" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Robot System">' +
-      '<g fill="none" stroke="' + ORANGE + '" stroke-linecap="round">' +
-        '<circle cx="250" cy="78" r="62" stroke-width="27"/>' +
-        '<path d="M332 92 L392 110" stroke-width="25"/>' +
-        '<path d="M215 140 L182 200" stroke-width="24"/>' +
-        '<path d="M192 296 L228 356" stroke-width="21"/>' +
-        '<circle cx="252" cy="396" r="33" stroke-width="17"/>' +
+    '<svg class="logo" viewBox="0 0 2000 880" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Robot System">' +
+      '<g fill="none" stroke="' + ORANGE + '">' +
+        '<circle cx="527" cy="172" r="97" stroke-width="42"/>' +
+        '<path d="M665 180 L765 204" stroke-width="34"/>' +
+        '<path d="M470 288 L408 420" stroke-width="34"/>' +
+        '<path d="M398 640 L462 716" stroke-width="34"/>' +
+        '<circle cx="505" cy="793" r="48" stroke-width="24"/>' +
       '</g>' +
-      '<g font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="152" fill="' + DARKINK + '">' +
-        '<text x="6" y="300" font-weight="700" textLength="104" lengthAdjust="spacingAndGlyphs">R</text>' +
-        '<text x="222" y="300" font-weight="700" textLength="300" lengthAdjust="spacingAndGlyphs">BOT</text>' +
-        '<text x="536" y="300" font-weight="300" textLength="452" lengthAdjust="spacingAndGlyphs">SYSTEM</text>' +
+      '<g font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="235" fill="' + DARKINK + '">' +
+        '<text x="105" y="610" font-weight="700" textLength="157" lengthAdjust="spacingAndGlyphs">R</text>' +
+        '<text x="442" y="610" font-weight="700" textLength="508" lengthAdjust="spacingAndGlyphs">BOT</text>' +
+        '<text x="990" y="610" font-weight="400" textLength="905" lengthAdjust="spacingAndGlyphs">SYSTEM</text>' +
       '</g>' +
-      '<circle cx="164" cy="246" r="46" fill="none" stroke="' + ORANGE + '" stroke-width="25"/>' +
+      '<circle cx="352" cy="533" r="78" fill="none" stroke="' + ORANGE + '" stroke-width="46"/>' +
     '</svg>';
 
   function CO() { return window.COMPANY || {}; }
@@ -255,7 +255,7 @@ window.SRPrint = (function () {
       '<div class="sigsub">' + esc(r.customer || '') + ' · ' + thDate(r.date) + '</div></div>' +
     '<div><div class="sigrole">ผู้ปฏิบัติงาน · Service Engineer</div>' +
       '<div class="sigpad"></div>' +
-      '<div class="signame">' + esc(r.personDisplay || '&nbsp;') + '</div>' +
+      '<div class="signame">' + (r.personDisplay ? esc(r.personDisplay) : '&nbsp;') + '</div>' +
       '<div class="sigsub">' + esc(CO().nameEn || '') + '</div></div>' +
   '</div>' +
 

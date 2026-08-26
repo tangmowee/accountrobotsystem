@@ -1,12 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RSC Connect">
   <rect width="512" height="512" rx="112" fill="#FFFFFF"/>
-  <g transform="translate(55.6,55.6) scale(3.61)" fill="none" stroke="#E87B1E"
-     stroke-linecap="round" vector-effect="non-scaling-stroke">
-    <circle cx="62" cy="28" r="14" stroke-width="7"/>
-    <path d="M78 34 L90 38" stroke-width="6.5"/>
-    <path d="M53 38 L45 50" stroke-width="6"/>
-    <circle cx="36" cy="60" r="15" stroke-width="7"/>
-    <path d="M46 71 L56 82" stroke-width="5.5"/>
-    <circle cx="66" cy="88" r="9" stroke-width="5"/>
+  <g transform="translate(153 46) scale(0.4578)" fill="none" stroke="#E8801E">
+    <circle cx="290" cy="172" r="97" stroke-width="42"/>
+    <path d="M428 180 L528 204" stroke-width="34"/>
+    <path d="M233 288 L171 420" stroke-width="34"/>
+    <circle cx="115" cy="533" r="78" stroke-width="46"/>
+    <path d="M161 640 L225 716" stroke-width="34"/>
+    <circle cx="268" cy="793" r="48" stroke-width="24"/>
   </g>
 </svg>
