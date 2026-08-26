@@ -13,7 +13,7 @@ function eq(name, a, b, tol = 1) {
 (async () => {
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
-  await p.goto('file://' + path.resolve('Procurement_Report_JanJul_2026_v2.html'), { waitUntil: 'networkidle' });
+  await p.goto('file://' + path.resolve('Procurement_Report_JanJul_2026_v3.html'), { waitUntil: 'networkidle' });
   await p.waitForTimeout(900);
 
   const d = await p.evaluate(() => {
