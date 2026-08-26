@@ -1091,7 +1091,8 @@ function buildDL(ym){
     const isOffice=(r.kind==='office'||r.kind==='OH'||isCentralJR(r.jr)); // JR ส่วนกลาง (ไม่ผูกโปรเจกต์)
     if(side==='factory')totFactory+=h; else totOffice+=h;
     const jr=r.jr||OFFICE_JR;
-    const g=byJR[jr]||(byJR[jr]={jr,title:'',central:isOffice,ppl:new Set(),n:0,h:0,office:0,factory:0});
+    const g=byJR[jr]||(byJR[jr]={jr,title:'',central:isOffice,ppl:new Set(),n:0,h:0,office:0,factory:0,flag:false});
+    if(r.needsReview)g.flag=true;
     if(r.jobTitle&&!g.title)g.title=r.jobTitle.split(' @ ')[0];
     g.ppl.add(r.name);g.n++;g.h+=h;g[side]+=h;
     const e=empOf(r.name),key=r.name;
@@ -1111,7 +1112,7 @@ function renderDL(){
   $('dl-office').textContent=R.totOffice.toFixed(1);
   $('dl-factory').textContent=R.totFactory.toFixed(1);
   $('dl-jrs').textContent=jrs.filter(g=>!g.central).length;
-  $('dl-jr').innerHTML=jrs.length?jrs.map(g=>`<tr><td class="mono"><b>${esc(g.jr)}</b></td><td>${esc(g.title)||'—'}</td>
+  $('dl-jr').innerHTML=jrs.length?jrs.map(g=>`<tr><td class="mono"><b>${esc(g.jr)}</b>${g.flag?' <span class="chip out" title="พนักงานพิมพ์เลขนี้เอง — ไม่มีใน Planner/แผนงาน ตรวจสอบก่อนใช้คิด DL">ตรวจสอบ</span>':''}</td><td>${esc(g.title)||'—'}</td>
     <td>${g.central?'<span class="chip out">ส่วนกลาง</span>':'<span class="chip in">โปรเจกต์</span>'}</td>
     <td class="ctr mono">${g.ppl.size}</td><td class="num">${g.office.toFixed(1)}</td><td class="num">${g.factory.toFixed(1)}</td><td class="num"><b>${g.h.toFixed(1)}</b></td></tr>`).join('')
     :'<tr class="empty"><td colspan="7">ยังไม่มีการบันทึกเวลา</td></tr>';

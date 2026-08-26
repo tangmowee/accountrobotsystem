@@ -243,7 +243,8 @@
 
     <label>งาน / JR</label>
     <select id="tl-job" onchange="tlJobChange()"><option value="">— เลือกงาน/JR —</option></select>
-    <input type="text" id="tl-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-25-07-075" style="display:none;margin-top:8px;">
+    <input type="text" id="tl-jr-manual" list="jr-list" placeholder="พิมพ์เลข JR — ระบบจะขึ้นตัวเลือกให้" style="display:none;margin-top:8px;">
+    <datalist id="jr-list"></datalist>
 
     <label>ช่วงเวลา</label>
     <div class="slots" id="tl-slots">
@@ -326,7 +327,7 @@
 
     <label>งาน / JR (ไม่บังคับ — งานด่วนเว้นว่างได้)</label>
     <select id="sr-job" onchange="srJobChange()"><option value="">— งานด่วน / ยังไม่มีเลข JR —</option></select>
-    <input type="text" id="sr-jr-manual" placeholder="พิมพ์เลข JR เอง เช่น JR-26-01-003" style="display:none;margin-top:8px;" onchange="srFillContact()">
+    <input type="text" id="sr-jr-manual" list="jr-list" placeholder="พิมพ์เลข JR — ระบบจะขึ้นตัวเลือกให้" style="display:none;margin-top:8px;" onchange="srFillContact()">
 
     <label>ลูกค้า</label>
     <input type="text" id="sr-customer" placeholder="ชื่อลูกค้า / บริษัท">
@@ -406,7 +407,7 @@
 
     <label>งาน / JR</label>
     <select id="pd-job" onchange="pdJobChange()"><option value="">— เลือกงาน/JR —</option></select>
-    <input type="text" id="pd-jr-manual" placeholder="พิมพ์เลข JR เอง" style="display:none;margin-top:8px;">
+    <input type="text" id="pd-jr-manual" list="jr-list" placeholder="พิมพ์เลข JR — ระบบจะขึ้นตัวเลือกให้" style="display:none;margin-top:8px;">
 
     <label>ประเภท</label>
     <select id="pd-type" onchange="pdCalc()"></select>
@@ -996,13 +997,34 @@ function calcHours(s,e){ // ชั่วโมงจากเวลาเริ�
   const lunch=Math.max(0,Math.min(b,LUNCH_E)-Math.max(a,LUNCH_S));
   return Math.round((b-a-lunch)/6)/10; // นาที→ชม. ทศนิยม 1 ตำแหน่ง
 }
+/* เลข JR: ทำให้เป็นมาตรฐานเดียวกัน (ตัวใหญ่ ไม่มีช่องว่าง) กันพิมพ์แล้วซ้ำคนละแบบ */
+function normJR(v){return String(v||'').toUpperCase().replace(/\s+/g,'').trim();}
+function knownJRs(){
+  const set={};
+  plannerJobsAll().forEach(j=>{if(j.jr)set[normJR(j.jr)]=1;});
+  load(LS_PLAN).forEach(j=>{if(j.jr)set[normJR(j.jr)]=1;});
+  (window.CENTRAL_JRS||[]).forEach(j=>set[normJR(j)]=1);
+  load(LS_TL).forEach(r=>{if(r.jr)set[normJR(r.jr)]=1;});
+  return set;
+}
+function fillJRList(){const dl=$('jr-list');if(!dl)return;
+  dl.innerHTML=Object.keys(knownJRs()).sort().map(j=>'<option value="'+esc(j)+'">').join('');}
+/* ตรวจเลขที่พิมพ์เอง: คืนเลขที่ใช้ได้ หรือ null ถ้าไม่ผ่าน/ผู้ใช้ยกเลิก */
+function vetManualJR(raw){
+  const jr=normJR(raw);
+  if(!jr)return null;
+  if(!/^JR[0-9][0-9-]{3,}$/.test(jr)){toast('รูปแบบเลข JR ไม่ถูกต้อง — ต้องขึ้นต้นด้วย JR ตามด้วยตัวเลข เช่น JR-26-04-042');return null;}
+  if(!knownJRs()[jr]&&!confirm('เลข '+jr+' ยังไม่มีในระบบ/Planner\n\nถ้าเป็นงานใหม่จริงกดตกลง — รายการจะถูกติดธงให้ HR ตรวจ\nถ้าไม่แน่ใจ กดยกเลิกแล้วถามหัวหน้างานก่อน'))return null;
+  return jr;
+}
 function tlSelectedJR(){
   const tj=$('tl-job'),o=tj.options[tj.selectedIndex];
-  if(tj.value==='__manual__')return ($('tl-jr-manual').value||'').trim();
+  if(tj.value==='__manual__')return vetManualJR($('tl-jr-manual').value);
   return o&&o.dataset.jr?o.dataset.jr:'';
 }
 function tlJobChange(){
   const man=$('tl-jr-manual');man.style.display=$('tl-job').value==='__manual__'?'block':'none';
+  if($('tl-job').value==='__manual__')fillJRList();
   tlRecalc();
 }
 function tlPickSlot(s){
@@ -1036,7 +1058,8 @@ function submitTimelog(){
   const o=tj.options[tj.selectedIndex];
   const jobId=(tj.value&&tj.value.slice(0,2)==='__')?'':tj.value;
   const fields={jr,jobId,jobTitle:(o&&o.dataset.title)?o.dataset.title:(tj.value==='__manual__'?_tlManualTitle:''),
-    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim()};
+    slot:tlSlot,timeStart:s,timeEnd:e,hours:h,kind:isCentralJR(jr)?'office':'project',note:$('tl-note').value.trim(),
+    needsReview:!knownJRs()[normJR(jr)]||undefined};
   const arr=load(LS_TL);
   if(_tlEdit){const r=arr.find(x=>x.id===_tlEdit&&x.name===name);
     if(r){Object.assign(r,fields,{date,editedTs:Date.now()});save(LS_TL,arr);toast(`✏️ แก้ไขแล้ว ${h.toFixed(1)} ชม. → ${jr}`);}
@@ -1289,10 +1312,11 @@ function pdInit(){
 function pdType(){return PDTYPES.find(x=>x.id===($('pd-type')||{}).value)||PDTYPES[0]||{rate:0,perNight:true};}
 function pdJobChange(){const s=$('pd-job'),m=$('pd-jr-manual');if(!s||!m)return;
   m.style.display=s.value==='__manual__'?'block':'none';
+  if(s.value==='__manual__')fillJRList();
   const o=s.options[s.selectedIndex];
   if(o&&o.dataset.site&&$('pd-place')&&!$('pd-place').value)$('pd-place').value=o.dataset.site;}
 function pdSelectedJR(){const s=$('pd-job');if(!s)return '';
-  if(s.value==='__manual__')return (($('pd-jr-manual')||{}).value||'').trim();
+  if(s.value==='__manual__')return (vetManualJR(($('pd-jr-manual')||{}).value)||'');
   const o=s.options[s.selectedIndex];return o&&o.dataset.jr?o.dataset.jr:'';}
 /* จำนวนคืน = ผลต่างวัน · จำนวนวัน = ผลต่าง+1 */
 function pdCalc(){
@@ -1398,8 +1422,8 @@ function srSeg(key,val){srState[key]=val;
   const box=$(map[key]);if(box)box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===val));
   if(key==='workStatus')$('sr-reason-wrap').style.display=(val==='followup')?'block':'none';
 }
-function srSelectedJR(){const s=$('sr-job');if(!s)return '';const o=s.options[s.selectedIndex];if(s.value==='__manual__')return ($('sr-jr-manual').value||'').trim();return o&&o.dataset.jr?o.dataset.jr:'';}
-function srJobChange(){const s=$('sr-job'),man=$('sr-jr-manual');
+function srSelectedJR(){const s=$('sr-job');if(!s)return '';const o=s.options[s.selectedIndex];if(s.value==='__manual__')return (vetManualJR($('sr-jr-manual').value)||'');return o&&o.dataset.jr?o.dataset.jr:'';}
+function srJobChange(){const s=$('sr-job'),man=$('sr-jr-manual');if(s&&s.value==='__manual__')fillJRList();
   if(s.value==='__manual__'){man.style.display='block';}
   else{man.style.display='none';const o=s.options[s.selectedIndex];if(o&&o.dataset.site&&!$('sr-customer').value)$('sr-customer').value=o.dataset.site;}
   srFillContact();
