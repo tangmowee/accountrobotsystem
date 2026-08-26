@@ -322,6 +322,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
           <input type="month" id="rp-month" onchange="needMonth(this.value);renderReport()" style="width:auto">
           <button class="btn sm p" onclick="exportReportXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
           <button class="btn sm" onclick="exportCSV()">CSV รายคน</button>
+          <button class="btn sm" onclick="exportBPlusTA()" title="ไฟล์ .txt สแกนเข้า-ออก สำหรับนำเข้าโปรแกรม Business Plus"><span data-icon="download" data-size="16"></span>Business Plus (TA)</button>
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:18px">
@@ -1036,6 +1037,34 @@ function exportCSV(){if(!_rp)return;const rows=_rp.persons.filter(p=>p.present||
   const head=['เดือน','ชื่อ','แผนก','มา(วัน)','ชม.ทำงาน','OT','มาสาย(ครั้ง)','รวมสาย(นาที)','ขาด(วัน)','ลา(วัน)'];
   const body=rows.map(p=>[_rpYm,p.disp,p.dept,p.present,p.wh.toFixed(1),p.ot.toFixed(1),p.lateDays,Math.round(p.lateMin),p.absent,p.leaveDays].map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(','));
   const csv='﻿'+[head.join(','),...body].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='RSC_attendance_'+_rpYm+'.csv';a.click();}
+/* ── ไฟล์ลงเวลา (TA) สำหรับนำเข้า Business Plus ──
+   รูปแบบต่อบรรทัด: รหัสพนักงาน 8 หลัก (เติม 0 ข้างหน้า) วันที่ เวลา ประเภท (1=เข้า 2=ออก) จบด้วย CRLF */
+function bplusCode(name){
+  const e=empOf(name);const code=((e&&e.email)||name||'').split('@')[0].replace(/\D/g,'');
+  return code?code.padStart(8,'0'):'';
+}
+function bplusTime(ts){const d=new Date(ts);
+  const p=n=>(n<10?'0':'')+n;
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':00';}
+function exportBPlusTA(){
+  const ym=($('rp-month')&&$('rp-month').value)||new Date().toISOString().slice(0,7);
+  const rows=load(LS_LOG).filter(r=>canSee(r.name)&&((r.date||new Date(r.inTs).toISOString().slice(0,10)).slice(0,7)===ym));
+  if(!rows.length){alert('เดือน '+ym+' ยังไม่มีการลงเวลา');return;}
+  const lines=[],skip=new Set();
+  rows.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.inTs-b.inTs)).forEach(r=>{
+    if(workedH(r)===0&&r.outTs){return;}                    // ตัดรายการชั่วโมงผิดปกติ (ยาวเกิน) ออก
+    const code=bplusCode(r.name);
+    if(!code){skip.add(r.name);return;}
+    if(r.inTs) lines.push(code+' '+bplusTime(r.inTs)+' 1');
+    if(r.outTs)lines.push(code+' '+bplusTime(r.outTs)+' 2');
+  });
+  if(!lines.length){alert('ไม่มีรายการที่ส่งออกได้');return;}
+  const now=new Date(),p=n=>(n<10?'0':'')+n;
+  const fname='DailyTA_'+now.getFullYear()+p(now.getMonth()+1)+p(now.getDate())+'_'+p(now.getHours())+p(now.getMinutes())+p(now.getSeconds())+'.txt';
+  const blob=new Blob([lines.join('\r\n')+'\r\n'],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+  toast('ส่งออก '+lines.length+' บรรทัด → '+fname+(skip.size?(' · ข้าม '+skip.size+' คนที่ไม่มีรหัสตัวเลข'):''));
+}
 function exportReportXlsx(){if(!_rp){alert('ไม่มีข้อมูล');return;}
   const rows=_rp.persons.filter(p=>p.present||p.absent||p.leaveDays);
   if(!rows.length){alert('ไม่มีข้อมูล');return;}
