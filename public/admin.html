@@ -206,7 +206,11 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
       <div class="stat r"><div class="k">ยังไม่เข้า</div><div class="v" id="t-miss">0</div><div class="u">คน (จากทะเบียน)</div><div class="spark"><span data-icon="alert" data-size="18"></span></div></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>สถานะพนักงานวันนี้</div><span class="tag" id="t-clock">--:--</span></div>
+      <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>สถานะพนักงานวันนี้</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn sm" onclick="dedupeToday()" title="รวมรายการเช็คอินซ้ำของคนเดียวกันในวันเดียวกันให้เหลือรายการเดียว"><span data-icon="trash" data-size="15"></span>รวมรายการซ้ำ</button>
+          <span class="tag" id="t-clock">--:--</span>
+        </div></div>
       <div class="tw"><table>
         <thead><tr><th>พนักงาน</th><th>แผนก</th><th>งาน (Planner)</th><th>เข้า</th><th>ออก</th><th>ชม.</th><th>สถานะ</th></tr></thead>
         <tbody id="t-body"><tr class="empty"><td colspan="7">ยังไม่มีข้อมูลวันนี้</td></tr></tbody>
@@ -874,6 +878,31 @@ function renderJRAll(){
 function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();renderBalance();renderApprovals();renderReport();renderEmps();fillAssignees();renderFleet();renderBookings();renderAvail();renderDL();renderSrv();renderDlb();renderPerdiemApprovals();renderPerdiemMatch();renderTimefixApprovals();}
 
 /* ===== TODAY ===== */
+/* ── รวมรายการเช็คอินซ้ำ (คนเดียวกัน วันเดียวกัน) ให้เหลือรายการเดียว ──
+   เก็บเวลาเข้าที่เร็วที่สุด + เวลาออกที่ช้าที่สุด · เฉพาะ HR */
+function dedupeToday(){
+  if(!isHR()){alert('เฉพาะ HR เท่านั้น');return;}
+  const all=load(LS_LOG), byKey={};
+  all.forEach(r=>{const k=r.name+'|'+(r.date||dstr(new Date(r.inTs)));(byKey[k]=byKey[k]||[]).push(r);});
+  const dupKeys=Object.keys(byKey).filter(k=>byKey[k].length>1);
+  if(!dupKeys.length){alert('ไม่พบรายการซ้ำ');return;}
+  const preview=dupKeys.slice(0,8).map(k=>{const [n,d]=k.split('|');return '· '+nameOf(n).replace(/&[a-z]+;/g,'')+' '+d+' — '+byKey[k].length+' รายการ';}).join('\n');
+  if(!confirm('พบรายการซ้ำ '+dupKeys.length+' ชุด\n\n'+preview+(dupKeys.length>8?'\n…':'')
+    +'\n\nรวมให้เหลือชุดละ 1 รายการ (เวลาเข้าเร็วสุด + เวลาออกช้าสุด)?\nการแก้ไขนี้ย้อนกลับไม่ได้'))return;
+  const keep=[];let removed=0;
+  Object.keys(byKey).forEach(k=>{
+    const g=byKey[k];
+    if(g.length===1){keep.push(g[0]);return;}
+    const first=g.reduce((a,b)=>a.inTs<=b.inTs?a:b);
+    const outs=g.filter(x=>x.outTs);
+    const merged=Object.assign({},first);
+    if(outs.length){const last=outs.reduce((a,b)=>a.outTs>=b.outTs?a:b);merged.outTs=last.outTs;merged.outGeo=last.outGeo||'';}
+    merged.mergedFrom=g.length;merged.mergedTs=Date.now();
+    removed+=g.length-1;keep.push(merged);
+  });
+  save(LS_LOG,keep);renderAll();
+  alert('รวมเรียบร้อย — ลบรายการซ้ำออก '+removed+' รายการ');
+}
 function renderToday(){
   const today=todayStr();
   const logs=load(LS_LOG).filter(r=>r.date===today&&canSee(r.name));

@@ -682,12 +682,31 @@ function siteDistanceHtml(){
 function myOpen(){const n=myName();return load(LS_LOG).find(r=>!r.outTs&&r.name===n);}
 function refreshState(){
   const open=myOpen();
+  const doneToday=dayRecs(todayStr()).some(r=>r.outTs);
   if(open){$('statusline').innerHTML=`<span class="chip in">กำลังปฏิบัติงาน · เข้า ${fmtT(open.inTs)}</span>`;$('btn-out').disabled=false;$('btn-in').disabled=true;}
+  else if(doneToday){
+    const r=dayRecs(todayStr()).filter(x=>x.outTs).sort((a,b)=>b.outTs-a.outTs)[0];
+    $('statusline').innerHTML=`<span class="chip out">ลงเวลาครบแล้ววันนี้ · ${fmtT(r.inTs)}–${fmtT(r.outTs)}</span>`
+      +`<div class="lbl" style="margin-top:8px">แก้ไขเองไม่ได้ — <a onclick="tfOpen('${r.id}')" style="color:var(--orange-light);font-weight:600;cursor:pointer">ส่งคำขอแก้เวลา</a></div>`;
+    $('btn-out').disabled=true;$('btn-in').disabled=true;
+  }
   else{$('statusline').innerHTML=`<span class="chip out">ยังไม่เช็คอิน</span>`;$('btn-out').disabled=true;$('btn-in').disabled=false;}
 }
+/* กันกดรัว/ดับเบิลแท็ป — แยกตัวจับต่อปุ่ม ไม่ให้ปุ่มหนึ่งบล็อกอีกปุ่ม */
+const _lastTap={};
+function tapOnce(k,ms){const n=Date.now();if(_lastTap[k]&&n-_lastTap[k]<(ms||1200))return false;_lastTap[k]=n;return true;}
 function checkin(){
+  if(!tapOnce('in'))return; 
   const name=myName();if(!name){toast('กรุณาเข้าสู่ระบบ');return;}
   if(myOpen()){toast('คุณเช็คอินอยู่แล้ว');return;}
+  // ลงเวลาได้วันละครั้ง — ถ้าครบแล้วต้องขอแก้เวลาเท่านั้น
+  const done=dayRecs(todayStr()).filter(r=>r.outTs);
+  if(done.length){
+    const r=done.sort((a,b)=>b.outTs-a.outTs)[0];
+    toast('วันนี้ลงเวลาแล้ว '+fmtT(r.inTs)+'–'+fmtT(r.outTs)+' — ถ้าต้องแก้ ให้ส่งคำขอแก้เวลา');
+    setTimeout(()=>tfOpen(r.id),400);return;
+  }
+
   const jobSel=$('job');
   if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คอินโดยไม่มีพิกัด?'))return;
   if(jobSel.value&&currentGeo){
@@ -707,6 +726,7 @@ function checkin(){
 }
 function hasTimelogToday(){const n=myName(),t=todayStr();return load(LS_TL).some(r=>r.name===n&&r.date===t);}
 function checkout(){
+  if(!tapOnce('out'))return;
   const rec=myOpen();if(!rec){toast('ไม่พบการเช็คอิน');return;}
   let autoJR='';
   if(REQUIRE_JR&&!hasTimelogToday()){
