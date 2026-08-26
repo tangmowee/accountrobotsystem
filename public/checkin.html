@@ -710,14 +710,19 @@ function checkout(){
   if(REQUIRE_JR&&!hasTimelogToday()){
     // เช็คอินกับงานที่มีเลข JR อยู่แล้ว → ลงเวลาตาม JR ให้อัตโนมัติจากเวลาเข้า-ออกจริง
     autoJR=rec.jr||(load(LS_PLAN).find(p=>p.id===rec.jobId)||{}).jr||'';
-    if(!autoJR){
-      toast('⚠️ กรุณาบันทึกเวลาตาม JR ของวันนี้ก่อนเช็คเอาท์ (งานออฟฟิศเลือก JR OFFICE)');
-      const card=$('tl-job');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});
-        const box=card.closest('.card');if(box){box.style.transition='box-shadow .3s';box.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>box.style.boxShadow='',1800);}}
-      return;
+    if(autoJR){
+      if(!confirm('ยังไม่ได้ลงเวลาตาม JR — ให้ระบบลงให้อัตโนมัติ?\n\n'+autoJR+' · '+fmtT(rec.inTs)+' ถึงตอนนี้ (หักพักเที่ยง)\n\nตกลง = ลงให้เลย · ยกเลิก = ไปลงเอง'))
+        {showTab('timelog');return;}
+    }else{
+      // เช็คอินแบบไม่ระบุงาน = งานออฟฟิศ/ส่วนกลาง → เสนอ JR OFFICE ให้เลย
+      const officeJR=(window.CENTRAL_JRS||['JR OFFICE'])[0];
+      if(confirm('ยังไม่ได้ลงเวลาตาม JR\n\nวันนี้เป็นงานออฟฟิศ/ส่วนกลางใช่ไหม?\nตกลง = ลง '+officeJR+' ให้อัตโนมัติ ('+fmtT(rec.inTs)+' ถึงตอนนี้ หักพักเที่ยง)\nยกเลิก = ไปเลือกเลข JR เอง'))
+        autoJR=officeJR;
+      else{showTab('timelog');
+        const card=$('tl-job');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});
+          const box=card.closest('.card');if(box){box.style.transition='box-shadow .3s';box.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>box.style.boxShadow='',1800);}}
+        return;}
     }
-    if(!confirm('ยังไม่ได้ลงเวลาตาม JR — ให้ระบบลงให้อัตโนมัติ?\n\n'+autoJR+' · '+fmtT(rec.inTs)+' ถึงตอนนี้ (หักพักเที่ยง)\n\nตกลง = ลงให้เลย · ยกเลิก = ไปลงเอง'))
-      {showTab('timelog');return;}
   }
   if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คเอาท์โดยไม่มีพิกัด?'))return;
   const log=load(LS_LOG);const r=log.find(x=>x.id===rec.id);
