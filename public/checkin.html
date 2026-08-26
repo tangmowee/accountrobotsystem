@@ -588,7 +588,7 @@ function renderMyJobs(){
           +'<div class="muted" style="font-size:13px;white-space:nowrap;">'+d+'</div></div>'
         +'<div style="margin-top:3px;font-size:15px;">'+esc(jobName(j.name,j.ref))+'</div>'
         +'<div class="muted" style="display:flex;align-items:center;gap:6px;margin-top:9px;">'+RSCIcon.get('pin',15)+'<b>'+esc(j.site||'-')+'</b>'+map+'</div>'
-        +'<div class="muted" style="display:flex;align-items:center;gap:6px;margin-top:3px;">'+RSCIcon.get('clock',15)+(j.timeStart?tlHM(j.timeStart)+'–'+tlHM(j.timeEnd):'ตามที่นัด')+'</div>'
+        +'<div class="muted" style="display:flex;align-items:center;gap:6px;margin-top:3px;">'+RSCIcon.get('clock',15)+(j.timeStart?(tlHM(j.timeStart)+(j.timeEnd?'–'+tlHM(j.timeEnd):' น.')):'ตามที่นัด')+'</div>'
         +'<div style="margin-top:10px;height:8px;background:var(--dark2);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+pr+'%;background:var(--orange);"></div></div>'
         +'<div class="muted" style="font-size:12px;margin-top:4px;">ความคืบหน้า '+pr+'%</div>'
         +'<button class="btn gps" style="margin-top:12px;" onclick="goLogJR(\''+jrSafe+'\',\''+titleSafe+'\')">'+RSCIcon.get('receipt',18)+' ลงเวลางานนี้</button>'
