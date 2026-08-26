@@ -85,7 +85,7 @@ window.SALES_ADMIN_EMAIL = 'salesadmin@robotsystem.co.th';
 
 /* ส่งใบรายงานอัตโนมัติ (แนบ PDF) — ได้จากการ Deploy RSC-Mailer-AppsScript.gs
    ปล่อยว่าง = ปิดการส่งอัตโนมัติ (ระบบจะเปิดโปรแกรมอีเมลให้กดส่งเองแทน) */
-window.MAILER_URL    = '';
+window.MAILER_URL    = 'https://script.google.com/macros/s/AKfycbx5heuDhkDnyX3JF0Fa4YuFg1Od-fcLNZwHr_grm38hFvC2yGnMWPp3nWHNolPGzqRBHw/exec';
 window.MAILER_SECRET = 'rsc-connect-2569';   // ต้องตรงกับ SECRET ในสคริปต์
 
 /* ===== ข้อมูลบริษัท (ใช้บนหัวกระดาษใบรายงานบริการ) =====
