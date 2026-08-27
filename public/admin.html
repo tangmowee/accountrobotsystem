@@ -57,6 +57,8 @@ body{
 
 /* ข้อมูลมูลค่าเงิน — เห็นเฉพาะ HR/ผู้ดูแลระบบ */
 body.no-money .money{display:none !important}
+body.totals-only .money-total{display:revert !important}
+body.totals-only td.money-total,body.totals-only th.money-total{display:table-cell !important}
 .money-note{font-size:12px;color:var(--muted);font-style:italic;margin-top:6px}
 /* modern: line icons inline */
 .spark{opacity:.28}
@@ -475,8 +477,8 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
     <div class="h1">DL — งบที่ตั้งไว้ เทียบ ที่ทำจริง</div>
     <div class="sub">งบมาจากใบ EST (คอลัมน์ DL) · ที่ทำจริงมาจากชั่วโมงที่พนักงานลงตาม JR × ต้นทุนต่อชั่วโมงของแผนก · เบี้ยเลี้ยงแยกออกจากค่าแรง</div>
 
-    <div class="card">
-      <div class="card-h money-host"><div class="card-t"><span data-icon="plus" data-size="16"></span>ใส่งบ DL ของ JR</div>
+    <div class="card money">
+      <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>ใส่งบ DL ของ JR</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn sm" onclick="dlbTogglePaste()"><span data-icon="briefcase" data-size="16"></span>วางจาก Excel</button>
         </div>
@@ -513,13 +515,13 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         </div>
       </div>
       <div class="grid g4" style="margin-bottom:16px">
-        <div class="stat money"><div class="k">งบ DL รวม</div><div class="v mono" id="dlb-tb">0</div><div class="u">บาท (ราคาขาย)</div></div>
-        <div class="stat o money"><div class="k">ต้นทุนจริงถึงวันนี้</div><div class="v mono" id="dlb-ta">0</div><div class="u">บาท</div></div>
+        <div class="stat money money-total"><div class="k">งบ DL รวม</div><div class="v mono" id="dlb-tb">0</div><div class="u">บาท (ราคาขาย)</div></div>
+        <div class="stat o money money-total"><div class="k">ต้นทุนจริงถึงวันนี้</div><div class="v mono" id="dlb-ta">0</div><div class="u">บาท</div></div>
         <div class="stat a"><div class="k">คน-วัน งบ</div><div class="v mono" id="dlb-tmd">0</div><div class="u">คน-วัน</div></div>
         <div class="stat r"><div class="k">คน-วัน ที่ทำไป</div><div class="v mono" id="dlb-tamd">0</div><div class="u">คน-วัน</div></div>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>JR</th><th>งาน</th><th class="num">คน-วัน งบ</th><th class="num">ทำไป</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th><th class="num money">งบ (บาท)</th><th class="num money">ต้นทุนจริง</th><th></th></tr></thead>
+        <thead><tr><th>JR</th><th>งาน</th><th class="num">คน-วัน งบ</th><th class="num">ทำไป</th><th class="num">คงเหลือ</th><th class="num">ใช้ไป</th><th class="num money money-total">งบ (บาท)</th><th class="num money money-total">ต้นทุนจริง</th><th></th></tr></thead>
         <tbody id="dlb-body"><tr class="empty"><td colspan="9">ยังไม่มีงบ DL — ใส่ที่การ์ดด้านบน</td></tr></tbody>
       </table></div>
       <div class="note money">“ใช้ไป” เทียบเป็น <b>คน-วัน</b> (ชั่วโมงจริง ÷ 8) · “งบ (บาท)” = อัตราที่เสนอราคา · “ต้นทุนจริง” = ชั่วโมง × ต้นทุนต่อชั่วโมงของแผนก</div>
@@ -531,12 +533,12 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <select id="dlb-pick" onchange="renderDlb()" style="width:auto"><option value="">— ทุก JR —</option></select>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>แผนก</th><th class="num money">ต้นทุน/ชม.</th><th class="num">ชั่วโมงจริง</th><th class="num">คน-วัน</th><th class="num money">ต้นทุนจริง (บาท)</th><th class="num">สัดส่วน</th></tr></thead>
+        <thead><tr><th>แผนก</th><th class="num money">ต้นทุน/ชม.</th><th class="num">ชั่วโมงจริง</th><th class="num">คน-วัน</th><th class="num money money-total">ต้นทุนจริง (บาท)</th><th class="num">สัดส่วน</th></tr></thead>
         <tbody id="dlb-sec-body"><tr class="empty"><td colspan="6">ยังไม่มีข้อมูล</td></tr></tbody>
       </table></div>
     </div>
 
-    <div class="card money">
+    <div class="card money money-total">
       <div class="card-h"><div class="card-t"><span data-icon="cash" data-size="16"></span>เบี้ยเลี้ยง — งบ vs เบิกจริง</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn sm p" onclick="exportPdXlsx()"><span data-icon="download" data-size="16"></span>Excel</button>
@@ -751,7 +753,7 @@ function roleBadge(){const el=$('role-badge');if(!el)return;
   el.className='chip '+(isAdmin()?'in':'plan');}
 function canSee(key){if(seesAll())return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
 function canL1(key){if(isHR()||isAdmin())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
-function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin'||isAdmin();}
+function canL2(){const r=myRole();return r==='manager'||r==='director'||r==='hr'||r==='admin';}
 /* ชั่วโมงที่ 'นับได้จริง' — ถ้ายาวเกิน MAX_SHIFT_HOURS แปลว่าลืมกดเช็คเอาท์ จึงยังไม่นับ
    จนกว่าจะมีการขอแก้เวลาและอนุมัติ (กันชั่วโมง/ค่าแรงเพี้ยน) */
 const MAX_SHIFT_H=+(window.MAX_SHIFT_HOURS||16);
@@ -777,7 +779,9 @@ function onAuth(u){user=u;
   else{$('login').classList.add('on');$('user').textContent='';}}
 
 /* ===== nav ===== */
-function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+function showSec(id){
+  if(!canSec(id)){toast('ไม่มีสิทธิ์เข้าหน้านี้');id='today';}
+  if(id==='pay'&&!isHR())id='today';document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
   $('s-'+id).classList.add('on');document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
   if(id==='today')renderToday(); if(id==='planner')renderPlans(); if(id==='leave'){renderLeave();renderBalance();}
   if(id==='approve')renderApprovals(); if(id==='report')renderReport(); if(id==='people')renderEmps();
@@ -787,13 +791,45 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='dlb'){dlbInit();renderDlb();renderPerdiemMatch();}
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
-/* เห็นมูลค่าเงินได้เฉพาะ HR และผู้ดูแลระบบ — คนอื่นเห็นชั่วโมง/คน-วัน/สัดส่วนแผนกเท่านั้น */
-function canSeeMoney(){return isHR()||isAdmin();}
+/* ── สิทธิ์เห็นมูลค่าเงิน 3 ระดับ ──
+   full   = HR / Admin        → เห็นทุกอย่าง รวมเงินเดือนรายคนและอัตราต่อชั่วโมง
+   totals = ผู้จัดการ / ผอ.    → เห็นยอดรวมต่อโปรเจกต์และต่อแผนกเท่านั้น ไม่เห็นรายคน
+   none   = หัวหน้างาน/พนักงาน → เห็นเฉพาะชั่วโมงและคน-วัน */
+function moneyLevel(){
+  if(isHR()||isAdmin())return 'full';
+  const r=myRole();
+  if(r==='manager'||r==='director')return 'totals';
+  return 'none';
+}
+function canSeeMoney(){return moneyLevel()==='full';}
+function canSeeTotals(){return moneyLevel()!=='none';}
+/* แท็บที่แต่ละสิทธิ์เข้าถึงได้ — ซ่อนที่ไม่เกี่ยวออกให้เมนูสั้น */
+const SEC_ACCESS={
+  today:'all', srv:'all', fleet:'all',
+  planner:'lead', leave:'lead', approve:'lead', report:'lead', dl:'lead', jrall:'lead',
+  dlb:'exec',
+  pay:'hr', people:'hr'
+};
+function canSec(id){
+  const need=SEC_ACCESS[id]||'all', r=myRole();
+  if(need==='all')return true;
+  if(need==='hr')return isHR()||isAdmin();
+  if(need==='exec')return isHR()||isAdmin()||r==='manager'||r==='director';
+  return isHR()||isAdmin()||r==='manager'||r==='director'||r==='supervisor';
+}
 function applyRoleUI(){
-  const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';
-  document.body.classList.toggle('no-money',!canSeeMoney());
+  const lv=moneyLevel();
+  document.body.classList.toggle('no-money',lv!=='full');
+  document.body.classList.toggle('totals-only',lv==='totals');
   const n=$('dlb-money-note');
-  if(n)n.style.display=canSeeMoney()?'none':'block';
+  if(n){n.style.display=lv==='full'?'none':'block';
+    n.textContent=lv==='totals'
+      ?'เห็นยอดรวมต่อโปรเจกต์และต่อแผนก — ไม่แสดงอัตราต่อชั่วโมงและข้อมูลรายบุคคล'
+      :'แสดงเป็นชั่วโมงและคน-วันเท่านั้น — มูลค่าเป็นบาทเปิดให้เฉพาะ HR และผู้บริหาร';}
+  // ซ่อนแท็บที่ไม่มีสิทธิ์
+  document.querySelectorAll('.nav a[data-s]').forEach(a=>{
+    a.style.display=canSec(a.dataset.s)?'':'none';
+  });
   roleBadge();
 }
 
@@ -1410,11 +1446,11 @@ function paySheets(){const rows=(_pay||buildPay(_payYm)).filter(p=>p.present||p.
     ...rows.map(p=>[_payYm,p.disp,p.dept,p.present,+p.normalH.toFixed(1),+p.ot1.toFixed(1),+p.ot15.toFixed(1),+p.ot3.toFixed(1),Math.round(p.salary),+p.hourly.toFixed(2),Math.round(p.payOt),Math.round(p.total)])];
   return {rows,hours,money,all};}
 function exportPayXlsx(){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeMoney()){alert('รายงานเงินเดือนรายบุคคล เปิดให้เฉพาะ HR/ผู้ดูแลระบบ');return;}
 const D=paySheets();if(!D.rows.length){alert('ไม่มีข้อมูล');return;}
   saveXlsx('RSC_payroll_'+_payYm+'.xlsx',[{name:'ชั่วโมง',rows:D.hours},{name:'เงินเดือน',rows:D.money},{name:'รวม',rows:D.all}]);}
 function exportPayCsv(which){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeMoney()){alert('รายงานเงินเดือนรายบุคคล เปิดให้เฉพาะ HR/ผู้ดูแลระบบ');return;}
 const D=paySheets();if(!D.rows.length){alert('ไม่มีข้อมูล');return;}
   const set=which==='money'?D.money:which==='all'?D.all:D.hours;
   csvDownload('RSC_payroll_'+which+'_'+_payYm+'.csv',set[0],set.slice(1));}
@@ -1679,10 +1715,10 @@ const PD_HEAD=['JR','งบเบี้ยเลี้ยง','อนุมั�
 function pdRows(){return pdMatchRows().map(r=>[r.jr,Math.round(r.budget),Math.round(r.approved),
   Math.round(r.pending),Math.round(r.left),+r.pct.toFixed(0)]);}
 function exportPdCsv(){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeTotals()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR และผู้บริหาร\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
 const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_perdiem_budget_vs_actual.csv',PD_HEAD,r);}
 function exportPdXlsx(){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeTotals()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR และผู้บริหาร\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
 const r=pdRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
   saveXlsx('RSC_perdiem_budget_vs_actual.xlsx',[{name:'เบี้ยเลี้ยง งบ vs เบิก',rows:[PD_HEAD].concat(r)}]);}
 
@@ -1824,8 +1860,8 @@ function renderDlb(){
       +'<td class="num mono">'+amd.toFixed(1)+'</td>'
       +'<td class="num mono" style="color:'+(left<0?'var(--red)':'inherit')+'">'+left.toFixed(1)+'</td>'
       +'<td class="num"><span class="'+cls+'">'+pct.toFixed(0)+'%</span></td>'
-      +'<td class="num mono money">'+b.baht.toLocaleString()+'</td>'
-      +'<td class="num mono money">'+Math.round(a.baht).toLocaleString()+'</td>'
+      +'<td class="num mono money money-total">'+b.baht.toLocaleString()+'</td>'
+      +'<td class="num mono money money-total">'+Math.round(a.baht).toLocaleString()+'</td>'
       +'<td class="ctr"><button class="btn sm" onclick="document.getElementById(\'dlb-pick\').value=\''+esc(k)+'\';renderDlb()">ดูแผนก</button></td>'
       +'</tr>';
   }).join('');
@@ -1847,10 +1883,10 @@ function renderDlb(){
     const v=acc[k], meta=SECT[k];
     return '<tr>'
       +'<td>'+(meta?esc(meta.label)+'<div class="note">'+esc(meta.en)+'</div>':'<span style="color:var(--muted)">ไม่ได้กำหนดแผนกต้นทุน</span>')+'</td>'
-      +'<td class="num mono">'+(meta?meta.perHour.toLocaleString():'—')+'</td>'
+      +'<td class="num mono money">'+(meta?meta.perHour.toLocaleString():'—')+'</td>'
       +'<td class="num mono">'+v.hours.toFixed(1)+'</td>'
       +'<td class="num mono">'+(v.hours/8).toFixed(1)+'</td>'
-      +'<td class="num mono">'+Math.round(v.baht).toLocaleString()+'</td>'
+      +'<td class="num mono money money-total">'+Math.round(v.baht).toLocaleString()+'</td>'
       +'<td class="num mono">'+(totB?(v.baht/totB*100).toFixed(0):'0')+'%</td>'
       +'</tr>';}).join('');
 
@@ -1880,10 +1916,10 @@ function dlbRows(){
             b.md?+(amd/b.md*100).toFixed(0):0,Math.round(b.baht),Math.round(a.baht),Math.round(b.allowBaht)];});
 }
 function exportDlbCsv(){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeTotals()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR และผู้บริหาร\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
 const r=dlbRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_DL_budget_vs_actual.csv',DLB_HEAD,r);}
 function exportDlbXlsx(){
-  if(!canSeeMoney()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR/ผู้ดูแลระบบ\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
+  if(!canSeeTotals()){alert('รายงานมูลค่าเป็นบาท เปิดให้เฉพาะ HR และผู้บริหาร\n\nคุณส่งออกรายงานชั่วโมงได้ที่แท็บ "เวลาตาม JR"');return;}
 const r=dlbRows();if(!r.length){alert('ไม่มีข้อมูล');return;}
   saveXlsx('RSC_DL_budget_vs_actual.xlsx',[{name:'งบ vs จริง',rows:[DLB_HEAD].concat(r)}]);}
 
