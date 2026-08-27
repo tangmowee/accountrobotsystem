@@ -798,7 +798,7 @@ function showSec(id){
 function moneyLevel(){
   if(isHR()||isAdmin())return 'full';
   const r=myRole();
-  if(r==='manager'||r==='director')return 'totals';
+  if(r==='manager'||r==='director'||r==='supervisor')return 'totals';
   return 'none';
 }
 function canSeeMoney(){return moneyLevel()==='full';}
@@ -814,7 +814,7 @@ function canSec(id){
   const need=SEC_ACCESS[id]||'all', r=myRole();
   if(need==='all')return true;
   if(need==='hr')return isHR()||isAdmin();
-  if(need==='exec')return isHR()||isAdmin()||r==='manager'||r==='director';
+  if(need==='exec')return isHR()||isAdmin()||r==='manager'||r==='director'||r==='supervisor';
   return isHR()||isAdmin()||r==='manager'||r==='director'||r==='supervisor';
 }
 function applyRoleUI(){
