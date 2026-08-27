@@ -195,6 +195,7 @@
   </div>
 
   <section class="tab-sec on" id="sec-checkin">
+  <div id="forgot-warn" style="display:none;margin-bottom:14px;"></div>
   <!-- status -->
   <div class="card">
     <div class="clock" id="clock">--:--:--</div>
@@ -686,9 +687,28 @@ function siteDistanceHtml(){
 }
 
 /* ===== check-in / out (โครงสร้างข้อมูลเดียวกับแดชบอร์ด) ===== */
-function myOpen(){const n=myName();return load(LS_LOG).find(r=>!r.outTs&&r.name===n);}
+function myOpen(){const n=myName(),t=todayStr();
+  return load(LS_LOG).find(r=>!r.outTs&&r.name===n&&(r.date||dstr(new Date(r.inTs)))===t);}
+/* รายการที่ลืมเช็คเอาท์ของวันก่อน — ปิดเองไม่ได้ ต้องส่งคำขอแก้เวลา */
+function myForgot(){const n=myName(),t=todayStr();
+  return load(LS_LOG).filter(r=>!r.outTs&&r.name===n&&(r.date||dstr(new Date(r.inTs)))<t)
+    .sort((a,b)=>(b.inTs||0)-(a.inTs||0));}
 function refreshState(){
   const open=myOpen();
+  const forgot=myForgot();
+  const fw=$('forgot-warn');
+  if(fw){
+    if(forgot.length){
+      const r=forgot[0];
+      const d=new Date(r.inTs).toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+      fw.innerHTML='<div class="card" style="border:1px solid var(--red);background:#FEF2F2;padding:14px 16px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--red);">'+RSCIcon.get('alert',18)+'ลืมเช็คเอาท์วันที่ '+esc(d)+'</div>'
+        +'<div class="lbl" style="margin-top:6px;">เข้างาน '+fmtT(r.inTs)+' แต่ไม่มีเวลาออก — ชั่วโมงวันนั้นยังไม่ถูกนับ'
+        +(forgot.length>1?(' · ค้างอีก '+(forgot.length-1)+' วัน'):'')+'</div>'
+        +'<div style="margin-top:10px"><a onclick="tfOpen(\''+r.id+'\')" style="color:var(--red);font-weight:700;cursor:pointer;">ส่งคำขอแก้เวลา →</a></div></div>';
+      fw.style.display='block';
+    }else fw.style.display='none';
+  }
   const doneToday=dayRecs(todayStr()).some(r=>r.outTs);
   if(open){$('statusline').innerHTML=`<span class="chip in">กำลังปฏิบัติงาน · เข้า ${fmtT(open.inTs)}</span>`;$('btn-out').disabled=false;$('btn-in').disabled=true;}
   else if(doneToday){
