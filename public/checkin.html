@@ -513,6 +513,21 @@ function jrFromText(t){
   return m?m[0].toUpperCase().replace(/\s+/g,''):'';
 }
 function jrOf(j){return (j&&(j.ref||j.jr))||jrFromText(j&&(j.name||j.title))||'';}
+/* งานทั้งหมดที่ยังไม่เสร็จ — ไม่กรองวันที่ ใช้สำหรับค้นหา/เลือกเอง */
+function plannerJobsOpen(){
+  const t=todayStr();
+  if(plannerOff())return [];
+  return PLANNER.jobs.filter(j=>(j.progress||0)<100)
+    .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:jrOf(j),site:j.site||'',
+      time:j.timeStart||'',date:j.start||t,dateEnd:j.end||'',assignees:[],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
+}
+function allOpenJobs(){
+  const internal=load(LS_PLAN).filter(p=>p.status!=='done').map(p=>Object.assign({},p,{jr:jrOf(p)}));
+  const list=plannerJobsOpen().concat(internal);
+  const seen={};
+  return list.filter(p=>{const k=((p.jr||'')+'|'+jobName(p.title,p.jr)).toUpperCase().replace(/\s+/g,' ').trim();
+    if(seen[k])return false;seen[k]=1;return true;});
+}
 function plannerJobsAll(){
   const t=todayStr();
   if(plannerOff())return [];
@@ -622,7 +637,9 @@ function renderMyJobs(){
 
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
-function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
+let _uidN=0;
+/* id ต้องไม่ซ้ำข้ามการโหลดหน้า — performance.now() เริ่มนับใหม่ทุกครั้งจึงชนกันได้ */
+function uid(){_uidN++;return 'id'+Date.now().toString(36)+'-'+_uidN.toString(36)+'-'+Math.random().toString(36).slice(2,8);}
 function dstr(d){d=d||new Date();const p=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function mstr(d){return dstr(d).slice(0,7);}
 function todayStr(){return dstr();}
@@ -881,26 +898,37 @@ function renderJobs(){
       auto.style.display='block';pick.style.display='none';
     }else{auto.style.display='none';pick.style.display='block';}
   }
-  const oj=$('ot-job');if(oj){const c2=oj.value;oj.innerHTML='<option value="">— เลือกงาน —</option>'+
-    jobsAll.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(jobName(p.title,p.jr))} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
+  const oj=$('ot-job');if(oj){const c2=oj.value;
+    const seenOT={};const otList=jobsAll.concat(allOpenJobs()).filter(p=>{const k=((p.jr||'')+'|'+jobName(p.title,p.jr)).toUpperCase();if(seenOT[k])return false;seenOT[k]=1;return true;});
+    oj.innerHTML='<option value="">— เลือกงาน —</option>'+
+    otList.map(p=>`<option value="${p.id}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(jobName(p.title,p.jr))} — ${esc(p.site)}</option>`).join('');oj.value=c2;}
   // timelog: งานที่มี JR (เก็บ DL) + JR OFFICE (ส่วนกลาง OH) + พิมพ์เอง
   const uniqJR=uniq;
   const tj=$('tl-job');if(tj){const c3=tj.value;
     const jrJobs=uniqJR(jobsAll.filter(p=>p.jr));
+    const inList={};jrJobs.forEach(p=>inList[p.jr]=1);
+    const moreJR=allOpenJobs().filter(p=>p.jr&&!inList[p.jr]);
     tj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
       jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
+      (moreJR.length?('<optgroup label="งานอื่นทั้งหมด ('+moreJR.length+')">'+moreJR.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+'</optgroup>'):'')+
       CENTRAL_JRS.map(j=>`<option value="__central__" data-jr="${esc(j)}">🏢 ${esc(j)} — งานส่วนกลาง</option>`).join('')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     tj.value=c3;}
   // service report: เลือกงาน/JR
   const pj=$('pd-job');if(pj){const c5=pj.value;const jrJobs2=uniqJR(jobsAll.filter(p=>p.jr));
+    const inL2={};jrJobs2.forEach(p=>inL2[p.jr]=1);
+    const more2=allOpenJobs().filter(p=>p.jr&&!inL2[p.jr]);
     pj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
       jrJobs2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
+      (more2.length?('<optgroup label="งานอื่นทั้งหมด ('+more2.length+')">'+more2.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}" data-title="${esc(p.title)} @ ${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+'</optgroup>'):'')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     pj.value=c5;}
   const sj=$('sr-job');if(sj){const c4=sj.value;const jrJobs=uniqJR(jobsAll.filter(p=>p.jr));
-    sj.innerHTML='<option value="">— เลือกงาน/JR —</option>'+
+    const inL3={};jrJobs.forEach(p=>inL3[p.jr]=1);
+    const more3=allOpenJobs().filter(p=>p.jr&&!inL3[p.jr]);
+    sj.innerHTML='<option value="">— งานด่วน / ยังไม่มีเลข JR —</option>'+
       jrJobs.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+
+      (more3.length?('<optgroup label="งานอื่นทั้งหมด ('+more3.length+')">'+more3.map(p=>`<option value="${p.id}" data-jr="${esc(p.jr)}" data-site="${esc(p.site)}">${esc(p.jr)} · ${esc(optLabel(p))}</option>`).join('')+'</optgroup>'):'')+
       `<option value="__manual__">✏️ พิมพ์เลข JR เอง…</option>`;
     sj.value=c4;}
 }
@@ -1119,7 +1147,11 @@ function knownJRs(){
   return set;
 }
 function fillJRList(){const dl=$('jr-list');if(!dl)return;
-  dl.innerHTML=Object.keys(knownJRs()).sort().map(j=>'<option value="'+esc(j)+'">').join('');}
+  const rows=allOpenJobs().filter(p=>p.jr).map(p=>({jr:p.jr,label:jobName(p.title,p.jr)+(p.site?' — '+p.site:'')}));
+  const seen={},out=[];
+  rows.forEach(r=>{if(seen[r.jr])return;seen[r.jr]=1;out.push('<option value="'+esc(r.jr)+'">'+esc(r.label)+'</option>');});
+  Object.keys(knownJRs()).sort().forEach(j=>{if(!seen[j])out.push('<option value="'+esc(j)+'"></option>');});
+  dl.innerHTML=out.join('');}
 /* ตรวจเลขที่พิมพ์เอง: คืนเลขที่ใช้ได้ หรือ null ถ้าไม่ผ่าน/ผู้ใช้ยกเลิก */
 function vetManualJR(raw){
   const jr=normJR(raw);

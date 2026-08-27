@@ -197,7 +197,7 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
 
   <!-- ===== TODAY ===== -->
   <section class="sec on" id="s-today">
-    <div class="h1">ภาพรวมวันนี้</div>
+    <div class="h1">ภาพรวมวันนี้ <span id="role-badge" class="chip plan" style="font-size:12px;vertical-align:middle;margin-left:6px"></span></div>
     <div class="sub" id="today-sub">—</div>
     <div class="grid g4" style="margin-bottom:18px">
       <div class="stat g"><div class="k">เข้างานแล้ว</div><div class="v" id="t-in">0</div><div class="u">คน</div><div class="spark"><span data-icon="check" data-size="18"></span></div></div>
@@ -231,6 +231,14 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <div class="f"><label>ทีม / ผู้รับผิดชอบ</label><input id="pl-owner" placeholder="ทีมวิศวกรรม A"></div>
         <div class="f"><label>มอบหมายให้ (เลือกหลายคน — เว้นว่าง = งานกลาง)</label><select id="pl-assignees" multiple size="4"></select></div>
         <div class="grid g2"><div class="f"><label>วันที่เริ่ม</label><input type="date" id="pl-date"></div><div class="f"><label>ถึงวันที่ (งานหลายวัน)</label><input type="date" id="pl-date2"></div></div>
+        <div class="f"><label>ช่วงเวลา</label>
+          <div id="pl-slots" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn sm" data-slot="full" onclick="plSlot('full')">ทั้งวัน</button>
+            <button type="button" class="btn sm" data-slot="am" onclick="plSlot('am')">เช้า</button>
+            <button type="button" class="btn sm" data-slot="pm" onclick="plSlot('pm')">บ่าย</button>
+            <button type="button" class="btn sm" data-slot="custom" onclick="plSlot('custom')">กำหนดเอง</button>
+          </div>
+        </div>
         <div class="grid g2"><div class="f"><label>เวลาเริ่ม</label><input type="time" id="pl-time"></div><div class="f"><label>เวลาสิ้นสุด</label><input type="time" id="pl-time2"></div></div>
         <div class="f"><label>พิกัดไซต์งาน</label><input id="pl-geo" placeholder="lat, lng"><div style="margin-top:8px"><button class="btn sm" onclick="plGeo()"><span data-icon="satellite" data-size="16"></span>ดึงพิกัด</button></div></div>
         <button class="btn p" style="width:100%" onclick="addPlan()" id="pl-save">บันทึกแผนงาน</button>
@@ -708,7 +716,9 @@ function save(k,arr){
 function needMonth(ym){if(!ym||!window.RSCStore)return;SHARDED.forEach(k=>RSCStore.ensureMonth(k,ym));}
 
 /* ===== helpers ===== */
-function uid(){return 'id'+Math.floor(performance.now()*1000).toString(36)+Math.floor(1e6*Math.abs(Math.tan(performance.now()))).toString(36);}
+let _uidN=0;
+/* id ต้องไม่ซ้ำข้ามการโหลดหน้า — performance.now() เริ่มนับใหม่ทุกครั้งจึงชนกันได้ */
+function uid(){_uidN++;return 'id'+Date.now().toString(36)+'-'+_uidN.toString(36)+'-'+Math.random().toString(36).slice(2,8);}
 function dstr(d){d=d||new Date();const p=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function mstr(d){return dstr(d).slice(0,7);}
 function todayStr(){return dstr();}
@@ -725,11 +735,19 @@ function myName(){return user?shortName(user.email):'';}
 /* ===== roles / visibility / approval ===== */
 function myRole(){if(MODE==='local'&&!empOf(myName()))return 'hr';const e=empOf(myName());if(e&&e.role)return e.role;if(!load(LS_EMP).length)return 'hr';if((window.HR_USERS||[]).includes(myName()))return 'hr';return 'employee';}
 function isHR(){const r=myRole();return r==='hr'||r==='admin';}
+function isAdmin(){return myRole()==='admin';}
+/* admin แก้ไข/ลบ/อนุมัติได้ทุกอย่าง โดยไม่ติดลำดับสายบังคับบัญชา */
+function canEditAll(){return isAdmin();}
 function roleLabel(r){return {employee:'พนักงาน',supervisor:'หัวหน้างาน',manager:'ผู้จัดการ',director:'ผู้อำนวยการ',hr:'HR',admin:'Admin'}[r]||r||'พนักงาน';}
 function seesAll(){const r=myRole();return r==='hr'||r==='admin'||r==='manager'||r==='director';}
+/* ป้ายบอกสิทธิ์ที่มุมบน — ให้รู้ว่ากำลังใช้สิทธิ์ระดับไหนอยู่ */
+function roleBadge(){const el=$('role-badge');if(!el)return;
+  const r=myRole();
+  el.textContent=roleLabel(r)+(isAdmin()?' · แก้ไขได้ทุกอย่าง':'');
+  el.className='chip '+(isAdmin()?'in':'plan');}
 function canSee(key){if(seesAll())return true;if(myRole()==='supervisor'){const e=empOf(key);return key===myName()||(e&&e.supervisor===myName());}return key===myName();}
-function canL1(key){if(isHR())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
-function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin';}
+function canL1(key){if(isHR()||isAdmin())return true;const e=empOf(key);return (myRole()==='supervisor'||myRole()==='manager')&&e&&e.supervisor===myName();}
+function canL2(){const r=myRole();return r==='manager'||r==='hr'||r==='admin'||isAdmin();}
 /* ชั่วโมงที่ 'นับได้จริง' — ถ้ายาวเกิน MAX_SHIFT_HOURS แปลว่าลืมกดเช็คเอาท์ จึงยังไม่นับ
    จนกว่าจะมีการขอแก้เวลาและอนุมัติ (กันชั่วโมง/ค่าแรงเพี้ยน) */
 const MAX_SHIFT_H=+(window.MAX_SHIFT_HOURS||16);
@@ -765,7 +783,7 @@ function showSec(id){if(id==='pay'&&!isHR())id='today';document.querySelectorAll
   if(id==='dlb'){dlbInit();renderDlb();renderPerdiemMatch();}
   if(id==='pay')loadPay(renderPay);
   if(id==='fleet'){renderFleet();renderBookings();renderAvail();}}
-function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';}
+function applyRoleUI(){const nav=$('nav-pay');if(nav)nav.style.display=isHR()?'':'none';roleBadge();}
 
 /* ===== งาน Planner (สด — อ่านอย่างเดียว) ===== */
 const PLANNER_URL_A = window.PLANNER_URL || '';
@@ -970,17 +988,33 @@ function fillAssignees(){const sel=$('pl-assignees');if(!sel)return;const arr=lo
 function assigneeNames(list){if(!list||!list.length)return '<span class="chip all">ทุกคน</span>';
   return list.map(v=>{const e=empOf(v);return esc((e&&e.name)||v);}).join(', ');}
 function plGeo(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>$('pl-geo').value=`${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`,e=>alert(e.message),{enableHighAccuracy:true});}
-let _plEdit=null;
+let _plEdit=null,_plSlot='full';
+/* ช่วงเวลามาตรฐานของบริษัท — ทั้งวัน / เช้า / บ่าย / กำหนดเอง */
+const PL_SLOTS={full:['08:30','17:30'],am:['08:30','12:00'],pm:['13:00','17:30']};
+function plSlot(k){
+  _plSlot=k;
+  document.querySelectorAll('#pl-slots [data-slot]').forEach(b=>b.classList.toggle('p',b.dataset.slot===k));
+  const t=PL_SLOTS[k];
+  if(t){$('pl-time').value=t[0];$('pl-time2').value=t[1];}
+  const cus=k==='custom';
+  $('pl-time').readOnly=!cus;$('pl-time2').readOnly=!cus;
+  $('pl-time').style.opacity=cus?'1':'.75';$('pl-time2').style.opacity=cus?'1':'.75';
+}
+function slotOf(a,b){
+  for(const k in PL_SLOTS){if(PL_SLOTS[k][0]===a&&PL_SLOTS[k][1]===b)return k;}
+  return 'custom';
+}
+const SLOT_TH={full:'ทั้งวัน',am:'เช้า',pm:'บ่าย',custom:'กำหนดเอง'};
 const PL_FIELDS=['pl-title','pl-jr','pl-site','pl-owner','pl-geo','pl-time','pl-time2','pl-date2'];
 function plFormData(){
   const d1=$('pl-date').value||todayStr(), d2=($('pl-date2').value||'').trim();
   return {title:$('pl-title').value.trim(),jr:($('pl-jr').value||'').trim(),site:$('pl-site').value.trim(),
     owner:$('pl-owner').value.trim(),date:d1,dateEnd:(d2&&d2>=d1)?d2:'',
     time:$('pl-time').value||'09:00',timeEnd:$('pl-time2').value||'',
-    geo:$('pl-geo').value.trim(),assignees:Array.from($('pl-assignees').selectedOptions).map(o=>o.value)};
+    slot:_plSlot,geo:$('pl-geo').value.trim(),assignees:Array.from($('pl-assignees').selectedOptions).map(o=>o.value)};
 }
 function plClear(){PL_FIELDS.forEach(i=>{if($(i))$(i).value='';});$('pl-assignees').selectedIndex=-1;}
-function plCancelEdit(){_plEdit=null;plClear();$('pl-save').textContent='บันทึกแผนงาน';$('pl-cancel').style.display='none';}
+function plCancelEdit(){_plEdit=null;plClear();plSlot('full');$('pl-save').textContent='บันทึกแผนงาน';$('pl-cancel').style.display='none';}
 function addPlan(){
   const f=plFormData();
   if(!f.title){alert('กรอกชื่องาน');return;}
@@ -1003,6 +1037,7 @@ function editPlan(id){
   $('pl-title').value=r.title||'';$('pl-jr').value=r.jr||'';$('pl-site').value=r.site||'';
   $('pl-owner').value=r.owner||'';$('pl-geo').value=r.geo||'';
   $('pl-date').value=r.date||'';$('pl-date2').value=r.dateEnd||'';
+  plSlot(r.slot||slotOf(r.time||'',r.timeEnd||''));
   $('pl-time').value=r.time||'';$('pl-time2').value=r.timeEnd||'';
   fillAssignees();
   Array.from($('pl-assignees').options).forEach(o=>o.selected=(r.assignees||[]).includes(o.value));
@@ -1026,12 +1061,14 @@ function planRows(){const st={plan:'วางแผน',in:'กำลังท�
       p.owner||'',p.geo||'',st[p.status]||p.status||'']);}
 function exportPlanCsv(){const r=planRows();if(!r.length){alert('ไม่มีข้อมูล');return;}csvDownload('RSC_แผนงาน.csv',PLAN_HEAD,r);}
 function exportPlanXlsx(){const r=planRows();if(!r.length){alert('ไม่มีข้อมูล');return;}saveXlsx('RSC_แผนงาน.xlsx',[{name:'แผนงาน',rows:[PLAN_HEAD].concat(r)}]);}
-function renderPlans(){renderPlannerMode();fillAssignees();const p=load(LS_PLAN);$('pl-count').textContent=p.length+' งาน';const body=$('pl-body');
+function renderPlans(){renderPlannerMode();fillAssignees();
+  if(!document.querySelector('#pl-slots .p'))plSlot(_plSlot);const p=load(LS_PLAN);$('pl-count').textContent=p.length+' งาน';const body=$('pl-body');
   if(!p.length){body.innerHTML='<tr class="empty"><td colspan="8">ยังไม่มีแผนงาน</td></tr>';return;}
   const cm={plan:'<span class="chip plan">วางแผน</span>',in:'<span class="chip in">กำลังทำ</span>',done:'<span class="chip out">เสร็จสิ้น</span>'};
   body.innerHTML=p.map(x=>{
     const span=x.dateEnd&&x.dateEnd!==x.date?(' – '+fmtD(x.dateEnd)):'';
-    const tm=(x.time||'')+(x.timeEnd?('–'+x.timeEnd):'')+' น.';
+    const sl=x.slot||slotOf(x.time||'',x.timeEnd||'');
+    const tm=(SLOT_TH[sl]||'')+' · '+(x.time||'')+(x.timeEnd?('–'+x.timeEnd):'')+' น.';
     const pg=+x.progress||0;
     return `<tr><td><b>${fmtD(x.date)}${span}</b><div class="note">${tm}</div></td><td><b>${esc(x.title)}</b></td>
     <td>${x.jr?'<span class="mono">'+esc(x.jr)+'</span>':'<span class="note">ส่วนกลาง</span>'}</td>
