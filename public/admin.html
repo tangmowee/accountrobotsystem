@@ -57,6 +57,8 @@ body{
 
 /* ข้อมูลมูลค่าเงิน — เห็นเฉพาะ HR/ผู้ดูแลระบบ */
 body.no-money .money{display:none !important}
+body.readonly-emp .emp-edit{display:none !important}
+body.readonly-emp #s-people .grid.g12{grid-template-columns:1fr}
 body.totals-only .money-total{display:revert !important}
 body.totals-only td.money-total,body.totals-only th.money-total{display:table-cell !important}
 .money-note{font-size:12px;color:var(--muted);font-style:italic;margin-top:6px}
@@ -645,9 +647,10 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
   <!-- ===== PEOPLE ===== -->
   <section class="sec" id="s-people">
     <div class="h1">ทะเบียนพนักงาน</div>
-    <div class="sub">เพิ่มพนักงาน + แผนก — ชื่อผู้ใช้ต้องตรงกับที่ใช้ล็อกอิน</div>
+    <div class="sub">รายชื่อและช่องทางติดต่อ — ทุกคนดูได้ · เพิ่ม/แก้ไข/ลาออก/ลบ เฉพาะ HR
+      <span id="emp-ro-note" style="display:none;color:var(--orange2);font-weight:600;margin-left:6px">โหมดดูอย่างเดียว</span></div>
     <div class="grid g12">
-      <div class="card">
+      <div class="card emp-edit">
         <div class="card-h"><div class="card-t"><span data-icon="plus" data-size="16"></span>เพิ่มพนักงาน</div></div>
         <div class="f"><label>ชื่อผู้ใช้ / ชื่อเล่น (ใช้ล็อกอิน)</label><input id="em-user" placeholder="joe"></div>
         <div class="f"><label>ชื่อ–สกุล</label><input id="em-name" placeholder="สมชาย ใจดี"></div>
@@ -673,16 +676,18 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
         <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>พนักงานทั้งหมด</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="tag" id="em-count">0 คน</span>
-            <button class="btn sm" onclick="exportEmp()">💾 สำรอง</button>
-            <button class="btn sm" onclick="document.getElementById('em-import').click()"><span data-icon="download" data-size="16"></span>นำเข้า JSON</button>
-            <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
-            <button class="btn sm" onclick="bulkCreateLogins()">🔑 สร้างรหัสล็อกอินทั้งหมด</button>
-            <button class="btn sm" onclick="seedNicksFromPlanner()">🏷️ ดึงชื่อเล่นจาก Planner</button>
-            <button class="btn sm" onclick="migrateMonthly()">🗄️ ย้ายข้อมูลเป็นรายเดือน</button>
+            <span class="emp-edit" style="display:contents">
+              <button class="btn sm" onclick="exportEmp()"><span data-icon="download" data-size="15"></span>สำรอง</button>
+              <button class="btn sm" onclick="document.getElementById('em-import').click()"><span data-icon="download" data-size="15"></span>นำเข้า JSON</button>
+              <input type="file" id="em-import" accept="application/json,.json" style="display:none" onchange="importEmpFile(this)">
+              <button class="btn sm" onclick="bulkCreateLogins()">สร้างรหัสล็อกอินทั้งหมด</button>
+              <button class="btn sm" onclick="seedNicksFromPlanner()">ดึงชื่อเล่นจาก Planner</button>
+              <button class="btn sm" onclick="migrateMonthly()">ย้ายข้อมูลเป็นรายเดือน</button>
+            </span>
           </div>
         </div>
         <div class="tw"><table>
-          <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>แผนก</th><th>ระดับ</th><th>หัวหน้า</th><th></th></tr></thead>
+          <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>แผนก</th><th>ระดับ</th><th>หัวหน้า</th><th class="emp-edit"></th></tr></thead>
           <tbody id="em-body"><tr class="empty"><td colspan="6">ยังไม่มีพนักงาน</td></tr></tbody>
         </table></div>
       </div>
@@ -808,7 +813,7 @@ const SEC_ACCESS={
   today:'all', srv:'all', fleet:'all',
   planner:'lead', leave:'lead', approve:'lead', report:'lead', dl:'lead', jrall:'lead',
   dlb:'exec',
-  pay:'hr', people:'hr'
+  pay:'hr', people:'all'
 };
 function canSec(id){
   const need=SEC_ACCESS[id]||'all', r=myRole();
@@ -821,6 +826,9 @@ function applyRoleUI(){
   const lv=moneyLevel();
   document.body.classList.toggle('no-money',lv!=='full');
   document.body.classList.toggle('totals-only',lv==='totals');
+  const roEmp=!(isHR()||isAdmin());
+  document.body.classList.toggle('readonly-emp',roEmp);
+  const rn=$('emp-ro-note'); if(rn)rn.style.display=roEmp?'':'none';
   const n=$('dlb-money-note');
   if(n){n.style.display=lv==='full'?'none':'block';
     n.textContent=lv==='totals'
@@ -1460,7 +1468,9 @@ function fillSupOptions(){const sel=$('em-sup');if(!sel)return;const cur=sel.val
   const sups=load(LS_EMP).filter(e=>e.active!==false&&(e.role==='supervisor'||e.role==='manager'||e.role==='hr'));
   sel.innerHTML='<option value="">— ไม่มี —</option>'+sups.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name||e.email)} · ${roleLabel(e.role)}</option>`).join('');
   sel.value=cur;}
-function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
+function addEmp(){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const u=$('em-user').value.trim(),n=$('em-name').value.trim();if(!u&&!n){alert('กรอกชื่อผู้ใช้หรือชื่อ');return;}
   const arr=load(LS_EMP);const ex=u?arr.find(x=>x.email===u):null;
   const rec={id:(ex&&ex.id)||uid(),email:u,name:n,dept:$('em-dept').value.trim(),pos:$('em-pos').value.trim(),side:$('em-side').value||'office',role:$('em-role').value,supervisor:$('em-sup').value,
     nick:$('em-nick').value.trim(),phone:$('em-phone').value.trim(),cemail:$('em-cemail').value.trim(),line:$('em-line').value.trim(),costSection:$('em-cost').value,active:(ex?ex.active!==false:true)};
@@ -1468,7 +1478,9 @@ function addEmp(){const u=$('em-user').value.trim(),n=$('em-name').value.trim();
   toast(ex?('✅ แก้ไข '+(n||u)+' สำเร็จ'):('✅ บันทึกพนักงาน '+(n||u)+' สำเร็จ'));
   ['em-user','em-name','em-dept','em-pos','em-nick','em-phone','em-cemail','em-line'].forEach(i=>$(i).value='');$('em-cost').value='';$('em-role').value='employee';$('em-side').value='office';$('em-sup').value='';
   renderEmps();renderBalance();renderReport();fillAssignees();}
-function delEmp(id){if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
+function delEmp(id){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+if(!confirm('ลบพนักงานนี้?'))return;save(LS_EMP,load(LS_EMP).filter(x=>x.id!==id));renderEmps();renderBalance();fillAssignees();}
 /* สร้างบัญชีล็อกอิน (email/password) ให้พนักงานทั้งหมดในคราวเดียว — ทำจากเบราว์เซอร์ HR
    ใช้ Firebase secondary app จึงไม่กระทบบัญชี HR ที่กำลังล็อกอินอยู่ · รหัสผ่านเริ่มต้น DEFAULT_PW */
 const DEFAULT_PW = window.DEFAULT_PASSWORD || 'Rsc@2569';
@@ -1506,7 +1518,9 @@ async function bulkCreateLogins(){
     +(fail?'\n\n💡 ถ้ายังพลาด = เน็ตบล็อก googleapis — ลองเน็ตมือถือ 5G แล้วกดซ้ำ (ระบบจะข้ามคนที่มีแล้ว)':'')
     +(errs.length?('\n\nรายการที่พลาด:\n'+errs.slice(0,8).join('\n')+(errs.length>8?'\n…':'')):''));
 }
-function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
+function resignEmp(id){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(!e)return;const key=e.email||e.name;
   const subs=arr.filter(x=>x.supervisor===key);
   const newSup=e.supervisor||'';const newSupName=newSup?((empOf(newSup)||{}).name||newSup):'(ไม่มี — ต้องกำหนดหัวหน้าใหม่ให้ลูกน้องเอง)';
   let msg='ทำเครื่องหมาย “'+(e.name||key)+'” เป็นลาออก?';
@@ -1515,9 +1529,15 @@ function resignEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(
   e.active=false;subs.forEach(s=>{s.supervisor=newSup;});
   save(LS_EMP,arr);renderEmps();renderBalance();renderReport();fillAssignees();
   alert('บันทึกการลาออกแล้ว ✅'+(subs.length?('\nย้ายลูกน้อง '+subs.length+' คนไปขึ้นกับ '+newSupName):''));}
-function restoreEmp(id){const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(e){e.active=true;save(LS_EMP,arr);renderEmps();fillAssignees();}}
-function exportEmp(){const data={employees:load(LS_EMP)};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='rsc-employees.json';a.click();}
-function importEmpFile(input){const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();
+function restoreEmp(id){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const arr=load(LS_EMP);const e=arr.find(x=>x.id===id);if(e){e.active=true;save(LS_EMP,arr);renderEmps();fillAssignees();}}
+function exportEmp(){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const data={employees:load(LS_EMP)};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='rsc-employees.json';a.click();}
+function importEmpFile(input){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();
   r.onload=e=>{try{const d=JSON.parse(e.target.result);const list=Array.isArray(d)?d:(d.employees||[]);
     const arr=load(LS_EMP);const byKey=new Map(arr.map(x=>[x.email||x.name,x]));let add=0,upd=0;
     list.forEach(x=>{if(!x)return;const key=x.email||x.name;if(!key)return;const ex=byKey.get(key);
@@ -1540,9 +1560,11 @@ function renderEmps(){fillCostOptions();const arr=load(LS_EMP);const body=$('em-
     <td class="mono" style="font-size:12px;color:var(--muted)">${esc(e.email)||'—'}</td><td>${esc(e.dept)||'—'}<div class="note">${e.side==='factory'?RSCIcon.get('factory',14)+' โรงงาน':RSCIcon.get('building',14)+' สำนักงาน'}${(()=>{const k=empSection(e);const m=(window.COST_SECTIONS||{})[k];return m?(' · '+esc(m.label)+(e.costSection?'':' (auto)')):'';})()}</div></td>
     <td><span class="${rc[e.role]||'chip out'}">${roleLabel(e.role)}</span></td>
     <td>${sup?esc(sup.name||sup.email):(e.supervisor?esc(e.supervisor):'<span style="color:var(--dim)">—</span>')}</td>
-    <td class="ctr" style="white-space:nowrap"><button class="btn sm" onclick="editEmp('${e.id}')">แก้</button> ${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
+    <td class="ctr emp-edit" style="white-space:nowrap"><button class="btn sm" onclick="editEmp('${e.id}')">แก้</button> ${off?`<button class="btn sm" onclick="restoreEmp('${e.id}')">คืนสถานะ</button>`:`<button class="btn sm" onclick="resignEmp('${e.id}')">ลาออก</button>`} <button class="btn sm no" onclick="delEmp('${e.id}')">ลบ</button></td></tr>`;}).join('');fillAssignees();}
 /* ย้ายข้อมูลเดิม (เอกสารก้อนเดียว) → แยกรายเดือน — กดครั้งเดียว ปลอดภัย กดซ้ำได้ */
 function migrateMonthly(){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+
   if(!isHR()){alert('เฉพาะ HR เท่านั้น');return;}
   if(!window.RSCStore){alert('ยังโหลดโมดูลไม่เสร็จ — รีเฟรชหน้าอีกครั้ง');return;}
   if(!confirm('ย้ายข้อมูลเช็คอิน + ลงเวลา JR เป็นแบบรายเดือน?\n\n• ข้อมูลไม่หาย (ย้าย ไม่ใช่ลบ)\n• ทำครั้งเดียว กดซ้ำได้ไม่มีผลเสีย\n• หลังย้าย ระบบจะเร็วขึ้นและไม่ชนเพดาน 1MB'))return;
@@ -1552,13 +1574,17 @@ function migrateMonthly(){
     if(++done===SHARDED.length){alert('เสร็จแล้ว\n\n'+report.join('\n'));renderAll();}
   }));
 }
-function editEmp(id){const e=load(LS_EMP).find(x=>x.id===id);if(!e)return;
+function editEmp(id){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+const e=load(LS_EMP).find(x=>x.id===id);if(!e)return;
   $('em-user').value=e.email||'';$('em-name').value=e.name||'';$('em-dept').value=e.dept||'';$('em-pos').value=e.pos||'';
   $('em-side').value=e.side||'office';$('em-role').value=e.role||'employee';$('em-sup').value=e.supervisor||'';
   fillCostOptions();$('em-cost').value=e.costSection||'';$('em-nick').value=e.nick||'';$('em-phone').value=e.phone||'';$('em-cemail').value=e.cemail||'';$('em-line').value=e.line||'';
   document.getElementById('s-people').scrollIntoView({behavior:'smooth',block:'start'});}
 /* seed ชื่อเล่นจาก Planner ครั้งเดียว (จับคู่ชื่อจริง) — ช่วงเปลี่ยนผ่าน */
 function seedNicksFromPlanner(){
+  if(!isHR()&&!isAdmin()){alert('แก้ไขทะเบียนพนักงานได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+
   if(!PLANNER_A.people.length){alert('ยังไม่มีข้อมูล Planner — เปิดแท็บ "งาน Planner" กดรีเฟรชก่อน');return;}
   const strip=s=>(s||'').replace(/^(นาย|นางสาว|นาง)\s*/,'').replace(/\s+/g,' ').trim();
   const byName={};PLANNER_A.people.forEach(p=>{byName[strip(p.fullName)]=p;});
