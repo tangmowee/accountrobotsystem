@@ -482,6 +482,7 @@
 <script>
 /* ===== state ===== */
 let MODE='local', db=null, auth=null, user=null, currentGeo=null;
+const LS_SET='rsc_settings';
 const LS_LOG='rsc_checkin_log', LS_PLAN='rsc_planner', LS_LEAVE='rsc_leave', LS_OT='rsc_ot', LS_VEH='rsc_vehicles', LS_BOOK='rsc_bookings', LS_TL='rsc_timelog', LS_SR='rsc_service', LS_PD='rsc_perdiem', LS_TF='rsc_timefix';
 const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_BOOK]:[],[LS_TL]:[],[LS_SR]:[],[LS_PD]:[],[LS_TF]:[]};
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
@@ -514,11 +515,13 @@ function jrFromText(t){
 function jrOf(j){return (j&&(j.ref||j.jr))||jrFromText(j&&(j.name||j.title))||'';}
 function plannerJobsAll(){
   const t=todayStr();
+  if(plannerOff())return [];
   return PLANNER.jobs.filter(j=>(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
     .map(j=>({id:'plnr_'+j.id,title:j.name||j.ref||'งาน',jr:jrOf(j),site:j.site||'',
       time:j.timeStart||'',date:t,assignees:[],geo:'',status:'plan',_live:true,mapLink:j.mapLink||''}));
 }
 function plannerJobsForMe(){
+  if(plannerOff())return [];
   const pid=myPlannerId();if(!pid)return [];const t=todayStr();
   return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)
       &&(!j.start||j.start<=t)&&(!j.end||j.end>=t)&&((j.progress||0)<100))
@@ -535,22 +538,28 @@ function showTab(id){
   if(id==='more'){renderDirectory();renderSRList();if($('sr-date')&&!$('sr-date').value)$('sr-date').value=todayStr();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
+function plannerOff(){const a=load(LS_SET);return !!((a&&a[0])||{}).plannerOff;}
 function fetchPlanner(){
   if(!PLANNER_URL)return;
+  if(plannerOff()){PLANNER.people=[];PLANNER.jobs=[];return;}   // ย้ายมาอยู่ในระบบนี้แล้ว
   fetch(PLANNER_URL).then(r=>r.json()).then(d=>{
     if(d&&d.ok){PLANNER.people=d.people||[];PLANNER.jobs=d.jobs||[];renderJobs();renderMyJobs();const c=$('sec-cal');if(c&&c.classList.contains('on'))renderCalendar();}
   }).catch(e=>console.warn('planner fetch failed',e));
 }
 /* งานที่ได้รับมอบหมาย (วันนี้ + ที่ยังไม่จบ) */
 function plannerMyJobs(){
+  if(plannerOff())return [];
   const pid=myPlannerId();if(!pid)return [];const t=todayStr();
   return PLANNER.jobs.filter(j=>Array.isArray(j.people)&&j.people.includes(pid)&&(j.progress||0)<100&&(!j.end||j.end>=t));
 }
 /* งานที่สร้างในระบบเอง (แอดมิน → Planner, เก็บใน Firebase) — ทำงานได้แม้ไม่มี RSC Planner ภายนอก */
 function internalMyJobs(){
   const me=myName(),t=todayStr();
-  return load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=t)&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
-    .map(p=>({id:p.id,ref:p.jr||'',name:p.title||'',site:p.site||'',start:p.date||t,end:p.date||t,timeStart:p.time||'',timeEnd:'',progress:p.status==='done'?100:0,people:[],mapLink:'',_internal:true}));
+  // งานหลายวันต้องขึ้นทุกวันตลอดช่วง (date .. dateEnd)
+  return load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
+    .map(p=>({id:p.id,ref:jrOf(p),name:p.title||'',site:p.site||'',start:p.date||t,end:p.dateEnd||p.date||t,
+      timeStart:p.time||'',timeEnd:p.timeEnd||'',progress:+p.progress||(p.status==='done'?100:0),
+      people:[],mapLink:p.mapLink||'',geo:p.geo||'',_internal:true}));
 }
 let _tlManualTitle='';
 function goLogJR(jr,title){
@@ -635,7 +644,7 @@ function initFb(){
   catch(e){console.error(e);return false;}
 }
 function refreshAllViews(){renderJobs();renderMyLog();renderMyLeave();renderMyOT();refreshBookVeh();renderMyBookings();renderMyTL();renderSRList();renderMyPD();refreshState();refreshBell();}
-function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service','rsc_perdiem','rsc_timefix'].forEach(k=>{
+function listeners(){['rsc_planner','rsc_leave','rsc_ot','rsc_vehicles','rsc_bookings','rsc_service','rsc_perdiem','rsc_timefix','rsc_settings'].forEach(k=>{
   db.collection('rsc').doc(k).onSnapshot(s=>{state[k]=(s.exists&&s.data().items)?s.data().items:[];refreshAllViews();},e=>console.error(e));
 });
   // เช็คอิน + ลงเวลา JR → เก็บแยกรายเดือน (โหลด 3 เดือนล่าสุด)
@@ -832,7 +841,8 @@ function renderJobs(){
   const sel=$('job'),cur=sel.value,today=todayStr(),me=myName();
   // งานสดจาก RSC Planner (เฉพาะที่มอบหมายให้เรา วันนี้) + แผนงานในแอดมิน
   // เห็นเฉพาะจ๊อปที่มอบหมายให้เรา หรือจ๊อปกลาง (ไม่ระบุผู้รับ)
-  const internal=load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)
+  const inSpan=p=>!p.date||(p.dateEnd?(p.date<=today&&today<=p.dateEnd):p.date>=today);
+  const internal=load(LS_PLAN).filter(p=>p.status!=='done'&&inSpan(p)
     &&(!p.assignees||!p.assignees.length||p.assignees.includes(me)))
     .map(p=>Object.assign({},p,{jr:jrOf(p)}));   // เลข JR อาจอยู่ในชื่องาน
   const sig=p=>((p.jr||'')+'|'+jobName(p.title,p.jr)).toUpperCase().replace(/\s+/g,' ').trim();
@@ -841,7 +851,7 @@ function renderJobs(){
   // งานอื่นทั้งหมดที่ไม่ได้มอบหมายให้เรา — เผื่อถูกเรียกไปช่วยงานหน้างาน เลือกลงเองได้
   const seen={},seenSig={};jobs.forEach(p=>{seen[p.id]=1;seenSig[sig(p)]=1;});
   const others=plannerJobsAll()
-    .concat(load(LS_PLAN).filter(p=>p.status!=='done'&&(!p.date||p.date>=today)).map(p=>Object.assign({},p,{jr:jrOf(p)})))
+    .concat(load(LS_PLAN).filter(p=>p.status!=='done'&&inSpan(p)).map(p=>Object.assign({},p,{jr:jrOf(p)})))
     .filter(p=>{const k=sig(p);if(seen[p.id]||seenSig[k])return false;seen[p.id]=1;seenSig[k]=1;return true;});
   const optLabel=p=>{
     const nm=jobName(p.title,p.jr);
@@ -857,7 +867,7 @@ function renderJobs(){
   sel.value=cur;
   const jobsAll=jobs.concat(others);
   // เลือกงานให้อัตโนมัติ — เรียงความมั่นใจ: อยู่ใกล้ไซต์ > ทุกงานไซต์เดียวกัน > มีงานเดียว > งานที่ใช้ล่าสุด
-  const todayJobs=jobs.concat(others).filter(p=>(p.date||today)===today);
+  const todayJobs=jobs.concat(others).filter(p=>!p.date||p.date===today||(p.dateEnd&&p.date<=today&&today<=p.dateEnd));
   const auto=$('job-auto'),pick=$('job-pick');
   if(auto&&pick){
     const g=_autoPick(todayJobs);
@@ -1717,6 +1727,7 @@ else{
   try{state[LS_SR]=JSON.parse(localStorage.getItem(LS_SR))||[];}catch(e){}
   try{state[LS_PD]=JSON.parse(localStorage.getItem(LS_PD))||[];}catch(e){}
   try{state[LS_TF]=JSON.parse(localStorage.getItem(LS_TF))||[];}catch(e){}
+  try{state[LS_SET]=JSON.parse(localStorage.getItem(LS_SET))||[];}catch(e){}
   try{EMP=JSON.parse(localStorage.getItem('rsc_employees'))||[];}catch(e){}
   fetchPlanner();
   $('login').classList.remove('show');
