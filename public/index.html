@@ -96,9 +96,12 @@ const APPS=[
   {href:'admin',        ico:'chart', accent:'#22D3EE', title:'แดชบอร์ด HR', desc:'ภาพรวมวันนี้ · Planner · อนุมัติลา/OT · รายงาน · ชั่วโมงตาม JR · พนักงาน', roles:['supervisor','manager','hr','director','admin']},
   {href:'RSC-JR360.html', ico:'grid', accent:'#FB923C', title:'JR 360 (ผู้บริหาร)', desc:'ภาพรวมงานตามเลข JR · เปรียบเทียบ DL งบ vs จริง · สรุปรายปี', roles:['manager','hr','director','admin']},
   {href:'finance.html', ico:'wallet', accent:'#34D399', title:'แดชบอร์ดการเงิน', desc:'สรุปการเงินบริษัท (ข้อมูลลับ — เฉพาะผู้บริหาร/บัญชี)', roles:['manager','hr','director','admin','finance']},
+  {href:'quote.html',   ico:'receipt', accent:'#A78BFA', title:'ใบเสนอราคา', desc:'ออกใบเสนอราคาตามฟอร์ม FM-SM-01 · ทะเบียน Win/Loss · ฐานลูกค้า', roles:['manager','hr','director','admin'], depts:['Sales & Marketing','Key account']},
 ];
 let BOOTSTRAP=false; // ยังไม่มีข้อมูลพนักงาน (ตั้งค่าครั้งแรก) → ปลดล็อกชั่วคราวให้เข้าไป import ได้
-const can=a=>a.roles==='*'||(MODE==='local')||BOOTSTRAP||a.roles.includes(ROLE);
+let DEPT='';
+/* บางระบบเปิดตามแผนกด้วย (เช่น ใบเสนอราคา = ฝ่ายขาย) ไม่ใช่ตามระดับสิทธิ์อย่างเดียว */
+const can=a=>a.roles==='*'||(MODE==='local')||BOOTSTRAP||a.roles.includes(ROLE)||(a.depts||[]).includes(DEPT);
 
 function render(){
   $('greet').textContent=NAME?('สวัสดี, '+NAME):'ยินดีต้อนรับ';
@@ -127,10 +130,10 @@ function onAuth(u){
     const emps=(s.exists&&s.data().items)||[];const key=short(u.email);
     BOOTSTRAP=emps.length===0; // ฐานข้อมูลพนักงานว่าง = ยังไม่ได้ตั้งค่า
     const me=emps.find(x=>x.email===key||x.email===u.email||short(x.email)===key);
-    ROLE=(me&&me.role)||'employee';NAME=(me&&me.name)||key;
+    ROLE=(me&&me.role)||'employee';NAME=(me&&me.name)||key;DEPT=(me&&me.dept)||'';
     $('who').innerHTML=esc(NAME)+' · '+esc(ROLE)+' · <a onclick="doLogout()">ออก</a>';
     render();
-  }).catch(()=>{ROLE='employee';NAME=short(u.email);render();});
+  }).catch(()=>{ROLE='employee';NAME=short(u.email);DEPT='';render();});
 }
 
 /* init */

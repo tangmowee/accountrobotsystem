@@ -1,8 +1,8 @@
 /* RSC Connect — service worker (network-first, precache all app pages) */
-const C = 'rscc-v19';
+const C = 'rscc-v20';
 const SHELL = [
-  './', './index.html', './checkin.html', './admin.html', './finance.html', './RSC-JR360.html',
-  './firebase-config.js', './store.js', './brand.js', './icons.js', './srprint.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'
+  './', './index.html', './checkin.html', './admin.html', './finance.html', './RSC-JR360.html', './quote.html',
+  './firebase-config.js', './store.js', './brand.js', './icons.js', './srprint.js', './qtprint.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'
 ];
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -20,6 +20,7 @@ function pageForPath(pathname) {
   if (p === '/checkin' || p === '/checkin.html') return './checkin.html';
   if (p === '/finance' || p === '/finance.html') return './finance.html';
   if (p === '/jr360' || p === '/RSC-JR360.html') return './RSC-JR360.html';
+  if (p === '/quote' || p === '/quote.html') return './quote.html';
   return null;
 }
 self.addEventListener('fetch', e => {

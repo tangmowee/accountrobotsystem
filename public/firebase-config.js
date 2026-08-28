@@ -95,11 +95,13 @@ window.MAILER_SECRET = 'rsc-connect-2569';   // ต้องตรงกับ S
 window.COMPANY = {
   nameEn : 'ROBOT SYSTEM CO., LTD.',
   nameTh : 'บริษัท โรบอท ซิสเต็ม จำกัด',
-  address: '',                                  // ที่อยู่บริษัท
-  phone  : '02-174367-69',                      // เบอร์โทรบริษัท
+  address: '899/23 หมู่ที่ 21 ซอยที่ดินไทย ถนนคลองอาเสี่ย ต.บางพลีใหญ่ อ.บางพลี จ.สมุทรปราการ 10540',
+  addressEn: '899/23 Moo 21, Soi Teedinthai, Klong A Zeer Rd., Bangpleeyai, Bangplee, Samutprakarn 10540 Thailand',
+  phone  : '0-2173-4367-69',                    // เบอร์โทรบริษัท (ตามหัวกระดาษ FM-SM-01)
+  fax    : '0-2173-4370',
   email  : 'info@robotsystem.co.th',
   web    : 'www.robotsystem.co.th',
-  taxId  : '',                                  // เลขประจำตัวผู้เสียภาษี
+  taxId  : '0105553001667',                     // เลขประจำตัวผู้เสียภาษี
   logo   : ''                                   // โลโก้จริง (data URI / URL)
 };
 
@@ -153,3 +155,60 @@ window.PERDIEM_TYPES = [
 /* ถ้าเช็คอิน–เช็คเอาท์ห่างกันเกินนี้ = ผิดปกติ (น่าจะลืมกดออก)
    ระบบจะเตือนและ "ไม่นับ" ชั่วโมงส่วนเกินเข้ารายงาน จนกว่าจะแก้เวลาให้ถูก */
 window.MAX_SHIFT_HOURS = 16;
+
+/* ============================================================
+   ใบเสนอราคา (Quotation) — ตามแบบฟอร์มบริษัท FM-SM-01 Rev.00 15/08/2566
+   ต้นแบบ: ทะเบียน "Master_ทะเบียนใบเสนอราคา RSC" + ใบเสนอราคาที่ออกจริง
+   เลขที่ใบ = QT + ปี พ.ศ. 2 หลัก + หมวด + ลำดับ 3 หลัก  เช่น QT69-SE-197
+   แก้ไข = ต่อท้าย R.1, R.2 … (เลขฐานเดิม)
+   ============================================================ */
+window.QT_FORM_CODE = 'FM-SM-01 Rev.00 15/08/2566';
+
+/* หมวดใบเสนอราคา — ตัวอักษรกลางเลขที่ใบ และ Type ที่ลงทะเบียน */
+window.QT_CATEGORIES = [
+  { id:'PT', label:'โปรเจกต์ในประเทศ',  type:'PT_PROJECT-DOMESTIC' },
+  { id:'PE', label:'โปรเจกต์ต่างประเทศ', type:'PE_PROJECT-INTER' },
+  { id:'SE', label:'บริการ / Engineering fee', type:'SE_SERVICE/ENGINEERING FEE' },
+  { id:'AT', label:'อะไหล่ / ซื้อมาขายไป',   type:'AT_ACCESSORIES/TRADING' }
+];
+
+/* Application ที่ใช้จริงในทะเบียน — แยกตามหมวด (พิมพ์เพิ่มเองได้) */
+window.QT_APPLICATIONS = {
+  PT: ['PT-Handling','PT-Machine Tending','PT-Palletizer','PT-De Palletizer','PT-Pick&Place',
+       'PT-Welding','PT-Polishing','PT-Vision System','PT-Modify','PT-Other'],
+  PE: ['PE-Handling','PE-Machine Tending','PE-Other'],
+  SE: ['SE-Service','SE-Inspection','SE-Training','SE-Other'],
+  AT: ['AT-Spare parts-Robot','AT-Spare parts-Other','AT-AppliedRobotics','AT-Leoni-Bizlink',
+       'AT-Mech Mind','AT-ROBOT','AT-Other']
+};
+
+/* สถานะใบเสนอราคาในทะเบียน (ใช้สรุป Win/Loss รายไตรมาส) */
+window.QT_STATUS = [
+  { id:'quoted',     label:'เสนอราคา',                 reg:'On going',                  tone:'plan' },
+  { id:'win',        label:'ได้งาน (Win)',              reg:'Win-Price',                 tone:'in'   },
+  { id:'loss',       label:'เสียงาน (Loss-Price)',      reg:'Loss-Price',                tone:'absent' },
+  { id:'loss_conn',  label:'เสียงาน (Connection)',      reg:'Loss-Connection',           tone:'absent' },
+  { id:'postpone',   label:'เลื่อน / ตั้งงบปีหน้า',      reg:'Postpone-Set Budget',       tone:'late' },
+  { id:'cancel_rev', label:'ยกเลิก — ออกใบใหม่แทน',     reg:'Cancelled-Change Quotation',tone:'late' },
+  { id:'cancel_sys', label:'ยกเลิก — เปลี่ยนระบบ',       reg:'Cancelled-Change System',   tone:'late' },
+  { id:'cancel_self',label:'ยกเลิก — ลูกค้าทำเอง',       reg:'Cancelled-ลูกค้าทำเอง',      tone:'late' },
+  { id:'cancel',     label:'ยกเลิก — โปรเจกต์ไม่เกิด',   reg:'Cancelled-Project ไม่เกิด',  tone:'absent' }
+];
+
+/* ประเภทต้นทุนของแต่ละบรรทัด — ใช้แยก DM/DL/OH ตอนเทียบกับต้นทุนจริงใน JR 360 */
+window.QT_COST_TYPES = [
+  { id:'DM', label:'วัสดุ/ซื้อมา (DM)' },
+  { id:'DL', label:'ค่าแรงทางตรง (DL)' },
+  { id:'OH', label:'ค่าใช้จ่ายอื่น (OH)' }
+];
+
+/* หน่วยนับที่ใช้บ่อยในใบเสนอราคา */
+window.QT_UNITS = ['SET','PC','JOB','LOT','UNIT','M','DAY','MONTH'];
+
+/* ข้อความมาตรฐานท้ายใบ — เติมให้อัตโนมัติเมื่อเปิดใบใหม่ (แก้รายใบได้) */
+window.QT_TERMS = {
+  noted  : 'Deposit will not be able to reimburse in any case since those payments are for produce the goods.',
+  latepay: '2% per month on the outstanding amount from the payment due date.',
+  vatRate: 7,          // อัตราภาษีมูลค่าเพิ่ม (%)
+  validDays: 30        // ใบเสนอราคายืนราคากี่วัน (ใช้คำนวณ Valid Until)
+};

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f7f8fa">
+<title>RSC Connect — ใบเสนอราคา</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="firebase-config.js"></script>
+<script src="brand.js"></script>
+<script src="icons.js"></script>
+<script src="store.js"></script>
+<script src="qtprint.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#eef1f5; --bg2:#f7f8fa; --panel:#ffffff; --panel2:#f4f6f9;
+  --line:rgba(0,0,0,0.12); --line2:rgba(0,0,0,0.07);
+  --text:#1b1e24; --muted:#586173; --dim:#8b93a1;
+  --orange:#F97316; --orange2:#D35400; --cyan:#0891b2; --green:#059669; --red:#dc2626; --amber:#b45309; --violet:#7c3aed;
+  --r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:16px;line-height:1.6;font-variant-numeric:tabular-nums}
+body{min-height:100vh;background:radial-gradient(900px 500px at 12% -8%,rgba(249,115,22,.08),transparent 60%),linear-gradient(180deg,var(--bg2),var(--bg));background-attachment:fixed}
+
+.top{background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 6px rgba(0,0,0,.05);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:sticky;top:0;z-index:40}
+.top .l{display:flex;align-items:center;gap:12px;min-width:0}
+.top .u{font-size:14px;color:var(--muted);white-space:nowrap}
+.top .u a{color:var(--orange2);cursor:pointer}
+.chip{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.in{color:var(--green);border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.08)}
+.chip.plan{color:var(--cyan);border-color:rgba(8,145,178,.4);background:rgba(8,145,178,.08)}
+.chip.late{color:var(--amber);border-color:rgba(180,83,9,.4);background:rgba(180,83,9,.08)}
+.chip.absent{color:var(--red);border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08)}
+
+.nav{max-width:1240px;margin:0 auto;padding:14px 18px 0;display:flex;gap:8px;flex-wrap:wrap}
+.nav a{cursor:pointer;font-size:15px;font-weight:600;color:var(--muted);padding:9px 16px;border-radius:11px;border:1px solid transparent;display:flex;align-items:center;gap:7px}
+.nav a:hover{background:var(--panel2)}
+.nav a.active{background:#fff;border-color:var(--line);color:var(--orange2);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.wrap{max-width:1240px;margin:0 auto;padding:16px 18px 70px}
+.sec{display:none}.sec.on{display:block}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:16px}
+.card>h3{font-size:15px;font-weight:700;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>h3 .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fi{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fi.wide{grid-column:1/-1}
+label{font-size:12.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+input,select,textarea{width:100%;background:var(--panel2);border:1.5px solid var(--line);border-radius:9px;color:var(--text);
+  font-family:inherit;font-size:15px;padding:9px 11px;outline:none;font-variant-numeric:tabular-nums}
+textarea{resize:vertical;min-height:62px;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(8,145,178,.12)}
+input[readonly]{background:#eceff4;color:var(--muted)}
+.hint{font-size:12.5px;color:var(--dim)}
+
+.btn{font-family:inherit;font-size:15px;font-weight:600;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--orange)}
+.btn.p{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.g{background:var(--green);border-color:var(--green);color:#fff}
+.btn.d{color:var(--red);border-color:rgba(220,38,38,.35)}
+.btn.s{font-size:13.5px;padding:6px 11px}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{text-align:left;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 8px;border-bottom:1.5px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.r,th.r{text-align:right}td.c,th.c{text-align:center}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.empty{text-align:center;color:var(--dim);padding:24px 8px;font-size:14.5px}
+
+/* ตารางรายการในใบเสนอราคา */
+.items input,.items select,.items textarea{font-size:14px;padding:6px 8px;border-radius:7px}
+.items td{padding:6px 5px}
+.items tr.grp>td{background:#f2f5f9}
+.items .num{width:100%;text-align:right}
+.rowbtn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:2px 5px;line-height:1}
+.rowbtn:hover{color:var(--red)}
+
+/* แผงยอดรวม */
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.sum .b{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.sum .b .k{font-size:12px;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;font-weight:700}
+.sum .b .v{font-size:20px;font-weight:700;margin-top:2px}
+.sum .b.hi{background:linear-gradient(180deg,#fff7ed,#ffedd5);border-color:rgba(249,115,22,.35)}
+.sum .b.gp{background:linear-gradient(180deg,#ecfdf5,#d1fae5);border-color:rgba(5,150,105,.35)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:#111418;color:#fff;
+  padding:12px 20px;border-radius:12px;font-size:15px;opacity:0;transition:.22s;z-index:300;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+
+.overlay{position:fixed;inset:0;background:rgba(238,241,245,.97);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.on{display:flex}
+.lcard{width:100%;max-width:390px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 6px 24px rgba(0,0,0,.10)}
+.lcard h2{font-size:23px;letter-spacing:2px;margin-bottom:2px}
+.lcard .s{color:var(--muted);font-size:14px;margin-bottom:12px}
+.err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+
+@media(max-width:720px){.wrap{padding:12px 12px 70px}.card{padding:14px}.nav{padding:12px 12px 0}}
+</style>
+</head>
+<body>
+
+<!-- เข้าสู่ระบบ -->
+<div class="overlay" id="login">
+  <div class="lcard">
+    <div data-brand="badge" data-brand-size="40" style="margin-bottom:14px"></div>
+    <h2>RSC Connect</h2><div class="s">ใบเสนอราคา — เข้าสู่ระบบ</div>
+    <label>ชื่อผู้ใช้ / รหัสพนักงาน</label><input id="l-user" autocomplete="username" placeholder="เช่น 541223">
+    <label style="margin-top:10px">รหัสผ่าน</label><input id="l-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn p" style="width:100%;justify-content:center;margin-top:14px" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="err" id="l-err"></div>
+  </div>
+</div>
+
+<div class="top">
+  <div class="l"><div data-brand="header" data-brand-size="28"></div><span class="chip" id="role-badge"></span></div>
+  <div style="display:flex;align-items:center;gap:10px"><span class="chip" id="conn">LOCAL</span><span class="u" id="user"></span></div>
+</div>
+
+<div class="nav">
+  <a data-s="edit" onclick="showSec('edit')" class="active">เขียนใบเสนอราคา</a>
+  <a data-s="reg"  onclick="showSec('reg')">ทะเบียน</a>
+  <a data-s="cust" onclick="showSec('cust')">ลูกค้า</a>
+</div>
+
+<div class="wrap">
+
+<div class="card" id="no-access" style="display:none">
+  <h3>ไม่มีสิทธิ์เข้าใช้งาน</h3>
+  <div class="hint">ใบเสนอราคาเป็นข้อมูลราคาและต้นทุน — เปิดให้เฉพาะฝ่ายขาย (Sales &amp; Marketing / Key account)
+  และผู้บริหาร/HR เท่านั้น · หากต้องการสิทธิ์ ให้ HR ปรับแผนกหรือระดับสิทธิ์ในทะเบียนพนักงาน</div>
+</div>
+
+<!-- ========== เขียนใบเสนอราคา ========== -->
+<div class="sec on" id="s-edit">
+
+  <div class="card">
+    <h3>ใบเสนอราคา
+      <span class="chip" id="q-stamp"></span>
+      <span class="sp">
+        <button class="btn" onclick="newQuote()">+ ใบใหม่</button>
+        <button class="btn" onclick="reviseQuote()" id="b-rev">สร้างฉบับแก้ไข (R.)</button>
+        <button class="btn" onclick="previewQuote()">ดูตัวอย่าง / พิมพ์</button>
+        <button class="btn p" onclick="saveQuote()">บันทึก</button>
+      </span>
+    </h3>
+    <div class="f">
+      <div class="fi"><label>หมวด</label>
+        <select id="q-category" onchange="onCategory()"></select></div>
+      <div class="fi"><label>เลขที่ใบเสนอราคา</label>
+        <input id="q-no" placeholder="QT69-SE-198" oninput="cur.autoNo=false"></div>
+      <div class="fi"><label>วันที่</label>
+        <input type="date" id="q-date" onchange="onQuoteDate()"></div>
+      <div class="fi"><label>ยืนราคาถึง</label>
+        <input type="date" id="q-valid"></div>
+      <div class="fi"><label>Type (ทะเบียน)</label>
+        <input id="q-type" readonly></div>
+      <div class="fi"><label>Application</label>
+        <input id="q-application" list="dl-app" placeholder="เช่น SE-Service">
+        <datalist id="dl-app"></datalist></div>
+      <div class="fi wide"><label>ชื่อโปรเจกต์ / งาน</label>
+        <input id="q-project" placeholder="เช่น MCL2 Exit Sleeve Loading Robot"></div>
+      <div class="fi"><label>พนักงานขาย</label>
+        <select id="q-sales" onchange="onSalesPick()"></select></div>
+      <div class="fi"><label>อีเมลพนักงานขาย</label>
+        <input id="q-sales-email" placeholder="name@robotsystem.co.th"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ลูกค้า
+      <span class="sp"><button class="btn s" onclick="showSec('cust')">จัดการฐานลูกค้า →</button></span>
+    </h3>
+    <div class="f">
+      <div class="fi wide"><label>เลือกจากฐานลูกค้า</label>
+        <input id="cust-search" list="dl-cust" placeholder="พิมพ์ชื่อบริษัทเพื่อค้นหา แล้วเลือกจากรายการ" oninput="pickCustomer()">
+        <datalist id="dl-cust"></datalist>
+        <div class="hint" id="cust-hint">ยังไม่มีข้อมูลลูกค้าในระบบ — นำเข้าได้ที่แท็บ “ลูกค้า”</div></div>
+      <div class="fi wide"><label>ชื่อบริษัท (ที่พิมพ์บนใบ)</label><input id="cust-name"></div>
+      <div class="fi wide"><label>ที่อยู่</label><textarea id="cust-addr" rows="2"></textarea></div>
+      <div class="fi"><label>ผู้ติดต่อ (Attn)</label><input id="cust-contact"></div>
+      <div class="fi"><label>เบอร์โทร</label><input id="cust-phone"></div>
+      <div class="fi"><label>มือถือ</label><input id="cust-mobile"></div>
+      <div class="fi"><label>อีเมล</label><input id="cust-email"></div>
+      <div class="fi"><label>เลขผู้เสียภาษี</label><input id="cust-tax"></div>
+      <div class="fi"><label>เครดิต</label><input id="cust-credit" placeholder="30 วัน"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>รายการ
+      <span class="sp">
+        <button class="btn s" onclick="addItem('item')">+ รายการ</button>
+        <button class="btn s" onclick="addItem('group')">+ หัวข้อกลุ่ม</button>
+      </span>
+    </h3>
+    <div class="scroll">
+      <table class="items">
+        <thead><tr>
+          <th style="width:34px" class="c">#</th>
+          <th style="min-width:230px">รายการ / รายละเอียด</th>
+          <th style="width:110px">Part No.</th>
+          <th style="width:70px" class="c">จำนวน</th>
+          <th style="width:88px">หน่วย</th>
+          <th style="width:110px" class="r">ต้นทุน/หน่วย</th>
+          <th style="width:110px" class="r">ราคา/หน่วย</th>
+          <th style="width:110px" class="r">รวม</th>
+          <th style="width:96px" class="cost-col">ต้นทุน</th>
+          <th style="width:56px" class="c">พิมพ์</th>
+          <th style="width:34px"></th>
+        </tr></thead>
+        <tbody id="items-body"></tbody>
+      </table>
+    </div>
+    <div class="hint" style="margin-top:8px">พิมพ์รายละเอียดย่อยในช่อง “รายละเอียด” ขึ้นบรรทัดใหม่ = 1 บูลเล็ตบนใบเสนอราคา · ปิด “พิมพ์” เพื่อเก็บบรรทัดไว้คิดต้นทุนแต่ไม่แสดงให้ลูกค้า</div>
+  </div>
+
+  <div class="card">
+    <h3>ราคาและส่วนลด</h3>
+    <div class="f" style="margin-bottom:14px">
+      <div class="fi"><label>รูปแบบแสดงราคา</label>
+        <select id="q-pricemode" onchange="recalc()">
+          <option value="1">ละเอียดทุกรายการ</option>
+          <option value="2">เหมารวมราคาเดียว</option>
+        </select></div>
+      <div class="fi"><label>PROJECT จำนวน</label><input id="q-pqty" value="1" oninput="recalc()"></div>
+      <div class="fi"><label>PROJECT หน่วย</label><input id="q-punit" value="LOT" oninput="recalc()"></div>
+      <div class="fi"><label>ส่วนลด (บาท)</label><input id="q-discount" value="0" oninput="recalc()"></div>
+      <div class="fi"><label>ภาษีมูลค่าเพิ่ม</label>
+        <select id="q-vat" onchange="recalc()">
+          <option value="1">มี VAT 7%</option>
+          <option value="0">ไม่มี VAT</option>
+        </select></div>
+      <div class="fi"><label>สกุลเงิน</label>
+        <select id="q-currency"><option>THB</option><option>USD</option><option>EUR</option><option>JPY</option></select></div>
+    </div>
+    <div class="sum" id="sum-box"></div>
+  </div>
+
+  <div class="card">
+    <h3>หมายเหตุและเงื่อนไข</h3>
+    <div class="f">
+      <div class="fi wide"><label>Remark (ท้ายรายการ — ขึ้นบรรทัดใหม่ = 1 ข้อ)</label>
+        <textarea id="q-footer" rows="4" placeholder="- Excluding Main Air and Power supply&#10;- Warranty: 12 months after Delivery at the Customer Site."></textarea></div>
+      <div class="fi wide"><label>Noted</label><textarea id="c-noted" rows="2"></textarea></div>
+      <div class="fi"><label>End User</label><input id="c-enduser"></div>
+      <div class="fi"><label>Term of Delivery</label><input id="c-delivery" placeholder="To be discussed"></div>
+      <div class="fi wide"><label>Late Payment</label><input id="c-latepay"></div>
+    </div>
+    <div style="margin-top:14px">
+      <h3 style="margin-bottom:8px">งวดการชำระเงิน
+        <span class="sp"><button class="btn s" onclick="addPay()">+ งวด</button></span></h3>
+      <div class="scroll"><table class="items">
+        <thead><tr><th style="width:56px" class="c">งวด</th><th style="width:80px" class="c">%</th>
+          <th>เงื่อนไข</th><th style="width:110px" class="c">เครดิต (วัน)</th><th style="width:34px"></th></tr></thead>
+        <tbody id="pay-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ผู้เสนอราคาและผู้อนุมัติ</h3>
+    <div class="f">
+      <div class="fi"><label>ผู้เสนอราคา</label><select id="sig-eng" onchange="onSigPick('eng')"></select></div>
+      <div class="fi"><label>ชื่อบนใบ (อังกฤษ)</label><input id="sig-eng-name"></div>
+      <div class="fi"><label>ตำแหน่ง</label><input id="sig-eng-title" value="Sale Engineer"></div>
+      <div class="fi"><label>ผู้อนุมัติ</label><select id="sig-mgr" onchange="onSigPick('mgr')"></select></div>
+      <div class="fi"><label>ชื่อบนใบ (อังกฤษ)</label><input id="sig-mgr-name"></div>
+      <div class="fi"><label>ตำแหน่ง</label><input id="sig-mgr-title" value="Manager Sale Department"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ผลการเสนอราคา (ลงทะเบียน)</h3>
+    <div class="f">
+      <div class="fi"><label>สถานะ</label><select id="q-status"></select></div>
+      <div class="fi"><label>โอกาสได้งาน (%)</label><input id="q-prob" placeholder="50"></div>
+      <div class="fi"><label>เลขที่ PO</label><input id="q-po"></div>
+      <div class="fi"><label>วันที่รับ PO</label><input type="date" id="q-podate"></div>
+      <div class="fi"><label>เลขที่งาน (JR)</label><input id="q-jr" placeholder="JR-26-01-003"></div>
+      <div class="fi"><label>ราคาปิดจริง (บาท)</label><input id="q-final" placeholder="ปล่อยว่าง = ใช้ยอดก่อน VAT"></div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn p" onclick="saveQuote()">บันทึก</button>
+      <button class="btn" onclick="previewQuote()">ดูตัวอย่าง / พิมพ์</button>
+      <button class="btn" onclick="downloadQuote()">ดาวน์โหลด .html</button>
+      <button class="btn d" onclick="deleteQuote()">ลบใบนี้</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ทะเบียน ========== -->
+<div class="sec" id="s-reg">
+  <div class="card">
+    <h3>ทะเบียนใบเสนอราคา
+      <span class="sp">
+        <select id="r-year" onchange="renderReg()" style="width:auto"></select>
+        <select id="r-status" onchange="renderReg()" style="width:auto"></select>
+        <input id="r-q" placeholder="ค้นหา เลขที่ / ลูกค้า / งาน" oninput="renderReg()" style="width:230px">
+        <button class="btn s" onclick="exportReg()">ส่งออก CSV</button>
+      </span>
+    </h3>
+    <div class="sum" id="reg-sum" style="margin-bottom:14px"></div>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:120px">เลขที่</th><th style="width:90px">วันที่</th><th>ลูกค้า / งาน</th>
+        <th style="width:110px">Application</th><th class="r" style="width:110px">ราคา</th>
+        <th class="r" style="width:90px">ต้นทุน</th><th class="r" style="width:70px">GP%</th>
+        <th style="width:130px">สถานะ</th><th style="width:120px">JR</th><th style="width:120px"></th>
+      </tr></thead>
+      <tbody id="reg-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ========== ลูกค้า ========== -->
+<div class="sec" id="s-cust">
+  <div class="card">
+    <h3>ฐานข้อมูลลูกค้า
+      <span class="sp">
+        <input id="c-q" placeholder="ค้นหาชื่อ / เลขผู้เสียภาษี" oninput="renderCust()" style="width:230px">
+        <button class="btn s" onclick="editCust('')">+ เพิ่มลูกค้า</button>
+      </span>
+    </h3>
+    <div class="scroll"><table>
+      <thead><tr><th style="width:100px">รหัส</th><th>ชื่อบริษัท</th><th style="width:150px">ผู้ติดต่อ</th>
+        <th style="width:120px">โทร</th><th style="width:110px">เครดิต</th><th style="width:130px">Tax ID</th><th style="width:80px"></th></tr></thead>
+      <tbody id="cust-body"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>นำเข้าจาก Google Sheet (CSV)</h3>
+    <div class="hint" style="margin-bottom:10px">
+      เปิดชีต <b>Customer_ฐานข้อมูลลูกค้า RSC</b> → ไฟล์ → ดาวน์โหลด → <b>CSV</b> แล้ววางเนื้อไฟล์ลงช่องนี้ (หรือเลือกไฟล์)<br>
+      หัวคอลัมน์ที่อ่าน: รหัสลูกค้า · ชื่อบริษัท (ไทย) · ชื่อบริษัท (อังกฤษ) · ที่อยู่ (ไทย) · ผู้ติดต่อ (ไทย) · E-mail · เบอร์โทรบริษัท · เบอร์โทร มือถือ · เครดิต · Tax ID
+    </div>
+    <input type="file" accept=".csv,text/csv" onchange="pickCsv(this)" style="margin-bottom:10px">
+    <textarea id="cust-csv" rows="5" placeholder="วางเนื้อไฟล์ CSV ที่นี่"></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn p" onclick="importCust(false)">นำเข้า (เพิ่ม/อัปเดตตามรหัส)</button>
+      <button class="btn d" onclick="importCust(true)">แทนที่ทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<datalist id="dl-unit"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   RSC Connect — ใบเสนอราคา (Quotation)
+   ยึดตามแบบฟอร์มบริษัท FM-SM-01 และทะเบียน "Master_ทะเบียนใบเสนอราคา RSC"
+   เลขที่ใบ: QT + ปี พ.ศ. 2 หลัก + หมวด + ลำดับ 3 หลัก (ลำดับเดินต่อกันทั้งปี ไม่แยกหมวด)
+   ============================================================ */
+const CFG=window.FIREBASE_CONFIG||{apiKey:''};
+const DOMAIN=window.LOGIN_DOMAIN||'rsc.local';
+const CATS=window.QT_CATEGORIES||[];
+const APPS=window.QT_APPLICATIONS||{};
+const STATUS=window.QT_STATUS||[];
+const UNITS=window.QT_UNITS||['SET','PC','JOB','LOT'];
+const COSTT=window.QT_COST_TYPES||[];
+const TERMS=window.QT_TERMS||{};
+const VAT_RATE=TERMS.vatRate==null?7:+TERMS.vatRate;
+const VALID_DAYS=+TERMS.validDays||30;
+const LS_QT='rsc_quotation', LS_CUST='rsc_customers', LS_EMP='rsc_employees';
+/* แผนกที่ทำใบเสนอราคาได้ (นอกเหนือจากผู้บริหาร/HR) */
+const SALES_DEPTS=['Sales & Marketing','Key account'];
+
+let MODE='local',db=null,auth=null,user=null;
+const state={[LS_QT]:[],[LS_CUST]:[],[LS_EMP]:[]};
+const SHARDED=[LS_QT];
+const $=id=>document.getElementById(id);
+let _toastT=null;
+function toast(m,e){const t=$('toast');if(!t){alert(m);return;}t.textContent=m;t.className='toast show'+(e?' err':'');clearTimeout(_toastT);_toastT=setTimeout(()=>t.className='toast',2800);}
+const load=k=>(state[k]||[]).slice();
+function save(k,arr){
+  if(window.RSCStore&&RSCStore.isSharded(k)){RSCStore.save(k,arr);return;}
+  state[k]=arr.slice();
+  if(MODE==='firebase'&&db){db.collection('rsc').doc(k).set({items:arr,updatedAt:Date.now()}).catch(e=>{console.error(e);toast('❌ บันทึกไม่สำเร็จ: '+(e.message||e),true);});}
+  else localStorage.setItem(k,JSON.stringify(arr));
+}
+
+/* ===== helpers ===== */
+let _uidN=0;
+function uid(){_uidN++;return 'qt'+Date.now().toString(36)+'-'+_uidN.toString(36)+'-'+Math.random().toString(36).slice(2,6);}
+function esc(s){return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+function pad2(n){return (n<10?'0':'')+n}
+function dstr(d){d=d||new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function addDays(ds,n){const d=new Date(ds+'T00:00');d.setDate(d.getDate()+n);return dstr(d);}
+function num(n){return QTPrint.num(n);}
+function money(n){return (+n||0).toLocaleString('th-TH',{maximumFractionDigits:0});}
+function shortName(e){return (e||'').split('@')[0];}
+function beYear(ds){return (+String(ds||dstr()).slice(0,4)+543);}          // ค.ศ. → พ.ศ.
+function be2(ds){return String(beYear(ds)).slice(-2);}                     // 2569 → "69"
+
+/* ===== สิทธิ์ =====
+   ใบเสนอราคาเป็นข้อมูลราคา/ต้นทุน → เปิดให้ฝ่ายขาย + ผู้บริหาร/HR เท่านั้น */
+function empOf(key){return load(LS_EMP).find(x=>{const em=x.email||'';return em===key||(x.name&&x.name===key)||em.split('@')[0]===key;});}
+function myName(){return user?shortName(user.email):'';}
+function me(){return empOf(myName());}
+function myRole(){if(MODE==='local')return 'admin';const e=me();return (e&&e.role)||(load(LS_EMP).length?'employee':'admin');}
+function myDept(){const e=me();return (e&&e.dept)||'';}
+function canQuote(){const r=myRole();return ['manager','director','hr','admin'].includes(r)||SALES_DEPTS.includes(myDept());}
+function roleBadge(){const el=$('role-badge');if(!el)return;
+  el.textContent=canQuote()?('ฝ่ายขาย · '+(myDept()||myRole())):'ไม่มีสิทธิ์';
+  el.className='chip '+(canQuote()?'in':'absent');}
+
+/* ===== firebase ===== */
+function initFb(){if(!CFG.apiKey||typeof firebase==='undefined')return false;
+  try{firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();MODE='firebase';return true;}catch(e){console.error(e);return false;}}
+function listen(){
+  [LS_CUST,LS_EMP].forEach(k=>db.collection('rsc').doc(k).onSnapshot(s=>{
+    state[k]=(s.exists&&s.data().items)?s.data().items:[];renderAll();},e=>console.error(e)));
+  /* ทะเบียนต้องดูย้อนได้ทั้งปี → เปิดรับข้อมูล 12 เดือนล่าสุด */
+  RSCStore.init({db,mode:MODE,state,sharded:SHARDED,monthsBack:12,onChange:()=>renderAll()});
+}
+function doLogin(){const raw=$('l-user').value.trim(),p=$('l-pass').value;$('l-err').textContent='';
+  const e=raw.includes('@')?raw:raw+'@'+DOMAIN;
+  auth.signInWithEmailAndPassword(e,p).catch(x=>$('l-err').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(x.code||x.message));}
+function doLogout(){if(auth)auth.signOut();}
+function onAuth(u){user=u;
+  if(u){$('login').classList.remove('on');$('user').innerHTML=esc(shortName(u.email))+' · <a onclick="doLogout()">ออก</a>';renderAll();}
+  else{$('login').classList.add('on');$('user').textContent='';}}
+
+/* ===== nav ===== */
+function showSec(id){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+  $('s-'+id).classList.add('on');
+  document.querySelector('.nav a[data-s="'+id+'"]').classList.add('active');
+  if(id==='reg')renderReg();
+  if(id==='cust')renderCust();
+}
+
+/* ============================================================
+   ใบเสนอราคาที่กำลังแก้อยู่
+   ============================================================ */
+let cur=null;          // ใบปัจจุบัน (object)
+let items=[];          // รายการ
+let payTerms=[];       // งวดชำระ
+
+function blankQuote(){
+  const today=dstr();
+  return {
+    id:uid(), no:'', date:today, valid:addDays(today,VALID_DAYS),
+    category:(CATS[0]||{}).id||'PT', type:(CATS[0]||{}).type||'', application:'', project:'',
+    cust:{name:'',addr:'',contact:'',phone:'',mobile:'',email:'',tax:'',credit:'',code:''},
+    sales:'', salesEmail:'', currency:'THB', hasVat:true, discount:0,
+    priceMode:'1', projectQty:'1', projectUnit:'LOT',
+    cond:{noted:TERMS.noted||'',enduser:'',delivery:'',latepay:TERMS.latepay||'',payment:''},
+    footerNote:'',
+    payTerms:[{pct:'',desc:'',credit:''}],
+    sig:{engineerName:'',engineerTitle:'Sale Engineer',managerName:'',managerTitle:'Manager Sale Department'},
+    items:[{name:'',partno:'',qty:'1',unit:'SET',cost:'',price:'',remark:'',costType:'DM',rowType:'item',hidePdf:false}],
+    status:'quoted', probability:'', poNo:'', poDate:'', jr:'', finalPrice:'',
+    createdBy:myName(), createdTs:Date.now(), updatedTs:Date.now()
+  };
+}
+
+/* เลขที่ใบถัดไป — ลำดับเดินต่อกันทั้งปี พ.ศ. ไม่แยกตามหมวด (ตามทะเบียนจริง) */
+function nextNo(cat,date){
+  const y=be2(date), pre='QT'+y+'-';
+  let max=0;
+  load(LS_QT).forEach(q=>{
+    const m=String(q.no||'').match(/^QT(\d{2})-[A-Z]{2}-(\d{3})/);
+    if(m&&m[1]===y)max=Math.max(max,+m[2]);
+  });
+  return pre+cat+'-'+String(max+1).padStart(3,'0');
+}
+
+function fillSelects(){
+  $('q-category').innerHTML=CATS.map(c=>`<option value="${c.id}">${esc(c.id)} — ${esc(c.label)}</option>`).join('');
+  $('q-status').innerHTML=STATUS.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  $('r-status').innerHTML='<option value="">ทุกสถานะ</option>'+STATUS.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  $('dl-unit').innerHTML=UNITS.map(u=>`<option value="${esc(u)}">`).join('');
+}
+function fillPeople(){
+  const emps=load(LS_EMP);
+  const sales=emps.filter(e=>SALES_DEPTS.includes(e.dept||''));
+  const mgrs=emps.filter(e=>['manager','director','hr','admin'].includes(e.role||''));
+  const opt=list=>'<option value="">— เลือก —</option>'+list.map(e=>`<option value="${esc(e.email||e.name)}">${esc(e.name)}${e.pos?' · '+esc(e.pos):''}</option>`).join('');
+  const keep=(id,html)=>{const el=$(id),v=el.value;el.innerHTML=html;el.value=v;};
+  keep('q-sales',opt(sales.length?sales:emps));
+  keep('sig-eng',opt(sales.length?sales:emps));
+  keep('sig-mgr',opt(mgrs.length?mgrs:emps));
+}
+function fillCustList(){
+  const cs=load(LS_CUST);
+  $('dl-cust').innerHTML=cs.map(c=>`<option value="${esc(c.name)}">`).join('');
+  $('cust-hint').textContent=cs.length?('มีลูกค้าในระบบ '+cs.length+' ราย — พิมพ์ชื่อแล้วเลือกเพื่อเติมข้อมูลอัตโนมัติ')
+    :'ยังไม่มีข้อมูลลูกค้าในระบบ — นำเข้าได้ที่แท็บ “ลูกค้า”';
+}
+function fillApps(){
+  const cat=$('q-category').value;
+  $('dl-app').innerHTML=(APPS[cat]||[]).map(a=>`<option value="${esc(a)}">`).join('');
+}
+
+/* ===== form <-> object ===== */
+function toForm(q){
+  cur=q; items=(q.items||[]).map(x=>Object.assign({},x)); payTerms=(q.payTerms||[]).map(x=>Object.assign({},x));
+  if(!items.length)items=[{name:'',partno:'',qty:'1',unit:'SET',cost:'',price:'',remark:'',costType:'DM',rowType:'item',hidePdf:false}];
+  if(!payTerms.length)payTerms=[{pct:'',desc:'',credit:''}];
+  $('q-category').value=q.category||'PT'; fillApps();
+  $('q-no').value=q.no||''; $('q-date').value=q.date||dstr(); $('q-valid').value=q.valid||'';
+  $('q-type').value=q.type||catType(q.category); $('q-application').value=q.application||'';
+  $('q-project').value=q.project||''; $('q-sales').value=q.salesKey||''; $('q-sales-email').value=q.salesEmail||'';
+  const c=q.cust||{};
+  $('cust-search').value=c.name||''; $('cust-name').value=c.name||''; $('cust-addr').value=c.addr||'';
+  $('cust-contact').value=c.contact||''; $('cust-phone').value=c.phone||''; $('cust-mobile').value=c.mobile||'';
+  $('cust-email').value=c.email||''; $('cust-tax').value=c.tax||''; $('cust-credit').value=c.credit||'';
+  $('q-pricemode').value=q.priceMode||'1'; $('q-pqty').value=q.projectQty||'1'; $('q-punit').value=q.projectUnit||'LOT';
+  $('q-discount').value=q.discount||0; $('q-vat').value=q.hasVat===false?'0':'1'; $('q-currency').value=q.currency||'THB';
+  const cd=q.cond||{};
+  $('q-footer').value=q.footerNote||''; $('c-noted').value=cd.noted||''; $('c-enduser').value=cd.enduser||'';
+  $('c-delivery').value=cd.delivery||''; $('c-latepay').value=cd.latepay||'';
+  const s=q.sig||{};
+  $('sig-eng').value=s.engineer||''; $('sig-eng-name').value=s.engineerName||''; $('sig-eng-title').value=s.engineerTitle||'Sale Engineer';
+  $('sig-mgr').value=s.manager||''; $('sig-mgr-name').value=s.managerName||''; $('sig-mgr-title').value=s.managerTitle||'Manager Sale Department';
+  $('q-status').value=q.status||'quoted'; $('q-prob').value=q.probability||''; $('q-po').value=q.poNo||'';
+  $('q-podate').value=q.poDate||''; $('q-jr').value=q.jr||''; $('q-final').value=q.finalPrice||'';
+  $('q-stamp').textContent=q.updatedTs?('บันทึกล่าสุด '+new Date(q.updatedTs).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})):'ใบใหม่ (ยังไม่บันทึก)';
+  renderItems(); renderPay(); recalc();
+}
+function catType(id){const c=CATS.find(x=>x.id===id);return c?c.type:'';}
+function fromForm(){
+  const q=Object.assign({},cur);
+  q.category=$('q-category').value; q.type=catType(q.category);
+  q.no=$('q-no').value.trim(); q.date=$('q-date').value||dstr(); q.valid=$('q-valid').value;
+  q.application=$('q-application').value.trim(); q.project=$('q-project').value.trim();
+  q.salesEmail=$('q-sales-email').value.trim();
+  q.salesKey=$('q-sales').value;
+  const salesEmp=empOf(q.salesKey); q.sales=salesEmp?salesEmp.name:q.salesKey;
+  q.cust={ code:(cur.cust||{}).code||'', name:$('cust-name').value.trim(), addr:$('cust-addr').value.trim(),
+    contact:$('cust-contact').value.trim(), phone:$('cust-phone').value.trim(), mobile:$('cust-mobile').value.trim(),
+    email:$('cust-email').value.trim(), tax:$('cust-tax').value.trim(), credit:$('cust-credit').value.trim() };
+  q.priceMode=$('q-pricemode').value; q.projectQty=$('q-pqty').value; q.projectUnit=$('q-punit').value;
+  q.discount=+$('q-discount').value||0; q.hasVat=$('q-vat').value==='1'; q.currency=$('q-currency').value;
+  q.cond={noted:$('c-noted').value.trim(),enduser:$('c-enduser').value.trim(),delivery:$('c-delivery').value.trim(),
+          latepay:$('c-latepay').value.trim(),payment:''};
+  q.footerNote=$('q-footer').value;
+  q.sig={engineer:$('sig-eng').value,engineerName:$('sig-eng-name').value.trim(),engineerTitle:$('sig-eng-title').value.trim(),
+         manager:$('sig-mgr').value,managerName:$('sig-mgr-name').value.trim(),managerTitle:$('sig-mgr-title').value.trim()};
+  q.items=items.filter(x=>x.name||x.price||x.cost);
+  q.payTerms=payTerms.filter(p=>p.pct||p.desc);
+  q.status=$('q-status').value; q.probability=$('q-prob').value.trim(); q.poNo=$('q-po').value.trim();
+  q.poDate=$('q-podate').value; q.jr=$('q-jr').value.trim(); q.finalPrice=$('q-final').value.trim();
+  return q;
+}
+
+/* ===== รายการ ===== */
+function renderItems(){
+  $('items-body').innerHTML=items.map((it,i)=>{
+    if(it.rowType==='group'){
+      return `<tr class="grp"><td class="c">—</td>
+        <td colspan="8"><input value="${esc(it.name)}" placeholder="หัวข้อกลุ่ม เช่น Mechanical" oninput="setItem(${i},'name',this.value)"></td>
+        <td class="c"><input type="checkbox" ${it.hidePdf?'':'checked'} onchange="setItem(${i},'hidePdf',!this.checked)"></td>
+        <td><button class="rowbtn" onclick="delItem(${i})" title="ลบ">✕</button></td></tr>`;
+    }
+    const amt=QTPrint.lineAmount(it), cst=(+it.qty||0)*(+it.cost||0);
+    return `<tr>
+      <td class="c" style="padding-top:12px">${i+1}</td>
+      <td>
+        <input value="${esc(it.name)}" placeholder="ชื่อรายการ" oninput="setItem(${i},'name',this.value)">
+        <textarea rows="2" placeholder="รายละเอียดย่อย (บรรทัดละ 1 ข้อ)" style="margin-top:4px" oninput="setItem(${i},'remark',this.value)">${esc(it.remark)}</textarea>
+        <select style="margin-top:4px;width:auto" onchange="setItem(${i},'costType',this.value)">
+          ${COSTT.map(c=>`<option value="${c.id}" ${it.costType===c.id?'selected':''}>${esc(c.label)}</option>`).join('')}
+        </select>
+      </td>
+      <td><input value="${esc(it.partno)}" oninput="setItem(${i},'partno',this.value)"></td>
+      <td><input class="num" value="${esc(it.qty)}" oninput="setItem(${i},'qty',this.value)"></td>
+      <td><input value="${esc(it.unit)}" list="dl-unit" oninput="setItem(${i},'unit',this.value)"></td>
+      <td><input class="num" value="${esc(it.cost)}" oninput="setItem(${i},'cost',this.value)"></td>
+      <td><input class="num" value="${esc(it.price)}" oninput="setItem(${i},'price',this.value)"></td>
+      <td class="r" style="padding-top:12px">${num(amt)}</td>
+      <td class="r" style="padding-top:12px;color:var(--muted)">${num(cst)}</td>
+      <td class="c" style="padding-top:12px"><input type="checkbox" ${it.hidePdf?'':'checked'} onchange="setItem(${i},'hidePdf',!this.checked)"></td>
+      <td style="padding-top:10px"><button class="rowbtn" onclick="delItem(${i})" title="ลบ">✕</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="11" class="empty">ยังไม่มีรายการ — กด “+ รายการ”</td></tr>';
+}
+function setItem(i,k,v){items[i][k]=v;if(k==='qty'||k==='price'||k==='cost')recalcRow();recalc();}
+/* แก้เลขในช่อง → อัปเดตยอดรวมท้ายแถวโดยไม่วาดตารางใหม่ (ไม่ให้เคอร์เซอร์เด้ง) */
+function recalcRow(){
+  const rows=$('items-body').querySelectorAll('tr');
+  items.forEach((it,idx)=>{
+    const tr=rows[idx];if(!tr||it.rowType==='group')return;
+    const tds=tr.querySelectorAll('td');
+    if(tds[7])tds[7].textContent=num(QTPrint.lineAmount(it));
+    if(tds[8])tds[8].textContent=num((+it.qty||0)*(+it.cost||0));
+  });
+}
+function addItem(type){
+  items.push(type==='group'
+    ?{name:'',rowType:'group',hidePdf:false}
+    :{name:'',partno:'',qty:'1',unit:'SET',cost:'',price:'',remark:'',costType:'DM',rowType:'item',hidePdf:false});
+  renderItems();recalc();
+}
+function delItem(i){items.splice(i,1);renderItems();recalc();}
+
+/* ===== งวดชำระ ===== */
+function renderPay(){
+  $('pay-body').innerHTML=payTerms.map((p,i)=>`<tr>
+    <td class="c" style="padding-top:12px">${i+1}</td>
+    <td><input class="num" value="${esc(p.pct)}" oninput="setPay(${i},'pct',this.value)"></td>
+    <td><input value="${esc(p.desc)}" placeholder="เช่น After receipt of Purchase Order (PO)." oninput="setPay(${i},'desc',this.value)"></td>
+    <td><input class="num" value="${esc(p.credit)}" oninput="setPay(${i},'credit',this.value)"></td>
+    <td style="padding-top:10px"><button class="rowbtn" onclick="delPay(${i})">✕</button></td></tr>`).join('');
+}
+function setPay(i,k,v){payTerms[i][k]=v;}
+function addPay(){payTerms.push({pct:'',desc:'',credit:''});renderPay();}
+function delPay(i){payTerms.splice(i,1);renderPay();}
+
+/* ===== ยอดรวม ===== */
+function recalc(){
+  const t=QTPrint.totals(fromForm());
+  $('sum-box').innerHTML=`
+    <div class="b"><div class="k">ต้นทุนรวม</div><div class="v">${money(t.cost)}</div></div>
+    <div class="b"><div class="k">ราคารวม</div><div class="v">${money(t.sub)}</div></div>
+    <div class="b"><div class="k">หลังส่วนลด</div><div class="v">${money(t.net)}</div></div>
+    <div class="b"><div class="k">VAT ${t.vatRate}%</div><div class="v">${money(t.vat)}</div></div>
+    <div class="b hi"><div class="k">ยอดสุทธิ</div><div class="v">${money(t.grand)}</div></div>
+    <div class="b gp"><div class="k">กำไร (GP)</div><div class="v">${money(t.gp)} <span style="font-size:14px;font-weight:600">· ${t.gpPct.toFixed(1)}%</span></div></div>`;
+}
+
+/* ===== ลูกค้า → เติมฟอร์ม ===== */
+function pickCustomer(){
+  const v=$('cust-search').value.trim();
+  const c=load(LS_CUST).find(x=>x.name===v);
+  if(!c)return;
+  cur.cust=cur.cust||{}; cur.cust.code=c.code||'';
+  $('cust-name').value=c.name||''; $('cust-addr').value=c.addr||''; $('cust-contact').value=c.contact||'';
+  $('cust-phone').value=c.phone||''; $('cust-mobile').value=c.mobile||''; $('cust-email').value=c.email||'';
+  $('cust-tax').value=c.tax||''; $('cust-credit').value=c.credit||'';
+}
+function onSalesPick(){
+  const e=empOf($('q-sales').value);
+  if(e&&!$('q-sales-email').value)$('q-sales-email').value=(e.email&&e.email.includes('@'))?e.email:'';
+  if(e&&!$('sig-eng').value){$('sig-eng').value=$('q-sales').value;onSigPick('eng');}
+}
+function onSigPick(which){
+  const sel=$(which==='eng'?'sig-eng':'sig-mgr'), nameEl=$(which==='eng'?'sig-eng-name':'sig-mgr-name');
+  const e=empOf(sel.value);
+  if(e&&!nameEl.value)nameEl.value=e.name||'';
+}
+function onCategory(){
+  $('q-type').value=catType($('q-category').value); fillApps(); autoNumber();
+}
+function onQuoteDate(){
+  const d=$('q-date').value||dstr();
+  $('q-valid').value=addDays(d,VALID_DAYS); autoNumber();
+}
+/* เติมเลขที่ใบให้อัตโนมัติ ตราบใดที่ยังไม่บันทึกและผู้ใช้ยังไม่พิมพ์เลขเอง
+   (ข้อมูลทะเบียนโหลดจาก Firestore ทีหลัง จึงต้องคำนวณใหม่เมื่อข้อมูลมาถึง) */
+function autoNumber(){
+  if(!cur||cur.savedTs||cur.autoNo===false)return;
+  $('q-no').value=nextNo($('q-category').value,$('q-date').value||dstr());
+}
+
+/* ===== บันทึก / เปิดใบ ===== */
+function newQuote(){
+  const q=blankQuote();
+  q.autoNo=true; q.no=nextNo(q.category,q.date);
+  toForm(q); showSec('edit'); toast('เปิดใบใหม่ '+q.no);
+}
+function saveQuote(){
+  if(!canQuote()){toast('ไม่มีสิทธิ์บันทึกใบเสนอราคา',true);return;}
+  const q=fromForm();
+  if(!q.no){toast('ยังไม่มีเลขที่ใบเสนอราคา',true);return;}
+  if(!q.cust.name){toast('ยังไม่ได้ระบุชื่อลูกค้า',true);return;}
+  const dup=load(LS_QT).find(x=>x.no===q.no&&x.id!==q.id);
+  if(dup){toast('เลขที่ '+q.no+' ถูกใช้แล้ว — เปลี่ยนเลขหรือกด “สร้างฉบับแก้ไข”',true);return;}
+  q.updatedTs=Date.now(); q.savedTs=q.savedTs||Date.now(); q.updatedBy=myName();
+  const arr=load(LS_QT), i=arr.findIndex(x=>x.id===q.id);
+  if(i<0)arr.push(q); else arr[i]=q;
+  save(LS_QT,arr); cur=q;
+  $('q-stamp').textContent='บันทึกล่าสุด '+new Date(q.updatedTs).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});
+  toast('✅ บันทึก '+q.no+' แล้ว');
+}
+/* สร้างฉบับแก้ไข — เก็บใบเดิมไว้ในทะเบียน แล้วเปิดใบใหม่เลข R. ถัดไป */
+function reviseQuote(){
+  const q=fromForm();
+  if(!q.no){toast('ยังไม่มีเลขที่ใบ',true);return;}
+  const m=q.no.match(/^(.*?)(?:R\.(\d+))?$/);
+  const base=m[1], rev=(+m[2]||0)+1;
+  const copy=JSON.parse(JSON.stringify(q));
+  copy.id=uid(); copy.no=base+'R.'+rev; copy.baseNo=base; copy.rev=rev;
+  copy.date=dstr(); copy.valid=addDays(copy.date,VALID_DAYS);
+  copy.savedTs=0; copy.createdTs=Date.now(); copy.createdBy=myName(); copy.updatedTs=Date.now();
+  copy.status='quoted'; copy.poNo=''; copy.poDate=''; copy.jr=''; copy.finalPrice='';
+  toForm(copy);
+  toast('เปิดฉบับแก้ไข '+copy.no+' — กดบันทึกเมื่อพร้อม');
+}
+function openQuote(id){
+  const q=load(LS_QT).find(x=>x.id===id);
+  if(!q){toast('ไม่พบใบเสนอราคานี้',true);return;}
+  toForm(JSON.parse(JSON.stringify(q))); showSec('edit');
+}
+function deleteQuote(){
+  if(!cur||!cur.savedTs){toast('ใบนี้ยังไม่ถูกบันทึก');return;}
+  if(!confirm('ลบใบเสนอราคา '+cur.no+' ออกจากทะเบียน?'))return;
+  save(LS_QT,load(LS_QT).filter(x=>x.id!==cur.id));
+  toast('ลบ '+cur.no+' แล้ว'); newQuote();
+}
+function previewQuote(){QTPrint.open(fromForm());}
+function downloadQuote(){QTPrint.download(fromForm());}
+
+/* ============================================================
+   ทะเบียนใบเสนอราคา
+   ============================================================ */
+function statusOf(id){return STATUS.find(s=>s.id===id)||{label:id||'—',tone:'',reg:''};}
+function regRows(){
+  const y=$('r-year').value, st=$('r-status').value, kw=($('r-q').value||'').trim().toLowerCase();
+  return load(LS_QT).filter(q=>{
+    if(y&&String(beYear(q.date))!==y)return false;
+    if(st&&q.status!==st)return false;
+    if(kw){
+      const hay=[q.no,q.project,(q.cust||{}).name,q.jr,q.sales].join(' ').toLowerCase();
+      if(hay.indexOf(kw)<0)return false;
+    }
+    return true;
+  }).sort((a,b)=>String(b.no).localeCompare(String(a.no)));
+}
+function fillYears(){
+  const ys={};load(LS_QT).forEach(q=>{ys[beYear(q.date)]=1});
+  ys[beYear(dstr())]=1;
+  const list=Object.keys(ys).sort().reverse();
+  const el=$('r-year'),keep=el.value;
+  el.innerHTML=list.map(y=>`<option value="${y}">ปี พ.ศ. ${y}</option>`).join('');
+  el.value=keep&&list.includes(keep)?keep:String(beYear(dstr()));
+}
+function renderReg(){
+  fillYears();
+  const rows=regRows();
+  let sub=0,cost=0,win=0,winAmt=0,lose=0;
+  rows.forEach(q=>{const t=QTPrint.totals(q);sub+=t.net;cost+=t.cost;
+    if(q.status==='win'){win++;winAmt+=(+q.finalPrice||t.net);}
+    if(q.status==='loss'||q.status==='loss_conn')lose++;});
+  const rate=(win+lose)?win/(win+lose)*100:0;
+  $('reg-sum').innerHTML=`
+    <div class="b"><div class="k">ใบเสนอราคา</div><div class="v">${rows.length}</div></div>
+    <div class="b"><div class="k">มูลค่าที่เสนอ</div><div class="v">${money(sub)}</div></div>
+    <div class="b gp"><div class="k">ได้งาน (Win)</div><div class="v">${win} <span style="font-size:14px;font-weight:600">· ${money(winAmt)}</span></div></div>
+    <div class="b"><div class="k">อัตราชนะ</div><div class="v">${rate.toFixed(0)}%</div></div>`;
+  $('reg-body').innerHTML=rows.map(q=>{
+    const t=QTPrint.totals(q), s=statusOf(q.status);
+    return `<tr>
+      <td><b>${esc(q.no)}</b></td>
+      <td>${esc(q.date||'')}</td>
+      <td><div>${esc((q.cust||{}).name||'')}</div><div style="color:var(--muted);font-size:13.5px">${esc(q.project||'')}</div></td>
+      <td style="font-size:13.5px;color:var(--muted)">${esc(q.application||'')}</td>
+      <td class="r">${money(t.net)}</td>
+      <td class="r">${money(t.cost)}</td>
+      <td class="r">${t.gpPct.toFixed(1)}</td>
+      <td><span class="chip ${s.tone}">${esc(s.label)}</span></td>
+      <td style="font-size:13.5px">${esc(q.jr||'')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn s" onclick="openQuote('${q.id}')">แก้ไข</button>
+        <button class="btn s" onclick="printFromReg('${q.id}')">พิมพ์</button>
+      </td></tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty">ยังไม่มีใบเสนอราคาในช่วงที่เลือก</td></tr>';
+}
+function printFromReg(id){const q=load(LS_QT).find(x=>x.id===id);if(q)QTPrint.open(q);}
+
+/* ส่งออก CSV ให้คอลัมน์ตรงกับชีต Master_ทะเบียนใบเสนอราคา RSC */
+function exportReg(){
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const head=['Year','Quarter','Month','Date','Quotation No','Customer','Type','Application','Project',
+    'Price','Cost','GP%','Sales','Status','Probability','PO number','Date Received PO','JOB NUMBER','FINAL PRICE'];
+  const rows=regRows().map(q=>{
+    const t=QTPrint.totals(q), mo=+String(q.date).slice(5,7)||1;
+    return [beYear(q.date)-543,'Q'+Math.ceil(mo/3),MO[mo-1],q.date,q.no,(q.cust||{}).name||'',q.type||'',
+      q.application||'',q.project||'',t.net.toFixed(2),t.cost.toFixed(2),t.gpPct.toFixed(2),q.sales||'',
+      statusOf(q.status).reg||'',q.probability||'',q.poNo||'',q.poDate||'',q.jr||'',q.finalPrice||''];
+  });
+  const csv=[head].concat(rows).map(r=>r.map(v=>{
+    const s=String(v==null?'':v);
+    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }).join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ทะเบียนใบเสนอราคา-'+$('r-year').value+'.csv';a.click();
+  toast('ส่งออก '+rows.length+' รายการแล้ว');
+}
+
+/* ============================================================
+   ฐานข้อมูลลูกค้า
+   ============================================================ */
+function renderCust(){
+  const kw=($('c-q').value||'').trim().toLowerCase();
+  const list=load(LS_CUST).filter(c=>!kw||[c.name,c.tax,c.code,c.contact].join(' ').toLowerCase().indexOf(kw)>=0);
+  $('cust-body').innerHTML=list.map(c=>`<tr>
+    <td style="font-size:13.5px;color:var(--muted)">${esc(c.code||'')}</td>
+    <td><b>${esc(c.name||'')}</b>${c.addr?`<div style="color:var(--muted);font-size:13px">${esc(c.addr)}</div>`:''}</td>
+    <td style="font-size:13.5px">${esc(c.contact||'')}</td>
+    <td style="font-size:13.5px">${esc(c.phone||c.mobile||'')}</td>
+    <td style="font-size:13.5px">${esc(c.credit||'')}</td>
+    <td style="font-size:13.5px">${esc(c.tax||'')}</td>
+    <td><button class="btn s" onclick="editCust('${esc(c.id)}')">แก้</button></td></tr>`).join('')
+    ||'<tr><td colspan="7" class="empty">ยังไม่มีข้อมูลลูกค้า — นำเข้า CSV ด้านล่าง</td></tr>';
+  fillCustList();
+}
+function editCust(id){
+  const arr=load(LS_CUST), c=arr.find(x=>x.id===id)||{id:uid(),code:'',name:'',addr:'',contact:'',phone:'',mobile:'',email:'',tax:'',credit:''};
+  const name=prompt('ชื่อบริษัท',c.name);if(name===null)return;
+  const addr=prompt('ที่อยู่',c.addr||'');if(addr===null)return;
+  const contact=prompt('ผู้ติดต่อ',c.contact||'');if(contact===null)return;
+  const phone=prompt('เบอร์โทร',c.phone||'');if(phone===null)return;
+  const tax=prompt('เลขผู้เสียภาษี',c.tax||'');if(tax===null)return;
+  const credit=prompt('เครดิต (เช่น 30 วัน)',c.credit||'');if(credit===null)return;
+  Object.assign(c,{name:name.trim(),addr:addr.trim(),contact:contact.trim(),phone:phone.trim(),tax:tax.trim(),credit:credit.trim()});
+  if(!c.name){toast('ต้องมีชื่อบริษัท',true);return;}
+  if(!arr.find(x=>x.id===c.id))arr.push(c);
+  save(LS_CUST,arr);renderCust();toast('บันทึกลูกค้าแล้ว');
+}
+function pickCsv(el){
+  const f=el.files&&el.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{$('cust-csv').value=r.result;toast('อ่านไฟล์แล้ว — กดนำเข้า');};
+  r.readAsText(f,'utf-8');
+}
+/* ตัว CSV ของ Google Sheet มีเครื่องหมายคำพูดคร่อมและขึ้นบรรทัดในเซลล์ได้ → แยกเองทีละอักขระ */
+function parseCsv(text){
+  const rows=[];let row=[],cell='',q=false;
+  text=String(text||'').replace(/^﻿/,'');
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    }else{
+      if(c==='"')q=true;
+      else if(c===','){row.push(cell);cell='';}
+      else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell='';}
+      else if(c!=='\r')cell+=c;
+    }
+  }
+  if(cell||row.length){row.push(cell);rows.push(row);}
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+function importCust(replace){
+  const rows=parseCsv($('cust-csv').value);
+  if(rows.length<2){toast('ไม่พบข้อมูลใน CSV',true);return;}
+  const head=rows[0].map(h=>String(h).trim());
+  const col=names=>{for(const n of names){const i=head.indexOf(n);if(i>=0)return i;}return -1;};
+  const iC=col(['รหัสลูกค้า']), iN=col(['ชื่อบริษัท (ไทย)','ชื่อบริษัท','Customer']),
+        iNE=col(['ชื่อบริษัท (อังกฤษ)']), iA=col(['ที่อยู่ (ไทย)','ที่อยู่']), iAE=col(['ที่อยู่ (อังกฤษ)']),
+        iCt=col(['ผู้ติดต่อ (ไทย)','ผู้ติดต่อ']), iE=col(['E-mail','Email','อีเมล']),
+        iP=col(['เบอร์โทรบริษัท','เบอร์โทร']), iM=col(['เบอร์โทร มือถือ','เบอร์มือถือ']),
+        iCr=col(['เครดิต']), iT=col(['Tax ID','เลขผู้เสียภาษี']);
+  if(iN<0){toast('ไม่พบคอลัมน์ “ชื่อบริษัท (ไทย)” ใน CSV',true);return;}
+  const get=(r,i)=>i>=0?String(r[i]||'').trim():'';
+  const incoming=rows.slice(1).map(r=>({
+    id:uid(), code:get(r,iC), name:get(r,iN), nameEn:get(r,iNE), addr:get(r,iA), addrEn:get(r,iAE),
+    contact:get(r,iCt), email:get(r,iE), phone:get(r,iP), mobile:get(r,iM), credit:get(r,iCr), tax:get(r,iT)
+  })).filter(c=>c.name);
+  if(!incoming.length){toast('ไม่พบแถวที่มีชื่อบริษัท',true);return;}
+  if(replace){
+    if(!confirm('แทนที่ฐานลูกค้าทั้งหมดด้วย '+incoming.length+' รายการ?'))return;
+    save(LS_CUST,incoming);
+  }else{
+    const arr=load(LS_CUST);
+    let add=0,upd=0;
+    incoming.forEach(c=>{
+      const i=arr.findIndex(x=>(c.code&&x.code===c.code)||x.name===c.name);
+      if(i>=0){arr[i]=Object.assign({},arr[i],c,{id:arr[i].id});upd++;}
+      else{arr.push(c);add++;}
+    });
+    save(LS_CUST,arr);
+    toast('นำเข้าแล้ว — เพิ่ม '+add+' · อัปเดต '+upd);
+  }
+  renderCust();
+}
+
+/* ============================================================
+   render รวม
+   ============================================================ */
+function renderAll(){
+  roleBadge(); fillPeople(); fillCustList();
+  const ok=canQuote();
+  $('no-access').style.display=ok?'none':'block';
+  document.querySelector('.nav').style.display=ok?'':'none';
+  document.querySelectorAll('.sec').forEach(el=>{el.style.display=ok?'':'none';});
+  if(!ok)return;
+  autoNumber();
+  if($('s-reg').classList.contains('on'))renderReg();
+  if($('s-cust').classList.contains('on'))renderCust();
+}
+
+/* ===== init ===== */
+fillSelects();
+if(initFb()){
+  $('conn').className='chip in';$('conn').textContent='CLOUD';
+  listen();auth.onAuthStateChanged(onAuth);
+}else{
+  MODE='local';$('user').textContent='โหมดทดลอง';
+  RSCStore.init({db:null,mode:'local',state,sharded:SHARDED,monthsBack:12,onChange:()=>renderAll()});
+  renderAll();
+}
+newQuote();
+</script>
+</body>
+</html>

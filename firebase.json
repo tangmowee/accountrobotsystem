@@ -7,7 +7,8 @@
       { "source": "/admin", "destination": "/admin.html" },
       { "source": "/checkin", "destination": "/checkin.html" },
       { "source": "/jr360", "destination": "/RSC-JR360.html" },
-      { "source": "/finance", "destination": "/finance.html" }
+      { "source": "/finance", "destination": "/finance.html" },
+      { "source": "/quote", "destination": "/quote.html" }
     ],
     "headers": [
       {
