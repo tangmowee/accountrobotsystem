@@ -213,6 +213,22 @@ tbody tr:hover td{background:rgba(0,0,0,.025)}
       <div class="stat r"><div class="k">ยังไม่เข้า</div><div class="v" id="t-miss">0</div><div class="u">คน (จากทะเบียน)</div><div class="spark"><span data-icon="alert" data-size="18"></span></div></div>
     </div>
     <div class="card">
+      <div class="card emp-edit" style="margin-bottom:16px">
+        <div class="card-h"><div class="card-t"><span data-icon="pin" data-size="16"></span>จุดเช็คอินของบริษัท</div>
+          <span class="tag" id="og-state">—</span></div>
+        <div class="note" style="margin-bottom:10px">งานออฟฟิศเช็คอินได้เฉพาะในรัศมีนี้ — ยืนที่หน้าบริษัทแล้วกด “ดึงพิกัดตรงนี้” เพื่อตั้งค่าให้แม่นยำ</div>
+        <div class="grid g4">
+          <div class="f"><label>ละติจูด</label><input id="og-lat" placeholder="13.581601"></div>
+          <div class="f"><label>ลองจิจูด</label><input id="og-lng" placeholder="100.683128"></div>
+          <div class="f"><label>รัศมีที่อนุญาต (เมตร)</label><input id="og-rad" type="number" min="30" max="1000" placeholder="120"></div>
+          <div class="f"><label>&nbsp;</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn sm" onclick="ogGrab()"><span data-icon="satellite" data-size="15"></span>ดึงพิกัดตรงนี้</button>
+              <button class="btn sm p" onclick="ogSave()">บันทึก</button>
+            </div></div>
+        </div>
+        <div class="note" id="og-hint" style="margin-top:8px"></div>
+      </div>
       <div class="card-h"><div class="card-t"><span data-icon="users" data-size="16"></span>สถานะพนักงานวันนี้</div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn sm" onclick="dedupeToday()" title="รวมรายการเช็คอินซ้ำของคนเดียวกันในวันเดียวกันให้เหลือรายการเดียว"><span data-icon="trash" data-size="15"></span>รวมรายการซ้ำ</button>
@@ -991,6 +1007,38 @@ function renderAll(){applyRoleUI();renderToday();renderPlans();renderLeave();ren
 /* ===== TODAY ===== */
 /* ── รวมรายการเช็คอินซ้ำ (คนเดียวกัน วันเดียวกัน) ให้เหลือรายการเดียว ──
    เก็บเวลาเข้าที่เร็วที่สุด + เวลาออกที่ช้าที่สุด · เฉพาะ HR */
+/* ── จุดเช็คอินของบริษัท ── */
+function ogCur(){const st=(load(LS_SET)[0]||{}).office;const d=window.OFFICE_GEO||{};return st||d;}
+function renderOffice(){
+  const o=ogCur(), st=$('og-state');
+  if($('og-lat')&&!$('og-lat').value)$('og-lat').value=o.lat||'';
+  if($('og-lng')&&!$('og-lng').value)$('og-lng').value=o.lng||'';
+  if($('og-rad')&&!$('og-rad').value)$('og-rad').value=o.radius||120;
+  if(st){st.textContent=o.confirmed?'ยืนยันแล้ว':'ยังไม่ยืนยัน';st.className='chip '+(o.confirmed?'in':'out');}
+  const h=$('og-hint');
+  if(h)h.innerHTML=o.confirmed
+    ? 'ตั้งโดย '+esc(nameOf(o.setBy||''))+(o.setTs?(' · '+new Date(o.setTs).toLocaleString('th-TH')):'')
+      +' · <a target="_blank" href="https://www.google.com/maps?q='+o.lat+','+o.lng+'" style="color:var(--orange2);font-weight:600">ดูบนแผนที่</a>'
+    : 'ยังใช้ค่าเริ่มต้น — ควรไปยืนที่หน้าบริษัทแล้วกด “ดึงพิกัดตรงนี้” เพื่อยืนยัน';
+}
+function ogGrab(){
+  if(!navigator.geolocation){alert('อุปกรณ์ไม่รองรับ GPS');return;}
+  toast('กำลังระบุพิกัด...');
+  navigator.geolocation.getCurrentPosition(p=>{
+    $('og-lat').value=p.coords.latitude.toFixed(6);
+    $('og-lng').value=p.coords.longitude.toFixed(6);
+    toast('ได้พิกัดแล้ว (±'+Math.round(p.coords.accuracy)+' ม.) — กดบันทึกเพื่อยืนยัน');
+  },e=>alert('ระบุพิกัดไม่สำเร็จ: '+e.message),{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+function ogSave(){
+  if(!isHR()&&!isAdmin()){alert('ตั้งจุดเช็คอินได้เฉพาะ HR / ผู้ดูแลระบบ');return;}
+  const lat=parseFloat($('og-lat').value), lng=parseFloat($('og-lng').value), rad=parseInt($('og-rad').value,10);
+  if(isNaN(lat)||isNaN(lng)){alert('กรอกพิกัดให้ครบ');return;}
+  if(isNaN(rad)||rad<30||rad>1000){alert('รัศมีต้องอยู่ระหว่าง 30–1000 เมตร');return;}
+  if(!confirm('ตั้งจุดเช็คอินของบริษัทเป็น\n'+lat+', '+lng+'\nรัศมี '+rad+' เมตร?\n\nหลังจากนี้งานออฟฟิศจะเช็คอินได้เฉพาะในรัศมีนี้'))return;
+  setSet({office:{lat:lat,lng:lng,radius:rad,confirmed:true,setBy:myName(),setTs:Date.now()}});
+  renderOffice();toast('บันทึกจุดเช็คอินแล้ว');
+}
 function dedupeToday(){
   if(!isHR()){alert('เฉพาะ HR เท่านั้น');return;}
   const all=load(LS_LOG), byKey={};
@@ -1014,7 +1062,16 @@ function dedupeToday(){
   save(LS_LOG,keep);renderAll();
   alert('รวมเรียบร้อย — ลบรายการซ้ำออก '+removed+' รายการ');
 }
-function renderToday(){
+/* ธงพิกัด: เช็คอินนอกพื้นที่ / ไซต์ยังไม่ได้ใส่พิกัด */
+function geoChip(r){
+  if(r.geoOk===false){
+    const far=r.outsideM>=1000?((r.outsideM/1000).toFixed(1)+' กม.'):(r.outsideM+' ม.');
+    return '<span class="chip late" title="'+esc(r.outsideReason||'')+'">นอกพื้นที่ '+far+'</span>';
+  }
+  if(r.unverified)return '<span class="chip out" title="ไซต์งานนี้ยังไม่ได้ใส่พิกัด จึงตรวจไม่ได้">ยังไม่ยืนยันพิกัด</span>';
+  return '';
+}
+function renderToday(){renderOffice();
   const today=todayStr();
   const logs=load(LS_LOG).filter(r=>r.date===today&&canSee(r.name));
   const emps=load(LS_EMP).filter(e=>e.active!==false&&canSee(e.email||e.name));
@@ -1035,7 +1092,7 @@ function renderToday(){
     const wh=bad?'⚠️':(r.outTs?workedH(r).toFixed(1):'—');
     return `<tr><td><b>${esc((e&&e.name)||r.name)}</b></td><td>${esc((e&&e.dept)||'—')}</td>
       <td>${r.jobTitle?esc(r.jobTitle.split(' @ ')[0]):'<span style="color:var(--dim)">—</span>'}</td>
-      <td class="mono">${fmtT(r.inTs)}</td><td class="mono">${fmtT(r.outTs)}</td><td class="mono ctr">${wh}</td><td>${st} ${oc}</td></tr>`;}).join('');
+      <td class="mono">${fmtT(r.inTs)}</td><td class="mono">${fmtT(r.outTs)}</td><td class="mono ctr">${wh}</td><td>${st} ${oc} ${geoChip(r)}</td></tr>`;}).join('');
 }
 
 /* ===== PLANNER ===== */

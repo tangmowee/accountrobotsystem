@@ -488,6 +488,19 @@ const state={[LS_LOG]:[],[LS_PLAN]:[],[LS_LEAVE]:[],[LS_OT]:[],[LS_VEH]:[],[LS_B
 const LEAVE_TYPES={sick:'ลาป่วย',personal:'ลากิจ',vacation:'ลาพักร้อน',other:'อื่นๆ'};
 const CFG = window.FIREBASE_CONFIG || {apiKey:''};
 const RADIUS = window.GEOFENCE_RADIUS_M || 300;
+/* จุดเช็คอินบริษัท — HR ตั้งได้ที่หน้าแอดมิน ถ้ายังไม่ตั้งใช้ค่าใน firebase-config */
+function officeGeo(){
+  const st=(load(LS_SET)[0]||{}).office;
+  const d=window.OFFICE_GEO||{};
+  const o=st||d;
+  return {lat:+o.lat,lng:+o.lng,radius:+(o.radius||120),confirmed:!!o.confirmed};
+}
+/* ระยะจากจุดเช็คอินบริษัท (เมตร) — null ถ้ายังไม่มีพิกัด */
+function distOffice(){
+  const o=officeGeo();
+  if(!currentGeo||isNaN(o.lat)||isNaN(o.lng))return null;
+  return haversine(currentGeo.lat,currentGeo.lng,o.lat,o.lng);
+}
 const DOMAIN = window.LOGIN_DOMAIN || 'rsc.local';
 const WORK_START = window.WORK_START || '08:30';
 const GRACE = window.LATE_GRACE_MIN || 0;
@@ -698,6 +711,21 @@ function getLoc(){
 
 /* ระยะห่างจากไซต์งานที่เลือก — โชว์ก่อนกดเช็คอิน (ไม่ต้องรอให้เตือนตอนกด) */
 function siteDistanceHtml(){
+  const sel=$('job');
+  if(!currentGeo)return '';
+  // งานออฟฟิศ (ไม่เลือกงาน) → วัดจากหน้าบริษัท
+  if(!sel||!sel.value){
+    const o=officeGeo(), d=distOffice();
+    if(d==null)return '<div class="lbl" style="margin-top:6px;color:var(--red);font-weight:700;">ยังไม่ได้ตั้งจุดเช็คอินของบริษัท — แจ้ง HR</div>';
+    const ok=d<=o.radius, t=d<1000?(Math.round(d)+' ม.'):((d/1000).toFixed(1)+' กม.');
+    return '<div class="lbl" style="margin-top:6px;font-size:13px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'
+      +(ok?'อยู่ในพื้นที่บริษัท':'อยู่นอกพื้นที่บริษัท')+' · ห่างจากออฟฟิศ '+t
+      +' <span style="color:var(--muted);font-weight:400;">(อนุญาต '+o.radius+' ม.)</span></div>'
+      +(ok?'':'<div class="lbl" style="font-size:12px;color:var(--red)">เช็คอินงานออฟฟิศได้เฉพาะที่หน้าบริษัทเท่านั้น</div>');
+  }
+  return _siteDistanceJob();
+}
+function _siteDistanceJob(){
   if(!currentGeo)return '';
   const sel=$('job'); if(!sel||!sel.value)return '';
   const job=load(LS_PLAN).find(p=>p.id===sel.value);
@@ -761,15 +789,44 @@ function checkin(){
   }
 
   const jobSel=$('job');
-  if(!currentGeo&&!confirm('ยังไม่ได้ดึงพิกัด GPS — เช็คอินโดยไม่มีพิกัด?'))return;
-  if(jobSel.value&&currentGeo){
-    const job=load(LS_PLAN).find(p=>p.id===jobSel.value);
-    if(job&&job.geo){const[la,ln]=job.geo.split(',').map(Number);
-      if(!isNaN(la)&&!isNaN(ln)){const d=haversine(currentGeo.lat,currentGeo.lng,la,ln);
-        if(d>RADIUS&&!confirm(`⚠️ อยู่ห่างจากไซต์งาน "${job.title}" ~${Math.round(d)} ม. (เกิน ${RADIUS} ม.)\nยืนยันเช็คอิน?`))return;}}
+  /* ── ตรวจพื้นที่ก่อนเช็คอิน ──
+     ไม่เลือกงาน = งานออฟฟิศ → ต้องอยู่ในรัศมีหน้าบริษัทเท่านั้น
+     เลือกงานที่มีพิกัดไซต์ → ต้องอยู่ในรัศมีไซต์นั้น
+     เลือกงานที่ยังไม่ใส่พิกัด → ผ่านได้ แต่ติดธง "ยังไม่ยืนยันพิกัด" ให้ HR เห็น */
+  let outside=null, unverified=false;
+  const job=jobSel.value?load(LS_PLAN).find(p=>p.id===jobSel.value):null;
+  const jobGeo=job&&job.geo?String(job.geo).split(',').map(Number):null;
+  const hasJobGeo=jobGeo&&jobGeo.length>1&&!isNaN(jobGeo[0])&&!isNaN(jobGeo[1]);
+  if(!currentGeo){
+    toast('ต้องดึงพิกัด GPS ก่อนเช็คอิน — กดปุ่ม "ดึงพิกัด GPS"');
+    const g=$('geo');if(g){g.scrollIntoView({behavior:'smooth',block:'center'});
+      g.style.transition='box-shadow .3s';g.style.boxShadow='0 0 0 2px var(--orange)';setTimeout(()=>g.style.boxShadow='',1800);}
+    return;
+  }
+  if(hasJobGeo){
+    const d=haversine(currentGeo.lat,currentGeo.lng,jobGeo[0],jobGeo[1]);
+    if(d>RADIUS)outside={where:jobName(job.title,job.jr)||'ไซต์งาน',d:d,limit:RADIUS};
+  }else if(job){
+    unverified=true;                       // งานนอกที่ยังไม่ได้ใส่พิกัดไซต์
+  }else{
+    const o=officeGeo(), d=distOffice();
+    if(d==null){toast('ยังไม่ได้ตั้งจุดเช็คอินของบริษัท — แจ้ง HR');return;}
+    if(d>o.radius)outside={where:'หน้าบริษัท',d:d,limit:o.radius};
+  }
+  let outReason='';
+  if(outside){
+    const far=outside.d<1000?(Math.round(outside.d)+' ม.'):((outside.d/1000).toFixed(1)+' กม.');
+    outReason=prompt('เช็คอินไม่ได้ — อยู่นอกพื้นที่\n\n'
+      +'ห่างจาก'+outside.where+' '+far+' (อนุญาต '+outside.limit+' ม.)\n\n'
+      +'ถ้ามีเหตุจำเป็นจริง พิมพ์เหตุผลแล้วกดตกลง — รายการจะถูกส่งให้ HR ตรวจสอบ\n'
+      +'ถ้าไม่ใช่ กดยกเลิกแล้วเข้ามาเช็คอินในพื้นที่');
+    if(outReason===null)return;
+    outReason=String(outReason).trim();
+    if(outReason.length<5){toast('ต้องระบุเหตุผลอย่างน้อย 5 ตัวอักษร');return;}
   }
   const now=Date.now();
   const rec={id:uid(),name,date:todayStr(),jobId:jobSel.value||'',jr:jobSel.options[jobSel.selectedIndex]?.dataset.jr||'',jobTitle:jobSel.options[jobSel.selectedIndex]?.dataset.title||'',
+    geoOk:!outside,outsideM:outside?Math.round(outside.d):0,outsideWhere:outside?outside.where:'',outsideReason:outReason||'',unverified:unverified||undefined,
     note:$('note').value.trim(),inTs:now,inGeo:currentGeo?`${currentGeo.lat},${currentGeo.lng}`:'',outTs:null,outGeo:''};
   if(rec.jr)rememberJob(rec);
   const log=load(LS_LOG);log.unshift(rec);save(LS_LOG,log);
